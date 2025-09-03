@@ -841,6 +841,13 @@ function nextTurn(room, roomCode) {
   const newIndex = room.gameState.currentPlayerIndex;
   console.log(`[nextTurn] After: room=${roomCode} newIndex=${newIndex} newPlayer=${players[newIndex]?.id} attempts=${attempts}`);
   
+  // Reset game phase to 'playing' for the new player's turn
+  // This ensures the new player can roll dice and start their turn properly
+  if (room.gameState.gamePhase === 'category_selection') {
+    room.gameState.gamePhase = 'playing';
+    console.log(`[nextTurn] Reset gamePhase to 'playing' for new player ${players[newIndex]?.id}`);
+  }
+  
   // Emit the turn change event with updated game state
   io.to(roomCode).emit('next-turn', { gameState: room.gameState });
 }
