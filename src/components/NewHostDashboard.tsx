@@ -109,15 +109,54 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                     </p>
                     {isHostTurn && (
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 max-w-3xl mx-auto">
-                        {questionCategories.map((category) => (
-                          <button
-                            key={category}
-                            onClick={() => selectCategory(category)}
-                            className="bg-white/10 hover:bg-white/20 text-white py-2 px-3 rounded-lg text-sm font-medium"
-                          >
-                            {category}
-                          </button>
-                        ))}
+                        {questionCategories.map((category) => {
+                          const isLocked = currentPlayer?.lockedCategories?.includes(category) || false;
+                          const isRecent = currentPlayer?.recentCategories?.includes(category) || false;
+                          
+                          return (
+                            <button
+                              key={category}
+                              onClick={() => !isLocked && selectCategory(category)}
+                              disabled={isLocked}
+                              className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors relative ${
+                                isLocked 
+                                  ? 'bg-gray-600/50 text-gray-400 cursor-not-allowed opacity-60' 
+                                  : isRecent
+                                    ? 'bg-green-600/30 hover:bg-green-600/40 text-green-200 border border-green-500/30'
+                                    : 'bg-white/10 hover:bg-white/20 text-white'
+                              }`}
+                              title={isLocked ? `Locked: Select 3 different categories first (${currentPlayer?.recentCategories?.length || 0}/3)` : 
+                                    isRecent ? 'Recently selected category' : 
+                                    'Click to select this category'}
+                            >
+                              {category}
+                              {isLocked && (
+                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+                                  <span className="text-xs text-white font-bold">🔒</span>
+                                </div>
+                              )}
+                              {isRecent && (
+                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                                  <span className="text-xs text-white font-bold">✓</span>
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    
+                    {isHostTurn && currentPlayer?.lockedCategories && currentPlayer.lockedCategories.length > 0 && (
+                      <div className="mt-4 p-3 bg-blue-900/30 rounded-lg border border-blue-500/30 max-w-3xl mx-auto">
+                        <p className="text-blue-200 text-sm">
+                          <span className="font-semibold">Category Lock System:</span> Maximum 3 categories can be locked at once. 
+                          When you lock a 4th category, the oldest locked category will be unlocked automatically.
+                          Currently {currentPlayer.lockedCategories.length}/3 categories locked.
+                        </p>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          <span className="text-xs bg-green-600/30 text-green-200 px-2 py-1 rounded">✓ Recent</span>
+                          <span className="text-xs bg-gray-600/50 text-gray-400 px-2 py-1 rounded">🔒 Locked</span>
+                        </div>
                       </div>
                     )}
                   </div>

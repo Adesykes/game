@@ -411,6 +411,21 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // Check if category is locked for this player
+    if (!currentPlayer.lockedCategories) currentPlayer.lockedCategories = [];
+    if (!currentPlayer.recentCategories) currentPlayer.recentCategories = [];
+    
+    if (currentPlayer.lockedCategories.includes(category)) {
+      console.log(`Category ${category} is locked for player ${currentPlayer.name}`);
+      socket.emit('category-locked', {
+        category,
+        message: `You cannot select ${category} yet. You must choose 3 different categories first.`,
+        lockedCategories: currentPlayer.lockedCategories,
+        recentCategories: currentPlayer.recentCategories
+      });
+      return;
+    }
+
     // Get a random question from the selected category
     const categoryQuestions = allQuestions.filter(q => 
       q.category.toLowerCase() === category.toLowerCase() && 
@@ -515,17 +530,46 @@ io.on('connection', (socket) => {
       const current = currentPlayer.categoryScores?.[cat] || 0;
       if (!currentPlayer.categoryScores) currentPlayer.categoryScores = {};
       currentPlayer.categoryScores[cat] = current + 1;
+      
+      // Initialize arrays if they don't exist
+      if (!currentPlayer.lockedCategories) currentPlayer.lockedCategories = [];
+      if (!currentPlayer.recentCategories) currentPlayer.recentCategories = [];
+      
+      // Add category to recent categories if not already there
+      if (!currentPlayer.recentCategories.includes(cat)) {
+        currentPlayer.recentCategories.push(cat);
+        
+        // Keep only the last 3 categories in recent categories for tracking progress
+        if (currentPlayer.recentCategories.length > 3) {
+          currentPlayer.recentCategories = currentPlayer.recentCategories.slice(-3);
+        }
+      }
+      
+      // Always lock this category for the player when answered correctly
+      if (!currentPlayer.lockedCategories.includes(cat)) {
+        // If already have 3 locked categories, unlock the oldest one first
+        if (currentPlayer.lockedCategories.length >= 3) {
+          const unlockedCategory = currentPlayer.lockedCategories.shift(); // Remove oldest
+          console.log(`[submit-answer] Unlocked oldest category ${unlockedCategory} for player ${currentPlayer.name} to maintain max 3 locked categories`);
+        }
+        
+        // Lock the new category
+        currentPlayer.lockedCategories.push(cat);
+        console.log(`[submit-answer] Locked category ${cat} for player ${currentPlayer.name} (${currentPlayer.lockedCategories.length}/3 locked)`);
+      }
     }
     
     room.gameState.currentQuestion = null;
     
     if (isCorrect) {
       room.gameState.gamePhase = 'category_selection';
+      console.log(`[submit-answer] Set gamePhase to 'category_selection' for correct answer by ${currentPlayer.name}`);
     } else {
       // If answer is incorrect, move to forfeit phase
       room.gameState.gamePhase = 'forfeit';
       const forfeit = require('./server_data/forfeits.cjs').getRandomForfeit(currentPlayer);
       room.gameState.currentForfeit = forfeit;
+      console.log(`[submit-answer] Set gamePhase to 'forfeit' for incorrect answer by ${currentPlayer.name}`);
     }
 
     // Clear any pending question timeout since the answer arrived
@@ -535,6 +579,7 @@ io.on('connection', (socket) => {
 
     // Check win condition: 5 correct in each category
     const hasAll = CATEGORIES.every(cat => (currentPlayer.categoryScores?.[cat] || 0) >= REQUIRED_PER_CATEGORY);
+    console.log(`[submit-answer] Win condition check: hasAll=${hasAll}, categoryScores=${JSON.stringify(currentPlayer.categoryScores)}`);
     if (hasAll) {
       console.log(`[submit-answer] Player ${currentPlayer.name} has won by completing all categories!`);
       endGame(room, roomCode, currentPlayer);
@@ -543,6 +588,7 @@ io.on('connection', (socket) => {
     
     // Also check for last player standing (in case this was the only player who wasn't eliminated)
     const lastPlayerStanding = checkLastPlayerStanding(room);
+    console.log(`[submit-answer] Last player check: lastPlayerStanding=${lastPlayerStanding?.name || 'none'}`);
     if (lastPlayerStanding) {
       console.log(`[submit-answer] Last player standing detected: ${lastPlayerStanding.name}`);
       endGame(room, roomCode, lastPlayerStanding);
@@ -554,35 +600,27 @@ io.on('connection', (socket) => {
       playerId,
       isCorrect,
       correctAnswer,
-      gameState: room.gameState
+      gameState: room.gameState,
+      categoryLocked: isCorrect && currentQ ? currentQ.category : null,
+      lockedCategories: currentPlayer.lockedCategories || [],
+      recentCategories: currentPlayer.recentCategories || [],
+      categoryLockMessage: isCorrect && currentQ ? 
+        `Category "${currentQ.category}" is now locked! Select 3 different categories to unlock it.` : null
     });
 
     // For correct answers only, add a small delay before changing turn
     // This ensures client UI has time to show the correct answer
+    console.log(`[submit-answer] Turn advancement check: isCorrect=${isCorrect}, gamePhase=${room.gameState.gamePhase}`);
     if (isCorrect && room.gameState.gamePhase === 'category_selection') {
       console.log(`[nextTurn] After correct answer by ${playerId}, advancing turn`);
       
-      // First, emit a game-state-update with the current game state after the answer was submitted
-      // This ensures clients are aware that the answer was submitted correctly
-      io.to(roomCode).emit('game-state-update', { 
-        gameState: {...room.gameState},
-        message: 'Correct answer submitted'
-      });
-      
-      // Add a small delay to ensure clients process the answer-submitted event first
+      // Add a longer delay to ensure clients have time to process the answer and update UI
       setTimeout(() => {
-        console.log(`[nextTurn] Executing delayed turn advancement for ${playerId}`);
+        console.log(`[submit-answer] Executing delayed turn advancement for ${playerId} after correct answer`);
         nextTurn(room, roomCode);
-        
-        // Send another explicit state update AFTER the turn advances to force UI refresh
-        io.to(roomCode).emit('game-state-update', { 
-          gameState: room.gameState,
-          message: 'Turn advanced after correct answer'
-        });
-        
-        // Double-check that the client is updated with the new player's turn
-        io.to(roomCode).emit('next-turn', { gameState: room.gameState });
-      }, 1500); // Increased delay to ensure UI has time to update
+      }, 2000); // Increased delay to 2 seconds
+    } else {
+      console.log(`[submit-answer] Turn advancement condition not met: isCorrect=${isCorrect}, gamePhase=${room.gameState.gamePhase}`);
     }
   });
 
@@ -843,12 +881,18 @@ function nextTurn(room, roomCode) {
   
   // Reset game phase to 'playing' for the new player's turn
   // This ensures the new player can roll dice and start their turn properly
+  // BUT keep 'category_selection' phase if that's what the game requires
   if (room.gameState.gamePhase === 'category_selection') {
+    // Keep category_selection phase for the next player to choose a category
+    console.log(`[nextTurn] Keeping gamePhase as 'category_selection' for new player ${players[newIndex]?.id} to select category`);
+  } else if (room.gameState.gamePhase !== 'forfeit' && room.gameState.gamePhase !== 'charade_guessing') {
+    // Only reset to 'playing' for other phases
     room.gameState.gamePhase = 'playing';
     console.log(`[nextTurn] Reset gamePhase to 'playing' for new player ${players[newIndex]?.id}`);
   }
   
   // Emit the turn change event with updated game state
+  console.log(`[nextTurn] Emitting next-turn: gamePhase=${room.gameState.gamePhase}, currentPlayerIndex=${room.gameState.currentPlayerIndex}, currentPlayer=${players[newIndex]?.name} (${players[newIndex]?.id})`);
   io.to(roomCode).emit('next-turn', { gameState: room.gameState });
 }
 

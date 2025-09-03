@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useWakeLock } from '../hooks/useWakeLock';
 import { Socket } from 'socket.io-client';
 import { GameState, Question, AnswerResult } from '../types/game';
@@ -27,11 +27,17 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
   const [guessInput, setGuessInput] = useState('');
   const [charadeTimeLeft, setCharadeTimeLeft] = useState(120);
 
+  // Ref to track the latest game state for race condition prevention
+  const gameStateRef = useRef(gameState);
+
   // Add null checks to prevent errors
   const player = gameState?.players?.find(p => p.id === playerId);
   const currentPlayer = gameState?.players?.[gameState.currentPlayerIndex];
   const isMyTurn = currentPlayer?.id === playerId;
   const isEliminated = player?.isEliminated || false;
+  
+  // Debug logging
+  console.log(`[NewPlayerInterface] gamePhase: ${gameState.gamePhase}, currentPlayerIndex: ${gameState.currentPlayerIndex}, isMyTurn: ${isMyTurn}, playerId: ${playerId}, currentPlayerId: ${currentPlayer?.id}`);
   
   // Early return for loading state
   if (!gameState || !socket || !player) {
@@ -47,7 +53,10 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
     );
   }
 
-  // Keep screen awake during active phases
+  // Update ref whenever gameState changes
+  useEffect(() => {
+    gameStateRef.current = gameState;
+  }, [gameState]);
   const wakeActive = ['category_selection', 'question', 'forfeit', 'charade_guessing'].includes(gameState.gamePhase);
   useWakeLock(wakeActive);
 
@@ -167,19 +176,81 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
               <div>
                 <h2 className="text-xl font-bold text-white mb-4">
                   {isMyTurn ? 'Choose a category' : `${currentPlayer.name} is choosing a category`}
+                  {!isMyTurn && (
+                    <div className="text-sm text-white/60 mt-1">
+                      Waiting for {currentPlayer.name} to select a category...
+                    </div>
+                  )}
                 </h2>
                 
                 {isMyTurn && (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-                    {questionCategories.map(category => (
-                      <button
-                        key={category}
-                        onClick={() => selectCategory(category)}
-                        className="bg-white/20 hover:bg-white/30 text-white p-2 rounded-xl font-medium transition-colors text-sm"
-                      >
-                        {category}
-                      </button>
-                    ))}
+                    {questionCategories.map(category => {
+                      const isLocked = currentPlayer?.lockedCategories?.includes(category) || false;
+                      const isRecent = currentPlayer?.recentCategories?.includes(category) || false;
+                      
+                      return (
+                        <button
+                          key={category}
+                          onClick={() => {
+                            // Double-check it's still our turn before emitting using latest game state
+                            const latestGameState = gameStateRef.current;
+                            const currentPlayerCheck = latestGameState.players?.[latestGameState.currentPlayerIndex];
+                            const isStillMyTurn = currentPlayerCheck?.id === playerId;
+                            console.log(`[client] Category click: ${category}, isStillMyTurn: ${isStillMyTurn}, currentPlayer: ${currentPlayerCheck?.id}, myId: ${playerId}`);
+                            if (!isStillMyTurn) {
+                              console.log('Turn changed before click was processed, ignoring');
+                              return;
+                            }
+                            !isLocked && selectCategory(category);
+                          }}
+                          disabled={isLocked}
+                          className={`p-2 rounded-xl font-medium transition-colors text-sm relative ${
+                            isLocked 
+                              ? 'bg-gray-600/50 text-gray-400 cursor-not-allowed opacity-60' 
+                              : isRecent
+                                ? 'bg-green-600/30 hover:bg-green-600/40 text-green-200 border border-green-500/30'
+                                : 'bg-white/20 hover:bg-white/30 text-white'
+                          }`}
+                          title={isLocked ? `Locked: Select 3 different categories first (${currentPlayer?.recentCategories?.length || 0}/3)` : 
+                                isRecent ? 'Recently selected category' : 
+                                'Click to select this category'}
+                        >
+                          {category}
+                          {isLocked && (
+                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+                              <span className="text-xs text-white font-bold">🔒</span>
+                            </div>
+                          )}
+                          {isRecent && (
+                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                              <span className="text-xs text-white font-bold">✓</span>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                
+                {!isMyTurn && (
+                  <div className="text-center py-8">
+                    <div className="text-white/60 text-lg mb-2">⏳</div>
+                    <p className="text-white/60">Waiting for {currentPlayer?.name} to choose a category...</p>
+                  </div>
+                )}
+                
+                {currentPlayer?.lockedCategories && currentPlayer.lockedCategories.length > 0 && (
+                  <div className="mt-4 p-3 bg-blue-900/30 rounded-lg border border-blue-500/30">
+                    <p className="text-blue-200 text-sm">
+                      <span className="font-semibold">Category Lock System:</span> Maximum 3 categories can be locked at once. 
+                      When you lock a 4th category, the oldest locked category will be unlocked automatically.
+                      Currently {currentPlayer.lockedCategories.length}/3 categories locked.
+                    </p>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      <span className="text-xs bg-green-600/30 text-green-200 px-2 py-1 rounded">✓ Recent</span>
+                      <span className="text-xs bg-gray-600/50 text-gray-400 px-2 py-1 rounded">🔒 Locked</span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -332,7 +403,40 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                 {answerResult.isCorrect ? 'Correct!' : 'Incorrect!'}
               </h3>
               {answerResult.isCorrect ? (
-                <p className="text-white">You earned a point in this category!</p>
+                <div>
+                  <p className="text-white mb-2">You earned a point in this category!</p>
+                  {answerResult.categoryLockMessage && (
+                    <div className="bg-blue-600/20 border border-blue-400/30 rounded-lg p-3 mt-3">
+                      <p className="text-blue-300 text-sm font-medium">
+                        {answerResult.categoryLockMessage}
+                      </p>
+                      {answerResult.lockedCategories && answerResult.lockedCategories.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-white/70 text-xs">Locked categories:</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {answerResult.lockedCategories.map((cat, index) => (
+                              <span key={index} className="bg-red-600/30 text-red-300 text-xs px-2 py-1 rounded">
+                                {cat}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {answerResult.recentCategories && answerResult.recentCategories.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-white/70 text-xs">Recent categories ({answerResult.recentCategories.length}/3):</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {answerResult.recentCategories.map((cat, index) => (
+                              <span key={index} className="bg-green-600/30 text-green-300 text-xs px-2 py-1 rounded">
+                                {cat}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               ) : (
                 <p className="text-white">You'll have to do a forfeit!</p>
               )}

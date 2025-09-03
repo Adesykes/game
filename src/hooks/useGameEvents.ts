@@ -27,6 +27,8 @@ export const useGameEvents = (
 
     const onNextTurn = ({ gameState }: { gameState: GameState }) => {
       console.log('[client] next-turn received, updating game state');
+      console.log(`[client] next-turn: gamePhase=${gameState.gamePhase}, currentPlayerIndex=${gameState.currentPlayerIndex}, currentPlayer=${gameState.players[gameState.currentPlayerIndex]?.name} (${gameState.players[gameState.currentPlayerIndex]?.id})`);
+      console.log(`[client] My socket ID: ${socket.id}`);
       setGameState(gameState);
       setCurrentQuestion(null);
       setAnswerResult(null);
@@ -42,25 +44,37 @@ export const useGameEvents = (
       gameState, 
       isCorrect,
       playerId,
-      correctAnswer
+      correctAnswer,
+      categoryLocked,
+      lockedCategories,
+      recentCategories,
+      categoryLockMessage
     }: { 
       gameState: GameState;
       isCorrect: boolean;
       playerId: string;
       correctAnswer: number;
+      categoryLocked?: string;
+      lockedCategories?: string[];
+      recentCategories?: string[];
+      categoryLockMessage?: string;
     }) => {
       console.log(`[client] answer-submitted by ${playerId}, isCorrect: ${isCorrect}`);
       
       // Update game state first
       setGameState(gameState);
       
-      // Set answer result for feedback
+      // Set answer result for feedback with category locking info
       setAnswerResult({ 
         playerId, 
         answerIndex: -1, // Not needed for this implementation
         isCorrect, 
         correctAnswer: correctAnswer ?? currentQuestion?.correctAnswer ?? 0, 
-        points: isCorrect ? 100 : 0 
+        points: isCorrect ? 100 : 0,
+        categoryLocked,
+        lockedCategories: lockedCategories || [],
+        recentCategories: recentCategories || [],
+        categoryLockMessage
       });
       
       // Only reset current question for incorrect answers initially
@@ -105,6 +119,23 @@ export const useGameEvents = (
       setCharadeDeadline(null);
     };
 
+    const onCategoryLocked = ({ 
+      category, 
+      message, 
+      lockedCategories, 
+      recentCategories 
+    }: { 
+      category: string;
+      message: string;
+      lockedCategories: string[];
+      recentCategories: string[];
+    }) => {
+      console.log(`[client] category-locked: ${category}`);
+      // Show an alert to the user with detailed information
+      const detailedMessage = `${message}\n\nLocked categories: ${lockedCategories.join(', ')}\nRecent categories: ${recentCategories.join(', ')} (${recentCategories.length}/3)`;
+      alert(detailedMessage);
+    };
+
     // Register event listeners
     socket.on('player-joined', onPlayerJoined);
     socket.on('game-started', (data) => {
@@ -123,6 +154,7 @@ export const useGameEvents = (
     socket.on('forfeit-completed', onForfeitCompleted);
     socket.on('game-finished', onGameFinished);
     socket.on('game-state-update', onGameStateUpdate);
+    socket.on('category-locked', onCategoryLocked);
 
     // Clean up
     return () => {
@@ -137,6 +169,7 @@ export const useGameEvents = (
       socket.off('forfeit-completed', onForfeitCompleted);
       socket.off('game-finished', onGameFinished);
       socket.off('game-state-update', onGameStateUpdate);
+      socket.off('category-locked', onCategoryLocked);
     };
   }, [socket, setGameState, currentQuestion]);
 

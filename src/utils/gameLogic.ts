@@ -105,9 +105,12 @@ export const createPlayer = (name: string, isHost: boolean = false): Player => {
     color: '',
     avatar: '',
     score: 0,
-    position: 0,
+    lives: 3, // Initialize with 3 lives
     isHost,
-    categoryProgress: {} // Initialize empty category progress tracking
+    isEliminated: false,
+    categoryScores: {}, // Initialize empty category scores
+    lockedCategories: [], // Initialize empty locked categories
+    recentCategories: [] // Initialize empty recent categories
   };
 };
 

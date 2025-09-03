@@ -147,6 +147,37 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                   <p className="text-white">
                     {answerResult.isCorrect ? `+${answerResult.points} points!` : `Correct answer was: ${String.fromCharCode(65 + answerResult.correctAnswer)}`}
                   </p>
+                  {answerResult.isCorrect && answerResult.categoryLockMessage && (
+                    <div className="mt-3 bg-blue-600/20 border border-blue-400/30 rounded-lg p-3">
+                      <p className="text-blue-300 text-sm font-medium">
+                        {answerResult.categoryLockMessage}
+                      </p>
+                      {answerResult.lockedCategories && answerResult.lockedCategories.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-white/70 text-xs">Locked categories:</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {answerResult.lockedCategories.map((cat, index) => (
+                              <span key={index} className="bg-red-600/30 text-red-300 text-xs px-2 py-1 rounded">
+                                {cat}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {answerResult.recentCategories && answerResult.recentCategories.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-white/70 text-xs">Recent categories ({answerResult.recentCategories.length}/3):</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {answerResult.recentCategories.map((cat, index) => (
+                              <span key={index} className="bg-green-600/30 text-green-300 text-xs px-2 py-1 rounded">
+                                {cat}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -193,7 +224,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                     {/* Category progress */}
                     <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
                       {questionCategories.map((cat) => {
-                        const cur = player.categoryProgress?.[cat] ?? 0;
+                        const cur = player.categoryScores?.[cat] ?? 0;
                         return (
                           <div key={cat} className="bg-white/10 rounded-lg px-2 py-1 flex items-center justify-between">
                             <span className="text-white/80 text-xs">{cat}</span>
