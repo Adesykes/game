@@ -97,7 +97,8 @@ const createPlayer = (name, isHost = false) => {
     isHost,
     isEliminated: false,
     categoryScores,
-    charadeCount: 0 // Track number of charades performed
+    charadeCount: 0,
+    needsCharadeForLife: false // Track if player got question wrong and needs to lose life on charade failure
   };
 };
 
@@ -504,24 +505,13 @@ io.on('connection', (socket) => {
     const correctAnswer = currentQ.correctAnswer;
     
     if (!isCorrect) {
-      // On incorrect answers, deduct a life
-      currentPlayer.lives = Math.max(0, (currentPlayer.lives || 0) - 1);
-      
-      if (currentPlayer.lives === 0) {
-        console.log(`[submit-answer] Player ${currentPlayer.name} eliminated (no lives left)`);
-        currentPlayer.isEliminated = true;
-        
-        // Check if this elimination resulted in only one player remaining
-        const lastPlayerStanding = checkLastPlayerStanding(room);
-        if (lastPlayerStanding) {
-          console.log(`[submit-answer] Last player standing detected: ${lastPlayerStanding.name}`);
-          // End the game with the last player as winner
-          endGame(room, roomCode, lastPlayerStanding);
-          return; // Exit early
-        }
-      } else {
-        console.log(`[submit-answer] Player ${currentPlayer.name} lost a life (${currentPlayer.lives} remaining)`);
-      }
+      // On incorrect answers, mark that player needs to do charade (but don't deduct life yet)
+      // Life will only be deducted if they fail the charade
+      currentPlayer.needsCharadeForLife = true; // Track that this player got question wrong
+      console.log(`[submit-answer] Player ${currentPlayer.name} answered incorrectly - will do charade`);
+    } else {
+      // On correct answers, reset the flag
+      currentPlayer.needsCharadeForLife = false;
     }
 
     // Update category progress on correct answers (use categoryScores)
@@ -638,6 +628,10 @@ io.on('connection', (socket) => {
     if (gameState.currentForfeit.type === 'shot') {
       // For shot forfeits, we just wait a moment then move to next turn
       console.log(`[forfeit] Shot forfeit for ${currentPlayer.name}`);
+      
+      // Reset the charade life flag since shot forfeits don't involve charades
+      currentPlayer.needsCharadeForLife = false;
+      
       gameState.gamePhase = 'category_selection';
       gameState.currentForfeit = null;
       
@@ -670,34 +664,40 @@ io.on('connection', (socket) => {
   const handle = setTimeout(() => {
       if (!gameState.charadeSolved) {
         const now = Date.now();
-        console.log(`[charade] timeout: room=${roomCode} player=${currentPlayer.id} elapsedMs=${now - startedAt}`);
-        // Fail: deduct a life and potentially eliminate
-        currentPlayer.lives = Math.max(0, (currentPlayer.lives || 0) - 1);
-        if (currentPlayer.lives === 0) {
-          currentPlayer.isEliminated = true;
-          console.log(`[charade] Player ${currentPlayer.name} eliminated (no lives left)`);
+        // Fail: only deduct a life if the player got the question wrong
+        if (currentPlayer.needsCharadeForLife) {
+          currentPlayer.lives = Math.max(0, (currentPlayer.lives || 0) - 1);
+          console.log(`[charade] Player ${currentPlayer.name} failed charade after wrong answer - lost a life (${currentPlayer.lives} remaining)`);
           
-          // Check if this was the second-to-last player (leaving only one player)
-          const lastPlayerStanding = checkLastPlayerStanding(room);
-          if (lastPlayerStanding) {
-            console.log(`[charade] Last player standing detected: ${lastPlayerStanding.name}`);
+          if (currentPlayer.lives === 0) {
+            currentPlayer.isEliminated = true;
+            console.log(`[charade] Player ${currentPlayer.name} eliminated (no lives left)`);
             
-            // First notify clients about the charade failure
-            io.to(roomCode).emit('charade-failed', { gameState, playerId: currentPlayer.id });
-            
-            // Then end the game with the last player as winner
-            endGame(room, roomCode, lastPlayerStanding);
-            
-            // Cancel the timeout since game is over
-            clearTimeout(handle);
-            charadeTimeouts.delete(roomCode);
-            
-            // Exit early since the game is over
-            return;
+            // Check if this was the second-to-last player (leaving only one player)
+            const lastPlayerStanding = checkLastPlayerStanding(room);
+            if (lastPlayerStanding) {
+              console.log(`[charade] Last player standing detected: ${lastPlayerStanding.name}`);
+              
+              // First notify clients about the charade failure
+              io.to(roomCode).emit('charade-failed', { gameState, playerId: currentPlayer.id });
+              
+              // Then end the game with the last player as winner
+              endGame(room, roomCode, lastPlayerStanding);
+              
+              // Cancel the timeout since game is over
+              clearTimeout(handle);
+              charadeTimeouts.delete(roomCode);
+              
+              // Exit early since the game is over
+              return;
+            }
           }
         } else {
-          console.log(`[charade] Player ${currentPlayer.name} lost a life (${currentPlayer.lives} remaining)`);
+          console.log(`[charade] Player ${currentPlayer.name} failed charade but keeps life (got question correct)`);
         }
+        
+        // Reset the flag
+        currentPlayer.needsCharadeForLife = false;
         
         // Reset for next turn
         gameState.gamePhase = 'category_selection';
@@ -737,6 +737,9 @@ io.on('connection', (socket) => {
       // Small reward for the actor for successfully conveying the word
       const actor = gameState.players[gameState.currentPlayerIndex];
       actor.score = (actor.score || 0) + 50;
+      
+      // Reset the charade life flag since they succeeded
+      actor.needsCharadeForLife = false;
 
       // Award an extra life to the solver
       const solver = gameState.players.find(p => p.id === playerId);
