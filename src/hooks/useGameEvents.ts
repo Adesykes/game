@@ -1,0 +1,144 @@
+import { useEffect, useState } from 'react';
+import { Socket } from 'socket.io-client';
+import { GameState, Question, AnswerResult } from '../types/game';
+
+export const useGameEvents = (
+  socket: Socket | null,
+  setGameState: (gameState: GameState | null) => void
+) => {
+  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
+  const [answerResult, setAnswerResult] = useState<AnswerResult | null>(null);
+  const [charadeDeadline, setCharadeDeadline] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const onPlayerJoined = ({ gameState }: { gameState: GameState }) => setGameState(gameState);
+    const onGameStarted = ({ gameState }: { gameState: GameState }) => {
+      setGameState(gameState);
+    };
+
+    // Added explicit handler for game state updates
+    const onGameStateUpdate = ({ gameState, message }: { gameState: GameState, message?: string }) => {
+      console.log(`[client] game-state-update received: ${message || 'No message'}`);
+      setGameState(gameState);
+      setCharadeDeadline(null); // Reset charade deadline on state updates
+    };
+
+    const onNextTurn = ({ gameState }: { gameState: GameState }) => {
+      console.log('[client] next-turn received, updating game state');
+      setGameState(gameState);
+      setCurrentQuestion(null);
+      setAnswerResult(null);
+      setCharadeDeadline(null);
+    };
+
+    const onCategorySelected = ({ question, gameState }: { question: Question; gameState: GameState }) => {
+      setGameState(gameState);
+      setCurrentQuestion(question);
+    };
+
+    const onAnswerSubmitted = ({ 
+      gameState, 
+      isCorrect,
+      playerId,
+      correctAnswer
+    }: { 
+      gameState: GameState;
+      isCorrect: boolean;
+      playerId: string;
+      correctAnswer: number;
+    }) => {
+      console.log(`[client] answer-submitted by ${playerId}, isCorrect: ${isCorrect}`);
+      
+      // Update game state first
+      setGameState(gameState);
+      
+      // Set answer result for feedback
+      setAnswerResult({ 
+        playerId, 
+        answerIndex: -1, // Not needed for this implementation
+        isCorrect, 
+        correctAnswer: correctAnswer ?? currentQuestion?.correctAnswer ?? 0, 
+        points: isCorrect ? 100 : 0 
+      });
+      
+      // Only reset current question for incorrect answers initially
+      // For correct answers, we'll clear it on next-turn or game-state-update
+      if (!isCorrect) {
+        setCurrentQuestion(null);
+      } else {
+        console.log('[client] Correct answer - waiting for turn advancement');
+        // Add a backup timer to clear the question if we don't get a turn update
+        setTimeout(() => {
+          setCurrentQuestion(null);
+        }, 2000);
+      }
+    };
+    
+    const onCharadeStarted = ({ gameState, deadline }: { gameState: GameState, deadline?: number }) => {
+      console.log('[client] charade-started deadline:', deadline);
+      setGameState(gameState);
+      setCharadeDeadline(typeof deadline === 'number' ? deadline : null);
+    };
+    
+    const onCharadeSolved = ({ gameState, solverId }: { gameState: GameState, solverId: string }) => {
+      console.log('[client] charade-solved by:', solverId);
+      setGameState(gameState);
+      setCharadeDeadline(null);
+    };
+    
+    const onCharadeFailed = ({ gameState, playerId }: { gameState: GameState, playerId: string }) => {
+      console.log('[client] charade-failed by:', playerId);
+      setGameState(gameState);
+      setCharadeDeadline(null);
+    };
+
+    const onGameFinished = ({ gameState }: { gameState: GameState }) => {
+      setGameState(gameState);
+      setCharadeDeadline(null);
+    };
+    
+    const onForfeitCompleted = ({ gameState, forfeitType }: { gameState: GameState, forfeitType: string }) => {
+      console.log(`[client] forfeit-completed of type: ${forfeitType}`);
+      setGameState(gameState);
+      setCharadeDeadline(null);
+    };
+
+    // Register event listeners
+    socket.on('player-joined', onPlayerJoined);
+    socket.on('game-started', (data) => {
+      console.log('Game started event received:', data);
+      onGameStarted(data);
+    });
+    socket.on('next-turn', onNextTurn);
+    socket.on('category-selected', (data) => {
+      console.log('Category selected event received:', data);
+      onCategorySelected(data);
+    });
+    socket.on('answer-submitted', onAnswerSubmitted);
+    socket.on('charade-started', onCharadeStarted);
+    socket.on('charade-solved', onCharadeSolved);
+    socket.on('charade-failed', onCharadeFailed);
+    socket.on('forfeit-completed', onForfeitCompleted);
+    socket.on('game-finished', onGameFinished);
+    socket.on('game-state-update', onGameStateUpdate);
+
+    // Clean up
+    return () => {
+      socket.off('player-joined', onPlayerJoined);
+      socket.off('game-started', onGameStarted);
+      socket.off('next-turn', onNextTurn);
+      socket.off('category-selected', onCategorySelected);
+      socket.off('answer-submitted', onAnswerSubmitted);
+      socket.off('charade-started', onCharadeStarted);
+      socket.off('charade-solved', onCharadeSolved);
+      socket.off('charade-failed', onCharadeFailed);
+      socket.off('forfeit-completed', onForfeitCompleted);
+      socket.off('game-finished', onGameFinished);
+      socket.off('game-state-update', onGameStateUpdate);
+    };
+  }, [socket, setGameState, currentQuestion]);
+
+  return { currentQuestion, answerResult, charadeDeadline };
+};

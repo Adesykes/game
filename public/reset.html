@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reset Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #673AB7, #2196F3);
+            color: white;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-top: 20px;
+            cursor: pointer;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background: #388E3C;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Reset Game State</h1>
+        <p>Click the button below to clear localStorage and reset the game.</p>
+        <button id="resetButton">Reset Game</button>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        document.getElementById('resetButton').addEventListener('click', function() {
+            // Clear all localStorage items
+            localStorage.clear();
+            
+            document.getElementById('status').textContent = 'Game state cleared! Redirecting...';
+            
+            // Redirect back to the game after a brief delay
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
