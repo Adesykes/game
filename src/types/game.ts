@@ -36,6 +36,8 @@ export interface GameState {
   currentForfeit: Forfeit | null;
   charadeSolution: string | null; // The word/phrase being acted out
   charadeSolved: boolean;
+  globalLockedCategories: string[]; // Categories locked globally for all players
+  globalRecentCategories: string[]; // Last 3 categories selected globally
 }
 
 // No longer using board squares or chance events

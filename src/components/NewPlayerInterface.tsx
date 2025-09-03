@@ -186,8 +186,8 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                 {isMyTurn && (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
                     {questionCategories.map(category => {
-                      const isLocked = currentPlayer?.lockedCategories?.includes(category) || false;
-                      const isRecent = currentPlayer?.recentCategories?.includes(category) || false;
+                      const isLocked = gameState?.globalLockedCategories?.includes(category) || false;
+                      const isRecent = gameState?.globalRecentCategories?.includes(category) || false;
                       
                       return (
                         <button
@@ -212,7 +212,7 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                                 ? 'bg-green-600/30 hover:bg-green-600/40 text-green-200 border border-green-500/30'
                                 : 'bg-white/20 hover:bg-white/30 text-white'
                           }`}
-                          title={isLocked ? `Locked: Select 3 different categories first (${currentPlayer?.recentCategories?.length || 0}/3)` : 
+                          title={isLocked ? `Locked: Select 3 different categories first (${gameState?.globalRecentCategories?.length || 0}/3)` : 
                                 isRecent ? 'Recently selected category' : 
                                 'Click to select this category'}
                         >
@@ -240,12 +240,12 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                   </div>
                 )}
                 
-                {currentPlayer?.lockedCategories && currentPlayer.lockedCategories.length > 0 && (
+                {gameState?.globalLockedCategories && gameState.globalLockedCategories.length > 0 && (
                   <div className="mt-4 p-3 bg-blue-900/30 rounded-lg border border-blue-500/30">
                     <p className="text-blue-200 text-sm">
-                      <span className="font-semibold">Category Lock System:</span> Maximum 3 categories can be locked at once. 
-                      When you lock a 4th category, the oldest locked category will be unlocked automatically.
-                      Currently {currentPlayer.lockedCategories.length}/3 categories locked.
+                      <span className="font-semibold">Category Lock System:</span> Maximum 3 categories can be locked at once for ALL players. 
+                      When a category is answered correctly, it gets locked globally. Select 3 different categories to unlock the oldest one.
+                      Currently {gameState.globalLockedCategories.length}/3 categories locked globally.
                     </p>
                     <div className="flex flex-wrap gap-1 mt-2">
                       <span className="text-xs bg-green-600/30 text-green-200 px-2 py-1 rounded">✓ Recent</span>

@@ -224,7 +224,9 @@ io.on('connection', (socket) => {
         round: 1,
         currentForfeit: null,
         charadeSolution: null,
-        charadeSolved: false
+        charadeSolved: false,
+        globalLockedCategories: [], // Global categories locked for all players
+        globalRecentCategories: [] // Global recent categories for all players
       };
 
       const room = {
@@ -412,17 +414,17 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Check if category is locked for this player
-    if (!currentPlayer.lockedCategories) currentPlayer.lockedCategories = [];
-    if (!currentPlayer.recentCategories) currentPlayer.recentCategories = [];
+    // Check if category is locked globally
+    if (!room.gameState.globalLockedCategories) room.gameState.globalLockedCategories = [];
+    if (!room.gameState.globalRecentCategories) room.gameState.globalRecentCategories = [];
     
-    if (currentPlayer.lockedCategories.includes(category)) {
-      console.log(`Category ${category} is locked for player ${currentPlayer.name}`);
+    if (room.gameState.globalLockedCategories.includes(category)) {
+      console.log(`Category ${category} is locked globally`);
       socket.emit('category-locked', {
         category,
         message: `You cannot select ${category} yet. You must choose 3 different categories first.`,
-        lockedCategories: currentPlayer.lockedCategories,
-        recentCategories: currentPlayer.recentCategories
+        lockedCategories: room.gameState.globalLockedCategories,
+        recentCategories: room.gameState.globalRecentCategories
       });
       return;
     }
@@ -521,31 +523,31 @@ io.on('connection', (socket) => {
       if (!currentPlayer.categoryScores) currentPlayer.categoryScores = {};
       currentPlayer.categoryScores[cat] = current + 1;
       
-      // Initialize arrays if they don't exist
-      if (!currentPlayer.lockedCategories) currentPlayer.lockedCategories = [];
-      if (!currentPlayer.recentCategories) currentPlayer.recentCategories = [];
+      // Initialize global arrays if they don't exist
+      if (!room.gameState.globalLockedCategories) room.gameState.globalLockedCategories = [];
+      if (!room.gameState.globalRecentCategories) room.gameState.globalRecentCategories = [];
       
-      // Add category to recent categories if not already there
-      if (!currentPlayer.recentCategories.includes(cat)) {
-        currentPlayer.recentCategories.push(cat);
+      // Add category to global recent categories if not already there
+      if (!room.gameState.globalRecentCategories.includes(cat)) {
+        room.gameState.globalRecentCategories.push(cat);
         
         // Keep only the last 3 categories in recent categories for tracking progress
-        if (currentPlayer.recentCategories.length > 3) {
-          currentPlayer.recentCategories = currentPlayer.recentCategories.slice(-3);
+        if (room.gameState.globalRecentCategories.length > 3) {
+          room.gameState.globalRecentCategories = room.gameState.globalRecentCategories.slice(-3);
         }
       }
       
-      // Always lock this category for the player when answered correctly
-      if (!currentPlayer.lockedCategories.includes(cat)) {
+      // Always lock this category globally when answered correctly
+      if (!room.gameState.globalLockedCategories.includes(cat)) {
         // If already have 3 locked categories, unlock the oldest one first
-        if (currentPlayer.lockedCategories.length >= 3) {
-          const unlockedCategory = currentPlayer.lockedCategories.shift(); // Remove oldest
-          console.log(`[submit-answer] Unlocked oldest category ${unlockedCategory} for player ${currentPlayer.name} to maintain max 3 locked categories`);
+        if (room.gameState.globalLockedCategories.length >= 3) {
+          const unlockedCategory = room.gameState.globalLockedCategories.shift(); // Remove oldest
+          console.log(`[submit-answer] Unlocked oldest category ${unlockedCategory} globally to maintain max 3 locked categories`);
         }
         
-        // Lock the new category
-        currentPlayer.lockedCategories.push(cat);
-        console.log(`[submit-answer] Locked category ${cat} for player ${currentPlayer.name} (${currentPlayer.lockedCategories.length}/3 locked)`);
+        // Lock the new category globally
+        room.gameState.globalLockedCategories.push(cat);
+        console.log(`[submit-answer] Locked category ${cat} globally (${room.gameState.globalLockedCategories.length}/3 locked)`);
       }
     }
     
@@ -592,10 +594,10 @@ io.on('connection', (socket) => {
       correctAnswer,
       gameState: room.gameState,
       categoryLocked: isCorrect && currentQ ? currentQ.category : null,
-      lockedCategories: currentPlayer.lockedCategories || [],
-      recentCategories: currentPlayer.recentCategories || [],
+      lockedCategories: room.gameState.globalLockedCategories || [],
+      recentCategories: room.gameState.globalRecentCategories || [],
       categoryLockMessage: isCorrect && currentQ ? 
-        `Category "${currentQ.category}" is now locked! Select 3 different categories to unlock it.` : null
+        `Category "${currentQ.category}" is now locked for ALL players! Select 3 different categories to unlock it.` : null
     });
 
     // For correct answers only, add a small delay before changing turn

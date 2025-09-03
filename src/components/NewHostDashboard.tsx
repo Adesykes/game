@@ -28,15 +28,17 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
   
   const selectCategory = (category: string) => {
     if (gameState.gamePhase !== 'category_selection') return;
-    // Use the current player's id (host when it's their turn)
-    socket.emit('select-category', gameState.id, currentPlayer.id, category);
+    if (!isHostTurn || !hostPlayer) return; // Only allow host to select categories on their turn
+    // Use the host player's id
+    socket.emit('select-category', gameState.id, hostPlayer.id, category);
   };
 
   const submitAnswer = (answerIndex: number) => {
     if (gameState.gamePhase !== 'question' || !gameState.currentQuestion) return;
-    // Submit on behalf of the current player (who is answering this round)
-    console.log('[Host] Submitting answer on behalf of', currentPlayer.name, 'index:', answerIndex);
-    socket.emit('submit-answer', gameState.id, currentPlayer.id, answerIndex);
+    if (!isHostTurn || !hostPlayer) return; // Only allow host to answer on their turn
+    // Submit on behalf of the host
+    console.log('[Host] Submitting answer on behalf of', hostPlayer.name, 'index:', answerIndex);
+    socket.emit('submit-answer', gameState.id, hostPlayer.id, answerIndex);
   };
 
   const startCharade = () => {
@@ -110,8 +112,8 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                     {isHostTurn && (
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 max-w-3xl mx-auto">
                         {questionCategories.map((category) => {
-                          const isLocked = currentPlayer?.lockedCategories?.includes(category) || false;
-                          const isRecent = currentPlayer?.recentCategories?.includes(category) || false;
+                          const isLocked = gameState?.globalLockedCategories?.includes(category) || false;
+                          const isRecent = gameState?.globalRecentCategories?.includes(category) || false;
                           
                           return (
                             <button
@@ -125,7 +127,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                                     ? 'bg-green-600/30 hover:bg-green-600/40 text-green-200 border border-green-500/30'
                                     : 'bg-white/10 hover:bg-white/20 text-white'
                               }`}
-                              title={isLocked ? `Locked: Select 3 different categories first (${currentPlayer?.recentCategories?.length || 0}/3)` : 
+                              title={isLocked ? `Locked: Select 3 different categories first (${gameState?.globalRecentCategories?.length || 0}/3)` : 
                                     isRecent ? 'Recently selected category' : 
                                     'Click to select this category'}
                             >
@@ -146,12 +148,12 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                       </div>
                     )}
                     
-                    {isHostTurn && currentPlayer?.lockedCategories && currentPlayer.lockedCategories.length > 0 && (
+                    {isHostTurn && gameState?.globalLockedCategories && gameState.globalLockedCategories.length > 0 && (
                       <div className="mt-4 p-3 bg-blue-900/30 rounded-lg border border-blue-500/30 max-w-3xl mx-auto">
                         <p className="text-blue-200 text-sm">
-                          <span className="font-semibold">Category Lock System:</span> Maximum 3 categories can be locked at once. 
-                          When you lock a 4th category, the oldest locked category will be unlocked automatically.
-                          Currently {currentPlayer.lockedCategories.length}/3 categories locked.
+                          <span className="font-semibold">Category Lock System:</span> Maximum 3 categories can be locked at once for ALL players. 
+                          When a category is answered correctly, it gets locked globally. Select 3 different categories to unlock the oldest one.
+                          Currently {gameState.globalLockedCategories.length}/3 categories locked globally.
                         </p>
                         <div className="flex flex-wrap gap-1 mt-2">
                           <span className="text-xs bg-green-600/30 text-green-200 px-2 py-1 rounded">✓ Recent</span>
@@ -169,18 +171,25 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                       <Clock className="w-5 h-5 text-white/60" />
                     </div>
                     <p className="text-white text-lg mb-4">{gameState.currentQuestion.question}</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {gameState.currentQuestion.options.map((opt, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => submitAnswer(idx)}
-                          className="bg-white/10 hover:bg-white/20 text-white py-2 px-3 rounded-lg text-left"
-                        >
-                          <span className="text-yellow-400 mr-2">{String.fromCharCode(65 + idx)}.</span>
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
+                    
+                    {isHostTurn ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        {gameState.currentQuestion.options.map((opt, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => submitAnswer(idx)}
+                            className="bg-white/10 hover:bg-white/20 text-white py-2 px-3 rounded-lg text-left"
+                          >
+                            <span className="text-yellow-400 mr-2">{String.fromCharCode(65 + idx)}.</span>
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-white/60">Waiting for {currentPlayer?.name} to answer...</p>
+                      </div>
+                    )}
                   </div>
                 )}
                 
