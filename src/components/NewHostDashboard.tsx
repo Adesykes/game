@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Socket } from 'socket.io-client';
 import { GameState } from '../types/game';
 import { Users, Trophy, Clock } from 'lucide-react';
@@ -23,6 +23,9 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
 }) => {
   const [showQR, setShowQR] = useState(true);
   const [guessInput, setGuessInput] = useState('');
+  const [charadeTimeLeft, setCharadeTimeLeft] = useState(120);
+  const [pictionaryTimeLeft, setPictionaryTimeLeft] = useState(60);
+  const [questionTimeLeft, setQuestionTimeLeft] = useState(30);
   
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const activePlayers = gameState.players.filter(p => !p.isEliminated);
@@ -71,6 +74,46 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
     if (gameState.players.length < 2) return;
     socket.emit('start-game', roomCode);
   };
+
+  // Charade countdown synced to server deadline
+  useEffect(() => {
+    if (gameState.gamePhase !== 'charade_guessing') return;
+    const id = setInterval(() => {
+      const now = Date.now();
+      const dl = charadeDeadline ?? now;
+      const remaining = Math.max(0, Math.floor((dl - now) / 1000));
+      setCharadeTimeLeft(remaining);
+    }, 250);
+    return () => clearInterval(id);
+  }, [gameState.gamePhase, charadeDeadline]);
+
+  // Pictionary countdown synced to server deadline
+  useEffect(() => {
+    if (gameState.gamePhase !== 'pictionary_drawing') return;
+    const id = setInterval(() => {
+      const now = Date.now();
+      const dl = pictionaryDeadline ?? now;
+      const remaining = Math.max(0, Math.floor((dl - now) / 1000));
+      setPictionaryTimeLeft(remaining);
+    }, 250);
+    return () => clearInterval(id);
+  }, [gameState.gamePhase, pictionaryDeadline]);
+
+  // Question countdown timer
+  useEffect(() => {
+    if (gameState.gamePhase !== 'question' || !gameState.currentQuestion) return;
+    if (questionTimeLeft <= 0) return;
+    
+    const timer = setTimeout(() => setQuestionTimeLeft(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [gameState.currentQuestion, gameState.gamePhase, questionTimeLeft]);
+
+  // Reset question timer when a new question appears
+  useEffect(() => {
+    if (gameState.currentQuestion && gameState.gamePhase === 'question') {
+      setQuestionTimeLeft(30);
+    }
+  }, [gameState.currentQuestion, gameState.gamePhase]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-4">
@@ -184,7 +227,12 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                   <div className="mt-2 text-left bg-white/10 p-4 rounded-xl">
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-yellow-400 font-bold">{gameState.currentQuestion.category}</span>
-                      <Clock className="w-5 h-5 text-white/60" />
+                      <div className="flex items-center gap-2">
+                        <span className={`text-lg font-bold ${questionTimeLeft <= 10 ? 'text-red-400' : isHostTurn ? 'text-white' : 'text-white/60'}`}>
+                          {questionTimeLeft}s
+                        </span>
+                        <Clock className="w-5 h-5 text-white/60" />
+                      </div>
                     </div>
                     <p className="text-white text-lg mb-4">{gameState.currentQuestion.question}</p>
                     
@@ -297,15 +345,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-white/80">Charade in progress</span>
                       <span className="text-white/60 text-sm">
-                        {(() => {
-                          const now = Date.now();
-                          const dl = charadeDeadline ?? now;
-                          const remaining = Math.max(0, dl - now);
-                          const secs = Math.floor(remaining / 1000);
-                          const mm = Math.floor(secs / 60);
-                          const ss = String(secs % 60).padStart(2, '0');
-                          return `${mm}:${ss}`;
-                        })()}
+                        {Math.floor(charadeTimeLeft/60)}:{String(charadeTimeLeft%60).padStart(2,'0')}
                       </span>
                     </div>
                     {isHostTurn ? (
@@ -343,12 +383,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-white/80">Pictionary in progress</span>
                       <span className="text-white/60 text-sm">
-                        {(() => {
-                          const now = Date.now();
-                          const dl = pictionaryDeadline ?? now;
-                          const remaining = Math.max(0, Math.floor((dl - now) / 1000));
-                          return `${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')}`;
-                        })()}
+                        {Math.floor(pictionaryTimeLeft/60)}:{String(pictionaryTimeLeft%60).padStart(2,'0')}
                       </span>
                     </div>
                     {isCurrentPlayerTurn ? (

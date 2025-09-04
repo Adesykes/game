@@ -30,7 +30,7 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
   const [guessInput, setGuessInput] = useState('');
   const [charadeTimeLeft, setCharadeTimeLeft] = useState(120);
   const [pictionaryGuessInput, setPictionaryGuessInput] = useState('');
-  const [pictionaryTimeLeft, setPictionaryTimeLeft] = useState(120);
+  const [pictionaryTimeLeft, setPictionaryTimeLeft] = useState(60);
 
   // Ref to track the latest game state for race condition prevention
   const gameStateRef = useRef(gameState);

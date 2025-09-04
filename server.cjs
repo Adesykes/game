@@ -68,8 +68,8 @@ const charadeTimeouts = new Map(); // roomCode -> NodeJS.Timeout
 const pictionaryTimeouts = new Map(); // roomCode -> NodeJS.Timeout
 // Charade duration hardcoded to 30 seconds
 const CHARADE_DURATION_MS = 30000;
-// Pictionary duration hardcoded to 45 seconds (longer for drawing)
-const PICTIONARY_DURATION_MS = 45000;
+// Pictionary duration hardcoded to 60 seconds (longer for drawing)
+const PICTIONARY_DURATION_MS = 60000;
 
 // Game state management
 const rooms = new Map();
