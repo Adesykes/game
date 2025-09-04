@@ -4,6 +4,7 @@ import { Socket } from 'socket.io-client';
 import { GameState, Question, AnswerResult } from '../types/game';
 import { Star, Heart, Clock, AlertTriangle } from 'lucide-react';
 import { questionCategories } from '../data/questions';
+import { DrawingCanvas, DrawingDisplay } from './DrawingComponents';
 
 interface PlayerInterfaceProps {
   socket: Socket;
@@ -12,6 +13,7 @@ interface PlayerInterfaceProps {
   currentQuestion: Question | null;
   answerResult: AnswerResult | null;
   charadeDeadline?: number | null;
+  pictionaryDeadline?: number | null;
 }
 
 const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
@@ -21,11 +23,14 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
   currentQuestion,
   answerResult,
   charadeDeadline,
+  pictionaryDeadline,
 }) => {
   const [timeLeft, setTimeLeft] = useState(30);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [guessInput, setGuessInput] = useState('');
   const [charadeTimeLeft, setCharadeTimeLeft] = useState(120);
+  const [pictionaryGuessInput, setPictionaryGuessInput] = useState('');
+  const [pictionaryTimeLeft, setPictionaryTimeLeft] = useState(120);
 
   // Ref to track the latest game state for race condition prevention
   const gameStateRef = useRef(gameState);
@@ -89,6 +94,18 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
     return () => clearInterval(id);
   }, [gameState.gamePhase, charadeDeadline]);
 
+  // Pictionary countdown synced to server deadline
+  useEffect(() => {
+    if (gameState.gamePhase !== 'pictionary_drawing') return;
+    const id = setInterval(() => {
+      const now = Date.now();
+      const dl = pictionaryDeadline ?? now;
+      const remaining = Math.max(0, Math.floor((dl - now) / 1000));
+      setPictionaryTimeLeft(remaining);
+    }, 250);
+    return () => clearInterval(id);
+  }, [gameState.gamePhase, pictionaryDeadline]);
+
   const selectCategory = (category: string) => {
     console.log(`Attempting to select category: ${category}`);
     console.log(`Is my turn: ${isMyTurn}, Game phase: ${gameState.gamePhase}`);
@@ -117,6 +134,14 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
     
     socket.emit('guess-charade', gameState.id, playerId, guessInput.trim());
     setGuessInput('');
+  };
+
+  const submitPictionaryGuess = () => {
+    if (gameState.gamePhase !== 'pictionary_drawing' || isMyTurn) return;
+    if (!pictionaryGuessInput.trim()) return;
+    
+    socket.emit('guess-pictionary', gameState.id, playerId, pictionaryGuessInput.trim());
+    setPictionaryGuessInput('');
   };
 
   if (!player || isEliminated) {
@@ -295,7 +320,7 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                 <h2 className="text-xl font-bold text-white mb-2">
                   {isMyTurn ? 'Your Forfeit' : `${currentPlayer.name}'s Forfeit`}
                 </h2>
-                <div className={`${gameState.currentForfeit.type === 'shot' ? 'bg-amber-500/30 border-amber-500/50' : 'bg-red-500/20 border-red-500/40'} p-4 rounded-xl mb-4 border`}>
+                <div className={`${gameState.currentForfeit.type === 'shot' ? 'bg-amber-500/30 border-amber-500/50' : gameState.currentForfeit.type === 'pictionary' ? 'bg-purple-500/30 border-purple-500/50' : 'bg-red-500/20 border-red-500/40'} p-4 rounded-xl mb-4 border`}>
                   <p className="text-white mb-2">{gameState.currentForfeit.description}</p>
                   {isMyTurn && gameState.currentForfeit.wordToAct && (
                     <p className="text-2xl font-bold mt-4 bg-white/10 p-3 rounded-lg">
@@ -314,6 +339,14 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                     className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl w-full"
                   >
                     Start Charade
+                  </button>
+                )}
+                {isMyTurn && gameState.currentForfeit.type === 'pictionary' && (
+                  <button 
+                    onClick={() => socket.emit('start-charade', gameState.id, playerId)}
+                    className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-xl w-full"
+                  >
+                    Start Pictionary
                   </button>
                 )}
                 {isMyTurn && gameState.currentForfeit.type === 'shot' && (
@@ -359,6 +392,60 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                       <button
                         onClick={submitCharadeGuess}
                         className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+                      >
+                        Guess
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {gameState.gamePhase === 'pictionary_drawing' && (
+              <div>
+                <h2 className="text-xl font-bold text-white mb-2">
+                  {isMyTurn ? 'Draw your word!' : 'Guess the pictionary!'}
+                </h2>
+                
+                <div className="flex items-center justify-between mb-3">
+                  <span />
+                  <div className="flex items-center text-yellow-400">
+                    <Clock className="w-5 h-5 mr-1" />
+                    <span className="font-bold">{Math.floor(pictionaryTimeLeft/60)}:{String(pictionaryTimeLeft%60).padStart(2,'0')}</span>
+                  </div>
+                </div>
+                {isMyTurn ? (
+                  <div className="bg-purple-500/20 p-4 rounded-xl mb-4 border border-purple-500/40">
+                    <p className="text-white mb-2">Draw this word:</p>
+                    <p className="text-2xl font-bold">{gameState.pictionarySolution}</p>
+                    <div className="mt-4">
+                      <DrawingCanvas 
+                        onDrawingUpdate={(drawingData) => {
+                          console.log('Player DrawingCanvas onDrawingUpdate called');
+                          socket.emit('update-drawing', gameState.id, playerId, drawingData);
+                        }}
+                        width={300}
+                        height={200}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-4">
+                    <p className="text-white/80 mb-4">{currentPlayer.name} is drawing a word!</p>
+                    <div className="bg-white rounded-lg p-4 mb-4">
+                      <DrawingDisplay drawingData={gameState.drawingData} width={300} height={200} />
+                    </div>
+                    <div className="flex space-x-2">
+                      <input
+                        type="text"
+                        value={pictionaryGuessInput}
+                        onChange={(e) => setPictionaryGuessInput(e.target.value)}
+                        className="bg-white/10 border border-white/30 rounded-lg px-4 py-3 text-white flex-1"
+                        placeholder="Enter your guess..."
+                      />
+                      <button
+                        onClick={submitPictionaryGuess}
+                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
                       >
                         Guess
                       </button>

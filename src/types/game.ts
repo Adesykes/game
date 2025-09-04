@@ -29,13 +29,16 @@ export interface GameState {
   currentPlayerIndex: number;
   currentQuestion: Question | null;
   selectedCategory: string | null; // Currently selected category
-  gamePhase: 'waiting' | 'category_selection' | 'question' | 'forfeit' | 'charade_guessing' | 'finished';
+  gamePhase: 'waiting' | 'category_selection' | 'question' | 'forfeit' | 'charade_guessing' | 'pictionary_drawing' | 'finished';
   winner: Player | null;
   round: number;
   maxRounds: number; // Maximum number of rounds before game ends
   currentForfeit: Forfeit | null;
   charadeSolution: string | null; // The word/phrase being acted out
   charadeSolved: boolean;
+  pictionarySolution: string | null; // The word/phrase being drawn
+  pictionarySolved: boolean;
+  drawingData: string | null; // Base64 encoded drawing data
   globalLockedCategories: string[]; // Categories locked globally for all players
   globalRecentCategories: string[]; // Last 3 categories selected globally
 }
@@ -48,9 +51,9 @@ export interface CategorySelection {
 
 export interface Forfeit {
   id: string;
-  type: 'charade' | 'shot';
+  type: 'charade' | 'pictionary' | 'shot';
   description: string;
-  wordToAct: string | null; // The word or phrase to act out (null for non-charade forfeits)
+  wordToAct: string | null; // The word or phrase to act out or draw (null for non-charade forfeits)
 }
 
 export interface AnswerResult {

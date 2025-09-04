@@ -9,6 +9,7 @@ export const useGameEvents = (
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [answerResult, setAnswerResult] = useState<AnswerResult | null>(null);
   const [charadeDeadline, setCharadeDeadline] = useState<number | null>(null);
+  const [pictionaryDeadline, setPictionaryDeadline] = useState<number | null>(null);
 
   useEffect(() => {
     if (!socket) return;
@@ -23,6 +24,7 @@ export const useGameEvents = (
       console.log(`[client] game-state-update received: ${message || 'No message'}`);
       setGameState(gameState);
       setCharadeDeadline(null); // Reset charade deadline on state updates
+      setPictionaryDeadline(null); // Reset pictionary deadline on state updates
     };
 
     const onNextTurn = ({ gameState }: { gameState: GameState }) => {
@@ -33,6 +35,7 @@ export const useGameEvents = (
       setCurrentQuestion(null);
       setAnswerResult(null);
       setCharadeDeadline(null);
+      setPictionaryDeadline(null);
     };
 
     const onCategorySelected = ({ question, gameState }: { question: Question; gameState: GameState }) => {
@@ -108,15 +111,39 @@ export const useGameEvents = (
       setCharadeDeadline(null);
     };
 
+    const onPictionaryStarted = ({ gameState, deadline }: { gameState: GameState, deadline?: number }) => {
+      console.log('[client] pictionary-started deadline:', deadline);
+      setGameState(gameState);
+      setPictionaryDeadline(typeof deadline === 'number' ? deadline : null);
+    };
+    
+    const onPictionarySolved = ({ gameState, solverId }: { gameState: GameState, solverId: string }) => {
+      console.log('[client] pictionary-solved by:', solverId);
+      setGameState(gameState);
+      setPictionaryDeadline(null);
+    };
+    
+    const onPictionaryFailed = ({ gameState, playerId }: { gameState: GameState, playerId: string }) => {
+      console.log('[client] pictionary-failed by:', playerId);
+      setGameState(gameState);
+      setPictionaryDeadline(null);
+    };
+
+    const onDrawingUpdate = ({ gameState }: { gameState: GameState }) => {
+      setGameState(gameState);
+    };
+
     const onGameFinished = ({ gameState }: { gameState: GameState }) => {
       setGameState(gameState);
       setCharadeDeadline(null);
+      setPictionaryDeadline(null);
     };
     
     const onForfeitCompleted = ({ gameState, forfeitType }: { gameState: GameState, forfeitType: string }) => {
       console.log(`[client] forfeit-completed of type: ${forfeitType}`);
       setGameState(gameState);
       setCharadeDeadline(null);
+      setPictionaryDeadline(null);
     };
 
     const onCategoryLocked = ({ 
@@ -151,6 +178,10 @@ export const useGameEvents = (
     socket.on('charade-started', onCharadeStarted);
     socket.on('charade-solved', onCharadeSolved);
     socket.on('charade-failed', onCharadeFailed);
+    socket.on('pictionary-started', onPictionaryStarted);
+    socket.on('pictionary-solved', onPictionarySolved);
+    socket.on('pictionary-failed', onPictionaryFailed);
+    socket.on('drawing-update', onDrawingUpdate);
     socket.on('forfeit-completed', onForfeitCompleted);
     socket.on('game-finished', onGameFinished);
     socket.on('game-state-update', onGameStateUpdate);
@@ -166,6 +197,10 @@ export const useGameEvents = (
       socket.off('charade-started', onCharadeStarted);
       socket.off('charade-solved', onCharadeSolved);
       socket.off('charade-failed', onCharadeFailed);
+      socket.off('pictionary-started', onPictionaryStarted);
+      socket.off('pictionary-solved', onPictionarySolved);
+      socket.off('pictionary-failed', onPictionaryFailed);
+      socket.off('drawing-update', onDrawingUpdate);
       socket.off('forfeit-completed', onForfeitCompleted);
       socket.off('game-finished', onGameFinished);
       socket.off('game-state-update', onGameStateUpdate);
@@ -173,5 +208,5 @@ export const useGameEvents = (
     };
   }, [socket, setGameState, currentQuestion]);
 
-  return { currentQuestion, answerResult, charadeDeadline };
+  return { currentQuestion, answerResult, charadeDeadline, pictionaryDeadline };
 };

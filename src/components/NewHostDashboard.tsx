@@ -4,12 +4,14 @@ import { GameState } from '../types/game';
 import { Users, Trophy, Clock } from 'lucide-react';
 import { questionCategories } from '../data/questions';
 import QRCodeDisplay from './QRCodeDisplay';
+import { DrawingCanvas, DrawingDisplay } from './DrawingComponents';
 
 interface HostDashboardProps {
   socket: Socket;
   gameState: GameState;
   roomCode: string;
   charadeDeadline?: number | null;
+  pictionaryDeadline?: number | null;
 }
 
 const HostDashboard: React.FC<HostDashboardProps> = ({
@@ -17,14 +19,16 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
   gameState,
   roomCode,
   charadeDeadline,
+  pictionaryDeadline,
 }) => {
   const [showQR, setShowQR] = useState(true);
   const [guessInput, setGuessInput] = useState('');
   
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const activePlayers = gameState.players.filter(p => !p.isEliminated);
-  const isHostTurn = !!currentPlayer?.isHost;
   const hostPlayer = gameState.players.find(p => p.isHost);
+  const isHostTurn = !!currentPlayer?.isHost;
+  const isCurrentPlayerTurn = currentPlayer?.id === hostPlayer?.id;
   
   const selectCategory = (category: string) => {
     if (gameState.gamePhase !== 'category_selection') return;
@@ -52,6 +56,14 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
     if (!guessInput.trim()) return;
     if (!hostPlayer) return;
     socket.emit('guess-charade', gameState.id, hostPlayer.id, guessInput.trim());
+    setGuessInput('');
+  };
+
+  const submitPictionaryGuess = () => {
+    if (gameState.gamePhase !== 'pictionary_drawing' || isHostTurn) return;
+    if (!guessInput.trim()) return;
+    if (!hostPlayer) return;
+    socket.emit('guess-pictionary', gameState.id, hostPlayer.id, guessInput.trim());
     setGuessInput('');
   };
   
@@ -127,9 +139,13 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                                     ? 'bg-green-600/30 hover:bg-green-600/40 text-green-200 border border-green-500/30'
                                     : 'bg-white/10 hover:bg-white/20 text-white'
                               }`}
-                              title={isLocked ? `Locked: Select 3 different categories first (${gameState?.globalRecentCategories?.length || 0}/3)` : 
-                                    isRecent ? 'Recently selected category' : 
-                                    'Click to select this category'}
+                              title={
+                                isLocked 
+                                  ? `Locked: Select 3 different categories first (${gameState?.globalRecentCategories?.length || 0}/3)` 
+                                  : isRecent 
+                                    ? 'Recently selected category' 
+                                    : 'Click to select this category'
+                              }
                             >
                               {category}
                               {isLocked && (
@@ -194,9 +210,27 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                 )}
                 
                 {gameState.gamePhase === 'forfeit' && gameState.currentForfeit && (
-                  <div className={`text-left ${gameState.currentForfeit.type === 'shot' ? 'bg-amber-500/10 border-amber-500/30' : 'bg-red-500/10 border-red-500/30'} p-4 rounded-xl border`}>
-                    <p className={`${gameState.currentForfeit.type === 'shot' ? 'text-amber-300' : 'text-red-300'} font-semibold mb-2`}>
-                      {gameState.currentForfeit.type === 'shot' ? 'Shot Time!' : 'Forfeit!'}
+                  <div className={`text-left ${
+                    gameState.currentForfeit.type === 'shot' 
+                      ? 'bg-amber-500/10 border-amber-500/30' 
+                      : gameState.currentForfeit.type === 'pictionary' 
+                        ? 'bg-purple-500/10 border-purple-500/30' 
+                        : 'bg-red-500/10 border-red-500/30'
+                  } p-4 rounded-xl border`}>
+                    <p className={`${
+                      gameState.currentForfeit.type === 'shot' 
+                        ? 'text-amber-300' 
+                        : gameState.currentForfeit.type === 'pictionary' 
+                          ? 'text-purple-300' 
+                          : 'text-red-300'
+                    } font-semibold mb-2`}>
+                      {
+                        gameState.currentForfeit.type === 'shot' 
+                          ? 'Shot Time!' 
+                          : gameState.currentForfeit.type === 'pictionary' 
+                            ? 'Pictionary!' 
+                            : 'Forfeit!'
+                      }
                     </p>
                     <p className="text-white mb-3">{gameState.currentForfeit.description}</p>
                     {isHostTurn && gameState.currentForfeit.wordToAct && (
@@ -213,28 +247,48 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                         </div>
                       </div>
                     )}
-                    {isHostTurn && gameState.currentForfeit.type === 'charade' ? (
-                      <button
-                        onClick={startCharade}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"
-                      >
-                        Start Charade
-                      </button>
-                    ) : isHostTurn && gameState.currentForfeit.type === 'shot' ? (
-                      <button
-                        onClick={startCharade}
-                        className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-lg"
-                      >
-                        I'll Take a Shot!
-                      </button>
-                    ) : (
-                      <p className="text-white/70">
-                        {gameState.currentForfeit.type === 'charade' 
-                          ? `Waiting for ${currentPlayer.name} to start the charade...`
-                          : `Waiting for ${currentPlayer.name} to take a shot...`
-                        }
-                      </p>
-                    )}
+                    {(() => {
+                      if (isHostTurn && gameState.currentForfeit.type === 'charade') {
+                        return (
+                          <button
+                            onClick={startCharade}
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"
+                          >
+                            Start Charade
+                          </button>
+                        );
+                      } else if (isHostTurn && gameState.currentForfeit.type === 'pictionary') {
+                        return (
+                          <button
+                            onClick={startCharade}
+                            className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg"
+                          >
+                            Start Pictionary
+                          </button>
+                        );
+                      } else if (isHostTurn && gameState.currentForfeit.type === 'shot') {
+                        return (
+                          <button
+                            onClick={startCharade}
+                            className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-lg"
+                          >
+                            I'll Take a Shot!
+                          </button>
+                        );
+                      } else {
+                        return (
+                          <p className="text-white/70">
+                            {
+                              gameState.currentForfeit.type === 'charade' 
+                                ? `Waiting for ${currentPlayer.name} to start the charade...`
+                                : gameState.currentForfeit.type === 'pictionary'
+                                ? `Waiting for ${currentPlayer.name} to start the pictionary...`
+                                : `Waiting for ${currentPlayer.name} to take a shot...`
+                            }
+                          </p>
+                        );
+                      }
+                    })()}
                   </div>
                 )}
                 
@@ -275,6 +329,62 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                           <button
                             onClick={submitCharadeGuess}
                             className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-lg"
+                          >
+                            Guess
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {gameState.gamePhase === 'pictionary_drawing' && (
+                  <div className="mt-2 text-left bg-white/10 p-4 rounded-xl">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-white/80">Pictionary in progress</span>
+                      <span className="text-white/60 text-sm">
+                        {(() => {
+                          const now = Date.now();
+                          const dl = pictionaryDeadline ?? now;
+                          const remaining = Math.max(0, Math.floor((dl - now) / 1000));
+                          return `${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')}`;
+                        })()}
+                      </span>
+                    </div>
+                    {isCurrentPlayerTurn ? (
+                      <div>
+                        <p className="text-white/80 mb-4">Draw this word:</p>
+                        <div className="text-2xl font-bold text-white bg-white/10 rounded-lg p-3 inline-block mb-4">
+                          {gameState.pictionarySolution}
+                        </div>
+                        <DrawingCanvas 
+                          onDrawingUpdate={(data: string) => {
+                            console.log('DrawingCanvas onDrawingUpdate called');
+                            socket.emit('update-drawing', gameState.id, currentPlayer.id, data);
+                          }}
+                          width={400}
+                          height={300}
+                        />
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-white/80 mb-4">{currentPlayer.name} is drawing a word!</p>
+                        <DrawingDisplay 
+                          drawingData={gameState.drawingData}
+                          width={400}
+                          height={300}
+                        />
+                        <div className="flex space-x-2">
+                          <input
+                            type="text"
+                            value={guessInput}
+                            onChange={(e) => setGuessInput(e.target.value)}
+                            className="bg-white/10 border border-white/30 rounded-lg px-4 py-2 text-white flex-1"
+                            placeholder="Enter your guess..."
+                          />
+                          <button
+                            onClick={submitPictionaryGuess}
+                            className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 py-2 rounded-lg"
                           >
                             Guess
                           </button>

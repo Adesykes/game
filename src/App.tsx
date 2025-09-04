@@ -17,7 +17,7 @@ function App() {
   const [roomCode, setRoomCode] = useState('');
   const [playerId, setPlayerId] = useState('');
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const { currentQuestion, answerResult, charadeDeadline } = useGameEvents(socket, setGameState);
+  const { currentQuestion, answerResult, charadeDeadline, pictionaryDeadline } = useGameEvents(socket, setGameState);
   
   // Check if we landed on a join URL from a QR code
   useEffect(() => {
@@ -60,6 +60,7 @@ function App() {
             gameState={gameState}
             roomCode={roomCode}
             charadeDeadline={charadeDeadline}
+            pictionaryDeadline={pictionaryDeadline}
           />
         );
       case 'player':
@@ -71,6 +72,7 @@ function App() {
             currentQuestion={currentQuestion}
             playerId={playerId}
             charadeDeadline={charadeDeadline}
+            pictionaryDeadline={pictionaryDeadline}
           />
         );
       default:

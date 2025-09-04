@@ -65,8 +65,11 @@ process.on('unhandledRejection', (reason, promise) => {
 // Track per-room timeouts to avoid getting stuck in phases
 const questionTimeouts = new Map(); // roomCode -> NodeJS.Timeout
 const charadeTimeouts = new Map(); // roomCode -> NodeJS.Timeout
+const pictionaryTimeouts = new Map(); // roomCode -> NodeJS.Timeout
 // Charade duration hardcoded to 30 seconds
 const CHARADE_DURATION_MS = 30000;
+// Pictionary duration hardcoded to 45 seconds (longer for drawing)
+const PICTIONARY_DURATION_MS = 45000;
 
 // Game state management
 const rooms = new Map();
@@ -225,6 +228,9 @@ io.on('connection', (socket) => {
         currentForfeit: null,
         charadeSolution: null,
         charadeSolved: false,
+        pictionarySolution: null,
+        pictionarySolved: false,
+        drawingData: null,
         globalLockedCategories: [], // Global categories locked for all players
         globalRecentCategories: [] // Global recent categories for all players
       };
@@ -408,9 +414,12 @@ io.on('connection', (socket) => {
     }
     
     const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-    console.log(`Current player: ${currentPlayer.id}, Requesting player: ${playerId}`);
+    console.log(`[select-category] Current player: ${currentPlayer?.id} (${currentPlayer?.name}), Requesting player: ${playerId}`);
+    console.log(`[select-category] Current player index: ${gameState.currentPlayerIndex}, Total players: ${gameState.players.length}`);
+    console.log(`[select-category] All players:`, gameState.players.map(p => ({ id: p.id, name: p.name, eliminated: p.isEliminated })));
+    
     if (currentPlayer.id !== playerId) {
-      console.log('Not the current player\'s turn');
+      console.log(`[select-category] BLOCKED: Not the current player's turn. Current: ${currentPlayer.id}, Requesting: ${playerId}`);
       return;
     }
 
@@ -602,21 +611,16 @@ io.on('connection', (socket) => {
 
     // For correct answers only, add a small delay before changing turn
     // This ensures client UI has time to show the correct answer
-    console.log(`[submit-answer] Turn advancement check: isCorrect=${isCorrect}, gamePhase=${room.gameState.gamePhase}`);
+    console.log(`[submit-answer] Turn advancement check: isCorrect=${isCorrect}, gamePhase=${room.gameState.gamePhase}, currentPlayer=${currentPlayer.id}`);
     if (isCorrect && room.gameState.gamePhase === 'category_selection') {
-      console.log(`[nextTurn] After correct answer by ${playerId}, advancing turn`);
-      
-      // Add a longer delay to ensure clients have time to process the answer and update UI
-      setTimeout(() => {
-        console.log(`[submit-answer] Executing delayed turn advancement for ${playerId} after correct answer`);
-        nextTurn(room, roomCode);
-      }, 2000); // Increased delay to 2 seconds
+      console.log(`[submit-answer] CALLING nextTurn for correct answer by ${playerId}`);
+      nextTurn(room, roomCode);
     } else {
-      console.log(`[submit-answer] Turn advancement condition not met: isCorrect=${isCorrect}, gamePhase=${room.gameState.gamePhase}`);
+      console.log(`[submit-answer] NOT calling nextTurn: isCorrect=${isCorrect}, gamePhase=${room.gameState.gamePhase}`);
     }
   });
 
-  // Forfeit: start the charade timer and reveal the word to audience (as needed)
+  // Forfeit: start the charade or pictionary timer and reveal the word to audience (as needed)
   socket.on('start-charade', (roomCode, playerId) => {
     const room = rooms.get(roomCode);
     if (!room) return;
@@ -645,76 +649,52 @@ io.on('connection', (socket) => {
       return;
     }
     
-    // For charade forfeits, increment the player's charade count
+    // For charade or pictionary forfeits, increment the player's charade count
     if (!currentPlayer.charadeCount) currentPlayer.charadeCount = 0;
     currentPlayer.charadeCount++;
     
-    console.log(`[charade] ${currentPlayer.name} has now done ${currentPlayer.charadeCount} charades`);
+    console.log(`[${gameState.currentForfeit.type}] ${currentPlayer.name} has now done ${currentPlayer.charadeCount} forfeits`);
 
-    // Transition to guessing phase
-    gameState.gamePhase = 'charade_guessing';
-    gameState.charadeSolution = gameState.currentForfeit.wordToAct;
-    gameState.charadeSolved = false;
-    const startedAt = Date.now();
-    const endsAt = startedAt + CHARADE_DURATION_MS;
-    console.log(`[charade] start: room=${roomCode} player=${currentPlayer.id} durationMs=${CHARADE_DURATION_MS} endsAt=${new Date(endsAt).toISOString()}`);
-    io.to(roomCode).emit('charade-started', { gameState, deadline: endsAt });
+    if (gameState.currentForfeit.type === 'charade') {
+      // Transition to charade guessing phase
+      gameState.gamePhase = 'charade_guessing';
+      gameState.charadeSolution = gameState.currentForfeit.wordToAct;
+      gameState.charadeSolved = false;
+      const startedAt = Date.now();
+      const endsAt = startedAt + CHARADE_DURATION_MS;
+      console.log(`[charade] start: room=${roomCode} player=${currentPlayer.id} durationMs=${CHARADE_DURATION_MS} endsAt=${new Date(endsAt).toISOString()}`);
+      io.to(roomCode).emit('charade-started', { gameState, deadline: endsAt });
 
-  // Start a 30s countdown
-    const prev = charadeTimeouts.get(roomCode);
-    if (prev) clearTimeout(prev);
-  const handle = setTimeout(() => {
-      if (!gameState.charadeSolved) {
-        const now = Date.now();
-        // Fail: only deduct a life if the player got the question wrong
-        if (currentPlayer.needsCharadeForLife) {
-          currentPlayer.lives = Math.max(0, (currentPlayer.lives || 0) - 1);
-          console.log(`[charade] Player ${currentPlayer.name} failed charade after wrong answer - lost a life (${currentPlayer.lives} remaining)`);
-          
-          if (currentPlayer.lives === 0) {
-            currentPlayer.isEliminated = true;
-            console.log(`[charade] Player ${currentPlayer.name} eliminated (no lives left)`);
-            
-            // Check if this was the second-to-last player (leaving only one player)
-            const lastPlayerStanding = checkLastPlayerStanding(room);
-            if (lastPlayerStanding) {
-              console.log(`[charade] Last player standing detected: ${lastPlayerStanding.name}`);
-              
-              // First notify clients about the charade failure
-              io.to(roomCode).emit('charade-failed', { gameState, playerId: currentPlayer.id });
-              
-              // Then end the game with the last player as winner
-              endGame(room, roomCode, lastPlayerStanding);
-              
-              // Cancel the timeout since game is over
-              clearTimeout(handle);
-              charadeTimeouts.delete(roomCode);
-              
-              // Exit early since the game is over
-              return;
-            }
-          }
-        } else {
-          console.log(`[charade] Player ${currentPlayer.name} failed charade but keeps life (got question correct)`);
+      // Start a 30s countdown
+      const prev = charadeTimeouts.get(roomCode);
+      if (prev) clearTimeout(prev);
+      const handle = setTimeout(() => {
+        if (!gameState.charadeSolved) {
+          handleForfeitFailure(room, roomCode, currentPlayer, 'charade');
         }
-        
-        // Reset the flag
-        currentPlayer.needsCharadeForLife = false;
-        
-        // Reset for next turn
-        gameState.gamePhase = 'category_selection';
-        gameState.currentForfeit = null;
-        gameState.charadeSolution = null;
-        
-        // First notify clients about the failure
-        io.to(roomCode).emit('charade-failed', { gameState, playerId: currentPlayer.id });
-        
-        // Then advance the turn to the next player
-        console.log(`[charade] Advancing turn after charade timeout`);
-        nextTurn(room, roomCode);
-      }
-  }, CHARADE_DURATION_MS);
-    charadeTimeouts.set(roomCode, handle);
+      }, CHARADE_DURATION_MS);
+      charadeTimeouts.set(roomCode, handle);
+    } else if (gameState.currentForfeit.type === 'pictionary') {
+      // Transition to pictionary drawing phase
+      gameState.gamePhase = 'pictionary_drawing';
+      gameState.pictionarySolution = gameState.currentForfeit.wordToAct;
+      gameState.pictionarySolved = false;
+      gameState.drawingData = null;
+      const startedAt = Date.now();
+      const endsAt = startedAt + PICTIONARY_DURATION_MS;
+      console.log(`[pictionary] start: room=${roomCode} player=${currentPlayer.id} durationMs=${PICTIONARY_DURATION_MS} endsAt=${new Date(endsAt).toISOString()}`);
+      io.to(roomCode).emit('pictionary-started', { gameState, deadline: endsAt });
+
+      // Start a 45s countdown
+      const prev = pictionaryTimeouts.get(roomCode);
+      if (prev) clearTimeout(prev);
+      const handle = setTimeout(() => {
+        if (!gameState.pictionarySolved) {
+          handleForfeitFailure(room, roomCode, currentPlayer, 'pictionary');
+        }
+      }, PICTIONARY_DURATION_MS);
+      pictionaryTimeouts.set(roomCode, handle);
+    }
   });
 
   // Forfeit: other players guess the charade word
@@ -767,6 +747,78 @@ io.on('connection', (socket) => {
       
       // Finally advance to next turn
       console.log(`[charade-solved] Advancing turn after charade solved by ${playerId}`);
+      setTimeout(() => {
+        nextTurn(room, roomCode);
+      }, 500); // Small delay to ensure state updates propagate
+    }
+  });
+
+  // Forfeit: handle pictionary drawing updates
+  socket.on('update-drawing', (roomCode, playerId, drawingData) => {
+    console.log(`Received update-drawing for room ${roomCode} from player ${playerId}`);
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const gameState = room.gameState;
+    if (gameState.gamePhase !== 'pictionary_drawing') return;
+
+    const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+    if (currentPlayer.id !== playerId) return;
+
+    // Update the drawing data and broadcast to all players
+    gameState.drawingData = drawingData;
+    io.to(roomCode).emit('drawing-update', { gameState });
+  });
+
+  // Forfeit: other players guess the pictionary word
+  socket.on('guess-pictionary', (roomCode, playerId, guess) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const gameState = room.gameState;
+    if (gameState.gamePhase !== 'pictionary_drawing' || !gameState.pictionarySolution) return;
+
+    const normalized = String(guess || '').trim().toLowerCase();
+    if (!normalized) return;
+    const solution = gameState.pictionarySolution.trim().toLowerCase();
+
+    if (normalized === solution) {
+      console.log(`[pictionary-solved] Correct guess by ${playerId}! Solution: ${solution}`);
+      
+      // Mark as solved and clear timeout
+      gameState.pictionarySolved = true;
+      const t = pictionaryTimeouts.get(roomCode);
+      if (t) clearTimeout(t);
+
+      // Small reward for the drawer for successfully conveying the word
+      const drawer = gameState.players[gameState.currentPlayerIndex];
+      drawer.score = (drawer.score || 0) + 50;
+      
+      // Reset the charade life flag since they succeeded
+      drawer.needsCharadeForLife = false;
+
+      // Award an extra life to the solver
+      const solver = gameState.players.find(p => p.id === playerId);
+      if (solver && !solver.isEliminated) {
+        solver.lives = (solver.lives || 0) + 1;
+        console.log(`[pictionary-solved] Awarded extra life to ${solver.name} (now has ${solver.lives} lives)`);
+      }
+
+      // First notify clients that the pictionary was solved BEFORE changing game state
+      io.to(roomCode).emit('pictionary-solved', { 
+        gameState: {...gameState}, 
+        solverId: playerId 
+      });
+      
+      // Then reset state for next turn
+      gameState.gamePhase = 'category_selection';
+      gameState.currentForfeit = null;
+      gameState.pictionarySolution = null;
+      gameState.drawingData = null;
+      
+      // Force a game state update to ensure clients are in sync
+      io.to(roomCode).emit('game-state-update', { gameState });
+      
+      // Finally advance to next turn
+      console.log(`[pictionary-solved] Advancing turn after pictionary solved by ${playerId}`);
       setTimeout(() => {
         nextTurn(room, roomCode);
       }, 500); // Small delay to ensure state updates propagate
@@ -836,7 +888,61 @@ io.on('connection', (socket) => {
   });
 });
 
+function handleForfeitFailure(room, roomCode, currentPlayer, forfeitType) {
+  const gameState = room.gameState;
+  
+  // Fail: only deduct a life if the player got the question wrong
+  if (currentPlayer.needsCharadeForLife) {
+    currentPlayer.lives = Math.max(0, (currentPlayer.lives || 0) - 1);
+    console.log(`[${forfeitType}] Player ${currentPlayer.name} failed ${forfeitType} after wrong answer - lost a life (${currentPlayer.lives} remaining)`);
+    
+    if (currentPlayer.lives === 0) {
+      currentPlayer.isEliminated = true;
+      console.log(`[${forfeitType}] Player ${currentPlayer.name} eliminated (no lives left)`);
+      
+      // Check if this was the second-to-last player (leaving only one player)
+      const lastPlayerStanding = checkLastPlayerStanding(room);
+      if (lastPlayerStanding) {
+        console.log(`[${forfeitType}] Last player standing detected: ${lastPlayerStanding.name}`);
+        
+        // First notify clients about the failure
+        io.to(roomCode).emit(`${forfeitType}-failed`, { gameState, playerId: currentPlayer.id });
+        
+        // Then end the game with the last player as winner
+        endGame(room, roomCode, lastPlayerStanding);
+        
+        // Exit early since the game is over
+        return;
+      }
+    }
+  } else {
+    console.log(`[${forfeitType}] Player ${currentPlayer.name} failed ${forfeitType} but keeps life (got question correct)`);
+  }
+  
+  // Reset the flag
+  currentPlayer.needsCharadeForLife = false;
+  
+  // Reset for next turn
+  gameState.gamePhase = 'category_selection';
+  gameState.currentForfeit = null;
+  
+  if (forfeitType === 'charade') {
+    gameState.charadeSolution = null;
+  } else if (forfeitType === 'pictionary') {
+    gameState.pictionarySolution = null;
+    gameState.drawingData = null;
+  }
+  
+  // First notify clients about the failure
+  io.to(roomCode).emit(`${forfeitType}-failed`, { gameState, playerId: currentPlayer.id });
+  
+  // Then advance the turn to the next player
+  console.log(`[${forfeitType}] Advancing turn after ${forfeitType} timeout`);
+  nextTurn(room, roomCode);
+}
+
 function nextTurn(room, roomCode) {
+  console.log(`[nextTurn] STARTING: room=${roomCode}`);
   // First, check if only one player remains (last player standing)
   const lastPlayerStanding = checkLastPlayerStanding(room);
   if (lastPlayerStanding) {
@@ -875,6 +981,7 @@ function nextTurn(room, roomCode) {
   do {
     room.gameState.currentPlayerIndex = (room.gameState.currentPlayerIndex + 1) % total;
     attempts++;
+    console.log(`[nextTurn] Attempt ${attempts}: newIndex=${room.gameState.currentPlayerIndex}, player=${players[room.gameState.currentPlayerIndex]?.id}, eliminated=${players[room.gameState.currentPlayerIndex]?.isEliminated}`);
   } while (players[room.gameState.currentPlayerIndex]?.isEliminated && attempts < total);
 
   if (room.gameState.currentPlayerIndex === 0) {
@@ -899,6 +1006,7 @@ function nextTurn(room, roomCode) {
   // Emit the turn change event with updated game state
   console.log(`[nextTurn] Emitting next-turn: gamePhase=${room.gameState.gamePhase}, currentPlayerIndex=${room.gameState.currentPlayerIndex}, currentPlayer=${players[newIndex]?.name} (${players[newIndex]?.id})`);
   io.to(roomCode).emit('next-turn', { gameState: room.gameState });
+  console.log(`[nextTurn] COMPLETED: room=${roomCode}`);
 }
 
 // Function to check if only one player remains
