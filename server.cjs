@@ -286,7 +286,15 @@ io.on('connection', (socket) => {
         pictionarySolved: false,
         drawingData: null,
         globalLockedCategories: [], // Global categories locked for all players
-        globalRecentCategories: [] // Global recent categories for all players
+            globalRecentCategories: [], // Global recent categories for all players
+            currentKaraokeSong: null,
+            karaokeBreakCount: 0,
+            karaokeSettings: {
+              probability: 0.4,
+              durationSec: 45,
+              cooldownSec: 180,
+              lastTriggeredAt: 0
+            }
       };
 
       const room = {
@@ -370,6 +378,42 @@ io.on('connection', (socket) => {
     io.to(roomCode).emit('game-started', { gameState: room.gameState, message: 'Ready check started' });
   // Notify clients to begin lobby track (fresh start at 0)
   io.to(roomCode).emit('lobby-music-start', { startAt: Date.now() });
+  });
+
+  // ---- Karaoke Settings & Manual Control ----
+  socket.on('karaoke-settings-update', (roomCode, playerId, settings) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const host = room.gameState.players.find(p => p.id === playerId && p.isHost);
+    if (!host) return; // only host
+    const gs = room.gameState;
+    if (!gs.karaokeSettings) gs.karaokeSettings = { probability: 0.4, durationSec: 45, cooldownSec: 180, lastTriggeredAt: 0 };
+    if (typeof settings.probability === 'number') gs.karaokeSettings.probability = Math.min(1, Math.max(0, settings.probability));
+    if (typeof settings.durationSec === 'number') gs.karaokeSettings.durationSec = Math.max(15, Math.min(180, settings.durationSec));
+    if (typeof settings.cooldownSec === 'number') gs.karaokeSettings.cooldownSec = Math.max(30, Math.min(900, settings.cooldownSec));
+    io.to(roomCode).emit('karaoke-settings-updated', { karaokeSettings: gs.karaokeSettings, gameState: gs });
+  });
+
+  socket.on('karaoke-start-manual', (roomCode, playerId) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const host = room.gameState.players.find(p => p.id === playerId && p.isHost);
+    if (!host) return;
+    // Only allow manual start if not already in karaoke and not on finished
+    if (room.gameState.gamePhase === 'karaoke_break') return;
+    triggerKaraoke(room, roomCode, true);
+  });
+
+  socket.on('karaoke-end', (roomCode, playerId) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const host = room.gameState.players.find(p => p.id === playerId && p.isHost);
+    if (!host) return;
+    if (room.gameState.gamePhase !== 'karaoke_break') return;
+    // Resume game
+    room.gameState.currentKaraokeSong = null;
+    room.gameState.gamePhase = 'category_selection';
+    io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'Karaoke ended' });
   });
 
   // Player presses Ready
@@ -963,6 +1007,52 @@ function handleForfeitFailure(room, roomCode, currentPlayer, forfeitType) {
   // Then advance the turn to the next player
   console.log(`[${forfeitType}] Advancing turn after ${forfeitType} timeout`);
   nextTurn(room, roomCode);
+}
+
+// ---- Karaoke Feature (auto + manual) ----
+const KARAOKE_SONGS = [
+  { title: 'Sweet Caroline', artist: 'Neil Diamond', alexaPhrase: 'Sweet Caroline by Neil Diamond', difficulty: 'easy', durationHintSec: 45 },
+  { title: "Don't Stop Believin'", artist: 'Journey', alexaPhrase: "Don't Stop Believin' by Journey", difficulty: 'medium', durationHintSec: 50 },
+  { title: 'Bohemian Rhapsody', artist: 'Queen', alexaPhrase: 'Bohemian Rhapsody by Queen', difficulty: 'hard', durationHintSec: 60 },
+  { title: 'Livin\' on a Prayer', artist: 'Bon Jovi', alexaPhrase: "Livin' on a Prayer by Bon Jovi", difficulty: 'medium', durationHintSec: 55 },
+  { title: 'Wonderwall', artist: 'Oasis', alexaPhrase: 'Wonderwall by Oasis', difficulty: 'easy', durationHintSec: 45 },
+  { title: 'Mr. Brightside', artist: 'The Killers', alexaPhrase: 'Mr Brightside by The Killers', difficulty: 'medium', durationHintSec: 50 },
+  { title: 'I Want It That Way', artist: 'Backstreet Boys', alexaPhrase: 'I Want It That Way by Backstreet Boys', difficulty: 'easy', durationHintSec: 45 }
+];
+
+function pickKaraokeSong() {
+  return KARAOKE_SONGS[Math.floor(Math.random() * KARAOKE_SONGS.length)];
+}
+
+function triggerKaraoke(room, roomCode, manual=false) {
+  const gs = room.gameState;
+  if (gs.gamePhase === 'karaoke_break') return;
+  if (!gs.karaokeSettings) gs.karaokeSettings = { probability: 0.4, durationSec: 45, cooldownSec: 180, lastTriggeredAt: 0 };
+  const now = Date.now();
+  const since = now - (gs.karaokeSettings.lastTriggeredAt || 0);
+  if (!manual && since < gs.karaokeSettings.cooldownSec * 1000) return;
+  gs.karaokeSettings.lastTriggeredAt = now;
+  gs.currentKaraokeSong = { ...pickKaraokeSong(), durationHintSec: gs.karaokeSettings.durationSec };
+  gs.karaokeBreakCount = (gs.karaokeBreakCount || 0) + 1;
+  gs.gamePhase = 'karaoke_break';
+  io.to(roomCode).emit('game-state-update', { gameState: gs, message: manual ? 'Manual karaoke break!' : 'Karaoke break!' });
+  // Auto end after duration
+  setTimeout(() => {
+    if (gs.gamePhase === 'karaoke_break') {
+      gs.currentKaraokeSong = null;
+      gs.gamePhase = 'category_selection';
+      io.to(roomCode).emit('game-state-update', { gameState: gs, message: 'Karaoke ended (auto)' });
+    }
+  }, gs.karaokeSettings.durationSec * 1000);
+}
+
+function maybeTriggerKaraoke(room, roomCode) {
+  const gs = room.gameState;
+  if (!gs.karaokeSettings) gs.karaokeSettings = { probability: 0.4, durationSec: 45, cooldownSec: 180, lastTriggeredAt: 0 };
+  const rnd = Math.random();
+  if (rnd <= gs.karaokeSettings.probability) {
+    triggerKaraoke(room, roomCode, false);
+  }
 }
 
 function nextTurn(room, roomCode) {

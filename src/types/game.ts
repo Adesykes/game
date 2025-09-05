@@ -28,7 +28,7 @@ export interface GameState {
   currentPlayerIndex: number;
   currentQuestion: Question | null;
   selectedCategory: string | null; // Currently selected category
-  gamePhase: 'waiting' | 'ready_check' | 'category_selection' | 'question' | 'forfeit' | 'charade_guessing' | 'pictionary_drawing' | 'finished';
+  gamePhase: 'waiting' | 'ready_check' | 'category_selection' | 'question' | 'forfeit' | 'charade_guessing' | 'pictionary_drawing' | 'karaoke_break' | 'finished';
   allReady?: boolean; // Flag when all players pressed ready
   winner: Player | null;
   round: number;
@@ -41,6 +41,9 @@ export interface GameState {
   drawingData: string | null; // Base64 encoded drawing data
   globalLockedCategories: string[]; // Categories locked globally for all players
   globalRecentCategories: string[]; // Last 3 categories selected globally
+  currentKaraokeSong?: KaraokeSong | null; // Active karaoke selection
+  karaokeBreakCount?: number; // Number of karaoke breaks triggered
+  karaokeSettings?: KaraokeSettings; // Host-adjustable settings
 }
 
 // No longer using board squares or chance events
@@ -54,6 +57,21 @@ export interface Forfeit {
   type: 'charade' | 'pictionary' | 'shot';
   description: string;
   wordToAct: string | null; // The word or phrase to act out or draw (null for non-charade forfeits)
+}
+
+export interface KaraokeSong {
+  title: string;
+  artist?: string;
+  alexaPhrase: string; // Phrase to speak for Alexa ("<title> by <artist>")
+  difficulty?: 'easy' | 'medium' | 'hard';
+  durationHintSec?: number; // Suggested sing time
+}
+
+export interface KaraokeSettings {
+  probability: number; // 0-1 probability after eligible events
+  durationSec: number; // Duration of karaoke break
+  cooldownSec: number; // Minimum seconds between karaoke breaks
+  lastTriggeredAt?: number; // server timestamp last triggered
 }
 
 export interface AnswerResult {

@@ -13,6 +13,7 @@ import JoinGame from './components/JoinGame';
 import HostDashboard from './components/NewHostDashboard';
 import ReadyScreen from './components/ReadyScreen';
 import PlayerInterface from './components/NewPlayerInterface';
+import KaraokeBreak from './components/KaraokeBreak';
 import { GameState } from './types/game';
 
 type AppMode = 'welcome' | 'create' | 'join' | 'host' | 'player';
@@ -210,6 +211,17 @@ function App() {
         return gameState && (
           gameState.gamePhase === 'ready_check' ? (
             <ReadyScreen socket={socket as Socket} gameState={gameState} playerId={gameState.players.find(p=>p.isHost)?.id || ''} roomCode={roomCode} />
+          ) : gameState.gamePhase === 'karaoke_break' ? (
+            <>
+              <HostDashboard
+                socket={socket as Socket}
+                gameState={gameState}
+                roomCode={roomCode}
+                charadeDeadline={charadeDeadline}
+                pictionaryDeadline={pictionaryDeadline}
+              />
+              <KaraokeBreak gameState={gameState} socket={socket as Socket} playerId={gameState.players.find(p=>p.isHost)?.id || ''} roomCode={roomCode} />
+            </>
           ) : (
             <HostDashboard
               socket={socket as Socket}
@@ -224,6 +236,19 @@ function App() {
         return gameState && (
           gameState.gamePhase === 'ready_check' ? (
             <ReadyScreen socket={socket as Socket} gameState={gameState} playerId={playerId} roomCode={roomCode} />
+          ) : gameState.gamePhase === 'karaoke_break' ? (
+            <>
+              <PlayerInterface
+                socket={socket as Socket}
+                gameState={gameState}
+                answerResult={answerResult}
+                currentQuestion={currentQuestion}
+                playerId={playerId}
+                charadeDeadline={charadeDeadline}
+                pictionaryDeadline={pictionaryDeadline}
+              />
+              <KaraokeBreak gameState={gameState} socket={socket as Socket} playerId={playerId} roomCode={roomCode} />
+            </>
           ) : (
             <PlayerInterface
               socket={socket as Socket}

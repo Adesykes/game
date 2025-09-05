@@ -28,12 +28,18 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
   const [pictionaryTimeLeft, setPictionaryTimeLeft] = useState(60);
   const [questionTimeLeft, setQuestionTimeLeft] = useState(30);
   const { isFullScreen, toggleFullScreen } = useFullScreen();
+  const [showKaraokeSettings, setShowKaraokeSettings] = useState(false);
+  const [karaokeProbability, setKaraokeProbability] = useState<number>(gameState.karaokeSettings?.probability ?? 0.4);
+  const [karaokeDuration, setKaraokeDuration] = useState<number>(gameState.karaokeSettings?.durationSec ?? 45);
+  const [karaokeCooldown, setKaraokeCooldown] = useState<number>(gameState.karaokeSettings?.cooldownSec ?? 180);
   
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const activePlayers = gameState.players.filter(p => !p.isEliminated);
   const hostPlayer = gameState.players.find(p => p.isHost);
   const isHostTurn = !!currentPlayer?.isHost;
   const isCurrentPlayerTurn = currentPlayer?.id === hostPlayer?.id;
+  // Host should always be able to manage karaoke regardless of whose turn it is
+  const hostId = hostPlayer?.id;
   
   const selectCategory = (category: string) => {
     if (gameState.gamePhase !== 'category_selection') return;
@@ -117,6 +123,19 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
     }
   }, [gameState.currentQuestion, gameState.gamePhase]);
 
+  // Sync karaoke settings when server updates
+  useEffect(() => {
+    const handler = (data: any) => {
+      if (data?.karaokeSettings) {
+        setKaraokeProbability(data.karaokeSettings.probability);
+        setKaraokeDuration(data.karaokeSettings.durationSec);
+        setKaraokeCooldown(data.karaokeSettings.cooldownSec);
+      }
+    };
+    socket.on('karaoke-settings-updated', handler);
+    return () => { socket.off('karaoke-settings-updated', handler); };
+  }, [socket]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-4">
       <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -170,6 +189,75 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                 <span className="text-2xl mr-2">{currentPlayer.avatar}</span>
                 <span className="text-white font-bold">{currentPlayer.name}</span>
               </div>
+      {hostId && (
+                <div className="mt-4 flex flex-wrap gap-3 justify-center">
+                  <button
+        onClick={() => hostId && socket.emit('karaoke-start-manual', gameState.id, hostId)}
+                    className="bg-gradient-to-r from-pink-600 to-amber-500 hover:from-pink-500 hover:to-amber-400 text-white font-semibold px-4 py-2 rounded-lg shadow"
+                  >
+                    Start Karaoke 🎤
+                  </button>
+                  <button
+                    onClick={() => setShowKaraokeSettings(s => !s)}
+                    className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg"
+                  >
+                    {showKaraokeSettings ? 'Hide' : 'Karaoke Settings'}
+                  </button>
+                </div>
+              )}
+      {showKaraokeSettings && hostId && (
+                <div className="mt-4 mx-auto max-w-md bg-black/40 rounded-xl p-4 border border-white/10 text-left">
+                  <h3 className="text-white font-semibold mb-2 text-sm tracking-wide">Karaoke Settings</h3>
+                  <div className="space-y-3 text-xs text-white/80">
+                    <label className="block">Probability ({karaokeProbability.toFixed(2)})
+                      <input type="range" min={0} max={1} step={0.05} value={karaokeProbability}
+                        onChange={e=> setKaraokeProbability(parseFloat(e.target.value))}
+                        className="w-full" />
+                    </label>
+                    <label className="block">Duration (sec): {karaokeDuration}
+                      <input type="range" min={15} max={120} step={5} value={karaokeDuration}
+                        onChange={e=> setKaraokeDuration(parseInt(e.target.value))}
+                        className="w-full" />
+                    </label>
+                    <label className="block">Cooldown (sec): {karaokeCooldown}
+                      <input type="range" min={30} max={600} step={30} value={karaokeCooldown}
+                        onChange={e=> setKaraokeCooldown(parseInt(e.target.value))}
+                        className="w-full" />
+                    </label>
+                    <div className="flex gap-2 pt-2">
+                      <button
+        onClick={() => {
+          if (!hostId) return;
+          // Emit to server
+          socket.emit('karaoke-settings-update', gameState.id, hostId, {
+            probability: karaokeProbability,
+            durationSec: karaokeDuration,
+            cooldownSec: karaokeCooldown
+          });
+          // Optimistic local update so UI reflects immediately; server will sync/ clamp if needed
+          if (gameState.karaokeSettings) {
+            gameState.karaokeSettings.probability = karaokeProbability;
+            gameState.karaokeSettings.durationSec = karaokeDuration;
+            gameState.karaokeSettings.cooldownSec = karaokeCooldown;
+          }
+                        }}
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-semibold"
+                      >Save</button>
+                      <button
+                        onClick={() => {
+                          setKaraokeProbability(gameState.karaokeSettings?.probability ?? 0.4);
+                          setKaraokeDuration(gameState.karaokeSettings?.durationSec ?? 45);
+                          setKaraokeCooldown(gameState.karaokeSettings?.cooldownSec ?? 180);
+                        }}
+                        className="px-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg"
+                      >Reset</button>
+                    </div>
+                    {gameState.karaokeSettings?.lastTriggeredAt && (
+                      <p className="text-[10px] text-white/40">Last: {Math.round((Date.now() - (gameState.karaokeSettings.lastTriggeredAt||0))/1000)}s ago</p>
+                    )}
+                  </div>
+                </div>
+              )}
               
               <div className="mt-4">
                 {gameState.gamePhase === 'category_selection' && (
