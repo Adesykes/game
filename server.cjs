@@ -74,6 +74,95 @@ const PICTIONARY_DURATION_MS = 60000;
 // Game state management
 const rooms = new Map();
 
+// ---- Randomization Utilities & Pools ----
+function shuffleArray(arr) {
+  const copy = arr.slice();
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function initRoomRandomPools(room) {
+  // Global shuffled list of all question IDs
+  room._allQuestionIds = shuffleArray(allQuestions.map(q => q.id));
+  room._allIndex = 0;
+  // Per-category pools
+  room._categoryPools = {};
+  room._categoryIndices = {};
+  for (const q of allQuestions) {
+    const key = q.category.toLowerCase();
+    if (!room._categoryPools[key]) room._categoryPools[key] = [];
+    room._categoryPools[key].push(q.id);
+  }
+  for (const key of Object.keys(room._categoryPools)) {
+    room._categoryPools[key] = shuffleArray(room._categoryPools[key]);
+    room._categoryIndices[key] = 0;
+  }
+  // Forfeits (lazy init)
+  room._forfeitPool = [];
+  room._forfeitIndex = 0;
+}
+
+function drawQuestionFromPools(room, category) {
+  const key = category.toLowerCase();
+  if (room._categoryPools && room._categoryPools[key]) {
+    let idx = room._categoryIndices[key];
+    if (idx >= room._categoryPools[key].length) {
+      // reshuffle per category when exhausted to avoid identical cycles
+      room._categoryPools[key] = shuffleArray(room._categoryPools[key]);
+      room._categoryIndices[key] = 0;
+      idx = 0;
+    }
+    const qId = room._categoryPools[key][idx];
+    room._categoryIndices[key] = idx + 1;
+    return allQuestions.find(q => q.id === qId);
+  }
+  // fallback global
+    if (room._allIndex >= room._allQuestionIds.length) {
+      room._allQuestionIds = shuffleArray(room._allQuestionIds);
+      room._allIndex = 0;
+    }
+    const globalId = room._allQuestionIds[room._allIndex++];
+    return allQuestions.find(q => q.id === globalId);
+}
+
+function ensureForfeitPool(room) {
+  if (room._forfeitPool.length === 0 || room._forfeitIndex >= room._forfeitPool.length) {
+    try {
+      const fm = require('./server_data/forfeits.cjs');
+      if (fm.getAllForfeits) {
+        const allF = fm.getAllForfeits();
+        // Randomize order each cycle
+        room._forfeitPool = shuffleArray(allF);
+        room._forfeitIndex = 0;
+      } else {
+        // fallback single random provider
+        room._forfeitPool = [];
+        room._forfeitIndex = 0;
+      }
+    } catch (e) {
+      room._forfeitPool = [];
+      room._forfeitIndex = 0;
+    }
+  }
+}
+
+function drawForfeitFromPool(room, currentPlayer) {
+  try {
+    const fm = require('./server_data/forfeits.cjs');
+    if (fm.getAllForfeits) {
+      ensureForfeitPool(room);
+      const f = room._forfeitPool[room._forfeitIndex++];
+      return { ...f };
+    }
+    return fm.getRandomForfeit(currentPlayer);
+  } catch (e) {
+    return { type: 'shot', description: 'Take a shot!', wordToAct: null };
+  }
+}
+
 // Utility functions
 const generateRoomCode = () => {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -203,8 +292,15 @@ io.on('connection', (socket) => {
       const room = {
         id: roomCode,
         gameState,
-        usedQuestionIds: []
+        usedQuestionIds: [],
+        _allQuestionIds: [],
+        _allIndex: 0,
+        _categoryPools: {},
+        _categoryIndices: {},
+        _forfeitPool: [],
+        _forfeitIndex: 0
       };
+      initRoomRandomPools(room);
 
       rooms.set(roomCode, room);
       socket.join(roomCode);
@@ -313,27 +409,8 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Get a random question from the selected category
-    const categoryQuestions = allQuestions.filter(q => 
-      q.category.toLowerCase() === category.toLowerCase() && 
-      !room.usedQuestionIds.includes(q.id)
-    );
-    
-    let question;
-    if (categoryQuestions.length > 0) {
-      question = categoryQuestions[Math.floor(Math.random() * categoryQuestions.length)];
-    } else {
-      // If all questions from category are exhausted, pick any question from that category
-      const allCategoryQuestions = allQuestions.filter(q => 
-        q.category.toLowerCase() === category.toLowerCase()
-      );
-      question = allCategoryQuestions[Math.floor(Math.random() * allCategoryQuestions.length)];
-    }
-    
-    // Mark question as used to avoid repeats
-    if (question) {
-      room.usedQuestionIds.push(question.id);
-    }
+  // Draw question from shuffled pools (no immediate repeats until cycle completed)
+  const question = drawQuestionFromPools(room, category);
     
     // Set the current question and update game phase
     gameState.currentQuestion = question;
@@ -361,8 +438,7 @@ io.on('connection', (socket) => {
         gameState.gamePhase = 'forfeit';
         
         // Get a random forfeit
-        const forfeit = require('./server_data/forfeits.cjs').getRandomForfeit();
-        gameState.currentForfeit = forfeit;
+  gameState.currentForfeit = drawForfeitFromPool(room, currentPlayer);
         
         io.to(roomCode).emit('answer-submitted', {
           playerId: currentPlayer.id,
@@ -443,8 +519,7 @@ io.on('connection', (socket) => {
     } else {
       // If answer is incorrect, move to forfeit phase
       room.gameState.gamePhase = 'forfeit';
-      const forfeit = require('./server_data/forfeits.cjs').getRandomForfeit(currentPlayer);
-      room.gameState.currentForfeit = forfeit;
+  room.gameState.currentForfeit = drawForfeitFromPool(room, currentPlayer);
       console.log(`[submit-answer] Set gamePhase to 'forfeit' for incorrect answer by ${currentPlayer.name}`);
     }
 
@@ -500,6 +575,23 @@ io.on('connection', (socket) => {
           message: 'Turn advanced after correct answer'
         });
       }, 500);
+
+      // Watchdog: if for some reason turn did not advance (missed event), force it once
+      const previousIndex = room.gameState.currentPlayerIndex;
+      setTimeout(() => {
+        try {
+          if (room.gameState.players.length > 1 && room.gameState.currentPlayerIndex === previousIndex) {
+            console.warn('[watchdog] Detected stalled turn after correct answer; forcing nextTurn');
+            nextTurn(room, roomCode);
+            io.to(roomCode).emit('game-state-update', {
+              gameState: room.gameState,
+              message: 'Watchdog forced turn advancement'
+            });
+          }
+        } catch (e) {
+          console.error('[watchdog] Error attempting forced advancement', e);
+        }
+      }, 1800);
     } else {
       console.log(`[submit-answer] NOT calling nextTurn: isCorrect=${isCorrect}, gamePhase=${room.gameState.gamePhase}`);
     }
