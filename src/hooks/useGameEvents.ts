@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSound } from './useSound';
 import { Socket } from 'socket.io-client';
 import { GameState, Question, AnswerResult } from '../types/game';
 
@@ -10,6 +11,9 @@ export const useGameEvents = (
   const [answerResult, setAnswerResult] = useState<AnswerResult | null>(null);
   const [charadeDeadline, setCharadeDeadline] = useState<number | null>(null);
   const [pictionaryDeadline, setPictionaryDeadline] = useState<number | null>(null);
+
+  // Sound functions (hook must be top-level)
+  const { playCorrect, playWrong, playReady, playStart } = useSound();
 
   useEffect(() => {
     if (!socket) return;
@@ -28,6 +32,8 @@ export const useGameEvents = (
       setGameState(cloneState(gameState));
       setCharadeDeadline(null); // Reset charade deadline on state updates
       setPictionaryDeadline(null); // Reset pictionary deadline on state updates
+      if (gameState.gamePhase === 'ready_check' && message?.toLowerCase().includes('ready')) playReady();
+      if (gameState.gamePhase === 'category_selection' && message && /starting|forced/i.test(message)) playStart();
     };
 
     const onNextTurn = ({ gameState }: { gameState: GameState }) => {
@@ -48,7 +54,7 @@ export const useGameEvents = (
       setCurrentQuestion(question);
     };
 
-    const onAnswerSubmitted = ({ 
+  const onAnswerSubmitted = ({ 
       gameState, 
       isCorrect,
       playerId,
@@ -67,7 +73,8 @@ export const useGameEvents = (
       recentCategories?: string[];
       categoryLockMessage?: string;
     }) => {
-      console.log(`[client] answer-submitted by ${playerId}, isCorrect: ${isCorrect}`);
+  console.log(`[client] answer-submitted by ${playerId}, isCorrect: ${isCorrect}`);
+  if (isCorrect) playCorrect(); else playWrong();
       
       // Update game state first
   setGameState(cloneState(gameState));
@@ -210,7 +217,7 @@ export const useGameEvents = (
       socket.off('game-state-update', onGameStateUpdate);
       socket.off('category-locked', onCategoryLocked);
     };
-  }, [socket, setGameState, currentQuestion]);
+  }, [socket, setGameState, currentQuestion, playCorrect, playWrong, playReady, playStart]);
 
   return { currentQuestion, answerResult, charadeDeadline, pictionaryDeadline };
 };

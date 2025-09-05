@@ -362,11 +362,46 @@ io.on('connection', (socket) => {
       console.log('Not enough players to start game');
       return;
     }
+    // Initialize ready flags
+    room.gameState.players.forEach(p => { p.isReady = false; });
+    room.gameState.gamePhase = 'ready_check';
+    room.gameState.allReady = false;
+    console.log('Entering ready_check phase before starting categories');
+    io.to(roomCode).emit('game-started', { gameState: room.gameState, message: 'Ready check started' });
+  });
 
-    console.log('Starting game, setting phase to category_selection');
+  // Player presses Ready
+  socket.on('player-ready', (roomCode, playerId) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    if (room.gameState.gamePhase !== 'ready_check') return;
+    const player = room.gameState.players.find(p => p.id === playerId);
+    if (!player) return;
+    if (player.isReady) return; // already ready
+    player.isReady = true;
+    const allReady = room.gameState.players.every(p => p.isReady);
+    room.gameState.allReady = allReady;
+    io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: `Player ${player.name} is ready` });
+    if (allReady) {
+      // Small delay for dramatic effect then start game proper
+      setTimeout(() => {
+        room.gameState.gamePhase = 'category_selection';
+        io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'All players ready. Game starting!' });
+      }, 1200);
+    }
+  });
+
+  // Host override to force start even if not all ready
+  socket.on('host-force-start', (roomCode, hostPlayerId) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    if (room.gameState.gamePhase !== 'ready_check') return;
+    const host = room.gameState.players.find(p => p.id === hostPlayerId && p.isHost);
+    if (!host) return;
+    console.log(`[host-force-start] Host ${host.name} is forcing game start in room ${roomCode}`);
     room.gameState.gamePhase = 'category_selection';
-    console.log(`Current game state: ${JSON.stringify(room.gameState)}`);
-    io.to(roomCode).emit('game-started', { gameState: room.gameState });
+    room.gameState.allReady = false; // indicate override
+    io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'Host forced game start' });
   });
 
   socket.on('select-category', (roomCode, playerId, category) => {

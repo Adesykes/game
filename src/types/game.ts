@@ -10,6 +10,7 @@ export interface Player {
   charadeCount?: number; // Tracks how many charades the player has performed
   lockedCategories: string[]; // Categories locked until player selects 3 different categories
   recentCategories: string[]; // Last 3 categories selected by this player
+  isReady?: boolean; // Player has pressed Ready on pre-game screen
 }
 
 export interface Question {
@@ -27,7 +28,8 @@ export interface GameState {
   currentPlayerIndex: number;
   currentQuestion: Question | null;
   selectedCategory: string | null; // Currently selected category
-  gamePhase: 'waiting' | 'category_selection' | 'question' | 'forfeit' | 'charade_guessing' | 'pictionary_drawing' | 'finished';
+  gamePhase: 'waiting' | 'ready_check' | 'category_selection' | 'question' | 'forfeit' | 'charade_guessing' | 'pictionary_drawing' | 'finished';
+  allReady?: boolean; // Flag when all players pressed ready
   winner: Player | null;
   round: number;
   maxRounds: number; // Maximum number of rounds before game ends

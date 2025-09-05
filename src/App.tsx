@@ -7,6 +7,7 @@ import WelcomeScreen from './components/WelcomeScreen';
 import CreateGame from './components/CreateGame';
 import JoinGame from './components/JoinGame';
 import HostDashboard from './components/NewHostDashboard';
+import ReadyScreen from './components/ReadyScreen';
 import PlayerInterface from './components/NewPlayerInterface';
 import { GameState } from './types/game';
 
@@ -66,26 +67,34 @@ function App() {
       case 'join':
         return <JoinGame socket={socket as Socket} onJoinSuccess={handleJoinSuccess} initialRoomCode={roomCode} />;
       case 'host':
-        return (
-          gameState && <HostDashboard
-            socket={socket as Socket}
-            gameState={gameState}
-            roomCode={roomCode}
-            charadeDeadline={charadeDeadline}
-            pictionaryDeadline={pictionaryDeadline}
-          />
+        return gameState && (
+          gameState.gamePhase === 'ready_check' ? (
+            <ReadyScreen socket={socket as Socket} gameState={gameState} playerId={gameState.players.find(p=>p.isHost)?.id || ''} roomCode={roomCode} />
+          ) : (
+            <HostDashboard
+              socket={socket as Socket}
+              gameState={gameState}
+              roomCode={roomCode}
+              charadeDeadline={charadeDeadline}
+              pictionaryDeadline={pictionaryDeadline}
+            />
+          )
         );
       case 'player':
-        return (
-          gameState && <PlayerInterface
-            socket={socket as Socket}
-            gameState={gameState}
-            answerResult={answerResult}
-            currentQuestion={currentQuestion}
-            playerId={playerId}
-            charadeDeadline={charadeDeadline}
-            pictionaryDeadline={pictionaryDeadline}
-          />
+        return gameState && (
+          gameState.gamePhase === 'ready_check' ? (
+            <ReadyScreen socket={socket as Socket} gameState={gameState} playerId={playerId} roomCode={roomCode} />
+          ) : (
+            <PlayerInterface
+              socket={socket as Socket}
+              gameState={gameState}
+              answerResult={answerResult}
+              currentQuestion={currentQuestion}
+              playerId={playerId}
+              charadeDeadline={charadeDeadline}
+              pictionaryDeadline={pictionaryDeadline}
+            />
+          )
         );
       default:
         return <WelcomeScreen onModeSelect={setMode} />;

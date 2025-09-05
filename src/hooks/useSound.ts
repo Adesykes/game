@@ -106,5 +106,19 @@ export const useSound = () => {
     });
   }, [play]);
 
-  return useMemo(() => ({ playDice, playCorrect, playWrong, playChance }), [playDice, playCorrect, playWrong, playChance]);
+  const playReady = useCallback(() => {
+    play((ctx) => {
+      const base = 440;
+      [0, 7, 12].forEach((semi, i) => makeNoise(ctx, 0.15, 'triangle', base * Math.pow(2, semi/12), 0.04 + i*0.01));
+    });
+  }, [play]);
+
+  const playStart = useCallback(() => {
+    play((ctx) => {
+      const seq = [261.63, 329.63, 392.0, 523.25];
+  seq.forEach((f) => makeNoise(ctx, 0.2, 'square', f, 0.06));
+    });
+  }, [play]);
+
+  return useMemo(() => ({ playDice, playCorrect, playWrong, playChance, playReady, playStart }), [playDice, playCorrect, playWrong, playChance, playReady, playStart]);
 };
