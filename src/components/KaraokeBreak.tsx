@@ -97,6 +97,17 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
 
   const remaining = (song.durationHintSec || 45) - elapsed;
 
+  // Speak "Alexa stop" when karaoke ends
+  useEffect(() => {
+    if (gameState.gamePhase !== 'karaoke_break' && song) {
+      if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance('Alexa, stop');
+        u.rate = 0.95; u.pitch = 1.0; u.volume = 1;
+        window.speechSynthesis.speak(u);
+      }
+    }
+  }, [gameState.gamePhase, song]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-6">
       <canvas ref={confettiRef} className="absolute inset-0 w-full h-full pointer-events-none" />

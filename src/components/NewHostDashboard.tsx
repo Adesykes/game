@@ -32,6 +32,15 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
   const [karaokeProbability, setKaraokeProbability] = useState<number>(gameState.karaokeSettings?.probability ?? 0.4);
   const [karaokeDuration, setKaraokeDuration] = useState<number>(gameState.karaokeSettings?.durationSec ?? 45);
   const [karaokeCooldown, setKaraokeCooldown] = useState<number>(gameState.karaokeSettings?.cooldownSec ?? 180);
+  const [settingsSaved, setSettingsSaved] = useState(false);
+  
+  // Update local state when gameState.karaokeSettings changes
+  useEffect(() => {
+    console.log('[Karaoke] Updating local state from gameState:', gameState.karaokeSettings);
+    setKaraokeProbability(gameState.karaokeSettings?.probability ?? 0.4);
+    setKaraokeDuration(gameState.karaokeSettings?.durationSec ?? 45);
+    setKaraokeCooldown(gameState.karaokeSettings?.cooldownSec ?? 180);
+  }, [gameState.karaokeSettings]);
   
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const activePlayers = gameState.players.filter(p => !p.isEliminated);
@@ -40,6 +49,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
   const isCurrentPlayerTurn = currentPlayer?.id === hostPlayer?.id;
   // Host should always be able to manage karaoke regardless of whose turn it is
   const hostId = hostPlayer?.id;
+  console.log('[Karaoke] hostId:', hostId, 'gameState.id:', gameState.id);
   
   const selectCategory = (category: string) => {
     if (gameState.gamePhase !== 'category_selection') return;
@@ -126,10 +136,13 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
   // Sync karaoke settings when server updates
   useEffect(() => {
     const handler = (data: any) => {
+      console.log('[Karaoke Sync] Received karaoke-settings-updated:', data);
       if (data?.karaokeSettings) {
         setKaraokeProbability(data.karaokeSettings.probability);
         setKaraokeDuration(data.karaokeSettings.durationSec);
         setKaraokeCooldown(data.karaokeSettings.cooldownSec);
+        setSettingsSaved(true);
+        setTimeout(() => setSettingsSaved(false), 3000); // Hide after 3 seconds
       }
     };
     socket.on('karaoke-settings-updated', handler);
@@ -192,7 +205,10 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
       {hostId && (
                 <div className="mt-4 flex flex-wrap gap-3 justify-center">
                   <button
-        onClick={() => hostId && socket.emit('karaoke-start-manual', gameState.id, hostId)}
+        onClick={() => {
+          console.log('[Karaoke Start] Emitting karaoke-start-manual');
+          hostId && socket.emit('karaoke-start-manual', gameState.id, hostId);
+        }}
                     className="bg-gradient-to-r from-pink-600 to-amber-500 hover:from-pink-500 hover:to-amber-400 text-white font-semibold px-4 py-2 rounded-lg shadow"
                   >
                     Start Karaoke 🎤
@@ -227,31 +243,34 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                     <div className="flex gap-2 pt-2">
                       <button
         onClick={() => {
-          if (!hostId) return;
+          if (!hostId) {
+            console.log('[Karaoke Save] No hostId, cannot save');
+            return;
+          }
+          console.log('[Karaoke Save] Emitting settings update:', { probability: karaokeProbability, durationSec: karaokeDuration, cooldownSec: karaokeCooldown });
           // Emit to server
           socket.emit('karaoke-settings-update', gameState.id, hostId, {
             probability: karaokeProbability,
             durationSec: karaokeDuration,
             cooldownSec: karaokeCooldown
           });
-          // Optimistic local update so UI reflects immediately; server will sync/ clamp if needed
-          if (gameState.karaokeSettings) {
-            gameState.karaokeSettings.probability = karaokeProbability;
-            gameState.karaokeSettings.durationSec = karaokeDuration;
-            gameState.karaokeSettings.cooldownSec = karaokeCooldown;
-          }
+          // Local state will be updated via the sync effect when server responds
                         }}
                         className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-semibold"
                       >Save</button>
                       <button
                         onClick={() => {
-                          setKaraokeProbability(gameState.karaokeSettings?.probability ?? 0.4);
-                          setKaraokeDuration(gameState.karaokeSettings?.durationSec ?? 45);
-                          setKaraokeCooldown(gameState.karaokeSettings?.cooldownSec ?? 180);
+                          console.log('[Karaoke Reset] Resetting to defaults');
+                          setKaraokeProbability(0.4);
+                          setKaraokeDuration(45);
+                          setKaraokeCooldown(180);
                         }}
                         className="px-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg"
                       >Reset</button>
                     </div>
+                    {settingsSaved && (
+                      <p className="text-green-400 text-sm mt-2 text-center">Settings saved!</p>
+                    )}
                     {gameState.karaokeSettings?.lastTriggeredAt && (
                       <p className="text-[10px] text-white/40">Last: {Math.round((Date.now() - (gameState.karaokeSettings.lastTriggeredAt||0))/1000)}s ago</p>
                     )}

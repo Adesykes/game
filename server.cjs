@@ -391,7 +391,11 @@ io.on('connection', (socket) => {
     if (typeof settings.probability === 'number') gs.karaokeSettings.probability = Math.min(1, Math.max(0, settings.probability));
     if (typeof settings.durationSec === 'number') gs.karaokeSettings.durationSec = Math.max(15, Math.min(180, settings.durationSec));
     if (typeof settings.cooldownSec === 'number') gs.karaokeSettings.cooldownSec = Math.max(30, Math.min(900, settings.cooldownSec));
-    io.to(roomCode).emit('karaoke-settings-updated', { karaokeSettings: gs.karaokeSettings, gameState: gs });
+  // Broadcast specialized event for components directly listening
+  io.to(roomCode).emit('karaoke-settings-updated', { karaokeSettings: gs.karaokeSettings, gameState: gs });
+  // ALSO broadcast a generic game-state-update so global state in clients updates (fixes Save button seeming ineffective)
+  io.to(roomCode).emit('game-state-update', { gameState: gs, message: 'Karaoke settings updated' });
+  console.log(`[karaoke] Settings updated room=${roomCode} prob=${gs.karaokeSettings.probability} dur=${gs.karaokeSettings.durationSec}s cooldown=${gs.karaokeSettings.cooldownSec}s`);
   });
 
   socket.on('karaoke-start-manual', (roomCode, playerId) => {
