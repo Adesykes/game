@@ -4,7 +4,6 @@ export interface Player {
   color: string;
   avatar: string;
   score: number;
-  position: number; // Player's position on the board
   lives: number; // Players start with 3 lives
   isHost: boolean;
   isEliminated: boolean; // True when player has lost all lives

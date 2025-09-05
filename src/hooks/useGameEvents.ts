@@ -14,15 +14,18 @@ export const useGameEvents = (
   useEffect(() => {
     if (!socket) return;
 
-    const onPlayerJoined = ({ gameState }: { gameState: GameState }) => setGameState(gameState);
+    // Always clone incoming game state to force React render even if reference reused server-side
+    const cloneState = (gs: GameState) => JSON.parse(JSON.stringify(gs)) as GameState;
+
+    const onPlayerJoined = ({ gameState }: { gameState: GameState }) => setGameState(cloneState(gameState));
     const onGameStarted = ({ gameState }: { gameState: GameState }) => {
-      setGameState(gameState);
+      setGameState(cloneState(gameState));
     };
 
     // Added explicit handler for game state updates
     const onGameStateUpdate = ({ gameState, message }: { gameState: GameState, message?: string }) => {
       console.log(`[client] game-state-update received: ${message || 'No message'}`);
-      setGameState(gameState);
+      setGameState(cloneState(gameState));
       setCharadeDeadline(null); // Reset charade deadline on state updates
       setPictionaryDeadline(null); // Reset pictionary deadline on state updates
     };
@@ -31,7 +34,9 @@ export const useGameEvents = (
       console.log('[client] next-turn received, updating game state');
       console.log(`[client] next-turn: gamePhase=${gameState.gamePhase}, currentPlayerIndex=${gameState.currentPlayerIndex}, currentPlayer=${gameState.players[gameState.currentPlayerIndex]?.name} (${gameState.players[gameState.currentPlayerIndex]?.id})`);
       console.log(`[client] My socket ID: ${socket.id}`);
-      setGameState(gameState);
+      console.log('[client] All players:', gameState.players.map(p => `${p.name} (${p.id})`).join(', '));
+      // Immediate update with cloned state
+      setGameState(cloneState(gameState));
       setCurrentQuestion(null);
       setAnswerResult(null);
       setCharadeDeadline(null);
@@ -39,7 +44,7 @@ export const useGameEvents = (
     };
 
     const onCategorySelected = ({ question, gameState }: { question: Question; gameState: GameState }) => {
-      setGameState(gameState);
+  setGameState(cloneState(gameState));
       setCurrentQuestion(question);
     };
 
@@ -65,7 +70,7 @@ export const useGameEvents = (
       console.log(`[client] answer-submitted by ${playerId}, isCorrect: ${isCorrect}`);
       
       // Update game state first
-      setGameState(gameState);
+  setGameState(cloneState(gameState));
       
       // Set answer result for feedback with category locking info
       setAnswerResult({ 
@@ -95,53 +100,53 @@ export const useGameEvents = (
     
     const onCharadeStarted = ({ gameState, deadline }: { gameState: GameState, deadline?: number }) => {
       console.log('[client] charade-started deadline:', deadline);
-      setGameState(gameState);
+  setGameState(cloneState(gameState));
       setCharadeDeadline(typeof deadline === 'number' ? deadline : null);
     };
     
     const onCharadeSolved = ({ gameState, solverId }: { gameState: GameState, solverId: string }) => {
       console.log('[client] charade-solved by:', solverId);
-      setGameState(gameState);
+  setGameState(cloneState(gameState));
       setCharadeDeadline(null);
     };
     
     const onCharadeFailed = ({ gameState, playerId }: { gameState: GameState, playerId: string }) => {
       console.log('[client] charade-failed by:', playerId);
-      setGameState(gameState);
+  setGameState(cloneState(gameState));
       setCharadeDeadline(null);
     };
 
     const onPictionaryStarted = ({ gameState, deadline }: { gameState: GameState, deadline?: number }) => {
       console.log('[client] pictionary-started deadline:', deadline);
-      setGameState(gameState);
+  setGameState(cloneState(gameState));
       setPictionaryDeadline(typeof deadline === 'number' ? deadline : null);
     };
     
     const onPictionarySolved = ({ gameState, solverId }: { gameState: GameState, solverId: string }) => {
       console.log('[client] pictionary-solved by:', solverId);
-      setGameState(gameState);
+  setGameState(cloneState(gameState));
       setPictionaryDeadline(null);
     };
     
     const onPictionaryFailed = ({ gameState, playerId }: { gameState: GameState, playerId: string }) => {
       console.log('[client] pictionary-failed by:', playerId);
-      setGameState(gameState);
+  setGameState(cloneState(gameState));
       setPictionaryDeadline(null);
     };
 
     const onDrawingUpdate = ({ gameState }: { gameState: GameState }) => {
-      setGameState(gameState);
+  setGameState(cloneState(gameState));
     };
 
     const onGameFinished = ({ gameState }: { gameState: GameState }) => {
-      setGameState(gameState);
+  setGameState(cloneState(gameState));
       setCharadeDeadline(null);
       setPictionaryDeadline(null);
     };
     
     const onForfeitCompleted = ({ gameState, forfeitType }: { gameState: GameState, forfeitType: string }) => {
       console.log(`[client] forfeit-completed of type: ${forfeitType}`);
-      setGameState(gameState);
+  setGameState(cloneState(gameState));
       setCharadeDeadline(null);
       setPictionaryDeadline(null);
     };

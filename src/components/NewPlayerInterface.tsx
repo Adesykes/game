@@ -39,8 +39,10 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
 
   // Add null checks to prevent errors
   const player = gameState?.players?.find(p => p.id === playerId);
-  const currentPlayer = gameState?.players?.[gameState.currentPlayerIndex];
-  const isMyTurn = currentPlayer?.id === playerId;
+  // Always derive current player fresh from currentPlayerIndex to avoid any stale references
+  const currentPlayerIdFromState = gameState.players[gameState.currentPlayerIndex]?.id;
+  const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+  const isMyTurn = currentPlayerIdFromState === playerId;
   const isEliminated = player?.isEliminated || false;
   
   // Debug logging
@@ -64,8 +66,42 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
   useEffect(() => {
     gameStateRef.current = gameState;
   }, [gameState]);
-  const wakeActive = ['category_selection', 'question', 'forfeit', 'charade_guessing'].includes(gameState.gamePhase);
+  
+  // Only keep the screen awake during active gameplay phases
+  // We've reduced this to only forfeit, charade_guessing, and pictionary_drawing
+  // to allow scrolling in other phases
+  const wakeActive = ['forfeit', 'charade_guessing', 'pictionary_drawing'].includes(gameState.gamePhase);
   useWakeLock(wakeActive);
+  
+  // Control body scroll locking based on game phase
+  useEffect(() => {
+    const needsScrollLock = ['charade_guessing', 'pictionary_drawing'].includes(gameState.gamePhase);
+    
+    if (needsScrollLock) {
+      // Disable scrolling on body
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+    } else {
+      // Re-enable scrolling
+      document.documentElement.style.overflow = 'auto';
+      document.body.style.overflow = 'auto';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+    }
+    
+    return () => {
+      // Cleanup - re-enable scrolling when component unmounts
+      document.documentElement.style.overflow = 'auto';
+      document.body.style.overflow = 'auto';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+    };
+  }, [gameState.gamePhase]);
 
   // Countdown timer for questions
   useEffect(() => {
@@ -109,18 +145,18 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
   }, [gameState.gamePhase, pictionaryDeadline]);
 
   const selectCategory = (category: string) => {
-    console.log(`Attempting to select category: ${category}`);
-    console.log(`Is my turn: ${isMyTurn}, Game phase: ${gameState.gamePhase}`);
-    console.log(`Current player: ${JSON.stringify(currentPlayer)}, My ID: ${playerId}`);
-    if (!isMyTurn) {
-      console.log('Cannot select category - not your turn');
+    // Re-derive turn at call time for maximum safety
+    const liveCurrentPlayerId = gameState.players[gameState.currentPlayerIndex]?.id;
+    const liveIsMyTurn = liveCurrentPlayerId === playerId;
+    console.log(`[selectCategory] click category=${category} liveIsMyTurn=${liveIsMyTurn} storedIsMyTurn=${isMyTurn} phase=${gameState.gamePhase} currentIndex=${gameState.currentPlayerIndex}`);
+    if (!liveIsMyTurn) {
+      console.log('[selectCategory] BLOCK: not your turn (live check)');
       return;
     }
     if (gameState.gamePhase !== 'category_selection') {
-      console.log(`Wrong game phase: ${gameState.gamePhase}`);
+      console.log(`[selectCategory] BLOCK: wrong phase ${gameState.gamePhase}`);
       return;
     }
-    console.log(`Emitting select-category: gameId=${gameState.id}, playerId=${playerId}, category=${category}`);
     socket.emit('select-category', gameState.id, playerId, category);
   };
 
@@ -170,8 +206,14 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
     );
   }
 
+  // Determine if we need fixed positioning or scrollable
+  const needsFixedPosition = ['charade_guessing', 'pictionary_drawing'].includes(gameState.gamePhase);
+  const containerClass = needsFixedPosition
+    ? "min-h-screen fixed inset-0 overflow-hidden bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-4"
+    : "min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-4 pb-24 overflow-auto"; // Extra padding and explicit overflow
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-4">
+    <div className={containerClass}>
       <div className="max-w-md mx-auto">
         {/* Player Header */}
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-white/20 text-center relative">
@@ -223,8 +265,9 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                   )}
                 </h2>
                 
-                {isMyTurn && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                {/* Defensive double-guard: only render buttons if still the current player */}
+                {isMyTurn && currentPlayerIdFromState === playerId && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2" data-test="category-button-grid">
                     {questionCategories.map(category => {
                       const isLocked = gameState?.globalLockedCategories?.includes(category) || false;
                       const isRecent = gameState?.globalRecentCategories?.includes(category) || false;
@@ -307,26 +350,31 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                     </div>
                   )}
                 </div>
-                
                 <p className="text-white text-lg mb-6">{currentQuestion.question}</p>
-                
-                <div className="space-y-3">
-                  {currentQuestion.options.map((option, index) => (
-                    <button
-                      key={index}
-                      onClick={() => isMyTurn && submitAnswer(index)}
-                      disabled={!isMyTurn || selectedAnswer !== null}
-                      className={`w-full p-4 rounded-xl font-bold transition-all ${
-                        selectedAnswer === index 
-                          ? 'bg-blue-600 text-white' 
-                          : 'bg-white/10 hover:bg-white/20 text-white'
-                      } ${!isMyTurn || selectedAnswer !== null ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
-                    >
-                      <span className="mr-3 text-yellow-400">{String.fromCharCode(65 + index)}.</span>
-                      {option}
-                    </button>
-                  ))}
-                </div>
+                {isMyTurn ? (
+                  <div className="space-y-3" data-test="answer-options">
+                    {currentQuestion.options.map((option, index) => (
+                      <button
+                        key={index}
+                        onClick={() => submitAnswer(index)}
+                        disabled={selectedAnswer !== null}
+                        className={`w-full p-4 rounded-xl font-bold transition-all ${
+                          selectedAnswer === index 
+                            ? 'bg-blue-600 text-white' 
+                            : 'bg-white/10 hover:bg-white/20 text-white'
+                        } ${selectedAnswer !== null ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        <span className="mr-3 text-yellow-400">{String.fromCharCode(65 + index)}.</span>
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center" data-test="waiting-question-only">
+                    <p className="text-white/70 text-sm mb-1">{currentPlayer?.name} is answering...</p>
+                    <p className="text-white/40 text-xs">Answer choices hidden until turn ends</p>
+                  </div>
+                )}
               </div>
             )}
             

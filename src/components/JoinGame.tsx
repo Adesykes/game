@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Socket } from 'socket.io-client';
-import { GameState, BoardSquare } from '../types/game';
+import { GameState } from '../types/game';
 import { Users, QrCode, Hash } from 'lucide-react';
 
 interface JoinGameProps {
   socket: Socket;
-  onJoinSuccess: (roomCode: string, playerId: string, gameState: GameState, board: BoardSquare[]) => void;
+  onJoinSuccess: (roomCode: string, playerId: string, gameState: GameState) => void;
   initialRoomCode?: string;
 }
 
@@ -41,7 +41,7 @@ const JoinGame: React.FC<JoinGameProps> = ({ socket, onJoinSuccess, initialRoomC
     console.log('Socket connected:', socket.connected);
     console.log('Socket ID:', socket.id);
 
-    socket.emit('join-room', roomCode.trim().toUpperCase(), playerName.trim(), (response: { success: boolean; roomCode?: string; playerId?: string; gameState?: GameState; board?: BoardSquare[]; error?: string; }) => {
+    socket.emit('join-room', roomCode.trim().toUpperCase(), playerName.trim(), (response: { success: boolean; roomCode?: string; playerId?: string; gameState?: GameState; error?: string; }) => {
       console.log('Received callback from server:', response);
       clearTimeout(timeout);
       setIsJoining(false);
@@ -49,7 +49,7 @@ const JoinGame: React.FC<JoinGameProps> = ({ socket, onJoinSuccess, initialRoomC
       if (response?.success) {
         console.log('Join successful:', response);
         localStorage.setItem('playerName', playerName.trim());
-        onJoinSuccess(response.roomCode ?? roomCode.trim().toUpperCase(), response.playerId!, response.gameState!, response.board!);
+        onJoinSuccess(response.roomCode ?? roomCode.trim().toUpperCase(), response.playerId!, response.gameState!);
       } else {
         console.error('Join failed:', response);
         setError(response?.error ?? 'Failed to join room. Please check the room code and try again.');

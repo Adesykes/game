@@ -101,9 +101,9 @@ function App() {
   }
 
   return (
-    <>
+    <div className={mode === 'player' ? 'overflow-auto' : ''}>
       {renderContent()}
-    </>
+    </div>
   );
 }
 

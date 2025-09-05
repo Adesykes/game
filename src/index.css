@@ -7,12 +7,14 @@ html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  /* Allow scrolling by default - we'll control overflow in specific components */
+  overflow: auto;
 }
 
 #root {
-  height: 100vh;
-  width: 100vw;
+  min-height: 100vh;
+  width: 100%;
+  overflow-y: auto;
 }
 
 /* Full screen specific styles */

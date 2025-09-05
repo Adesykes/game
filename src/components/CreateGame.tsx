@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Socket } from 'socket.io-client';
 import { Trophy, Users, Play } from 'lucide-react';
-import { GameState, BoardSquare } from '../types/game';
+import { GameState } from '../types/game';
 
 interface CreateGameProps {
   socket: Socket;
-  onCreateSuccess: (roomCode: string, gameState: GameState, board: BoardSquare[]) => void;
+  onCreateSuccess: (roomCode: string, gameState: GameState) => void;
 }
 
 const CreateGame: React.FC<CreateGameProps> = ({ socket, onCreateSuccess }) => {
@@ -33,13 +33,13 @@ const CreateGame: React.FC<CreateGameProps> = ({ socket, onCreateSuccess }) => {
     setIsCreating(true);
     console.log('Attempting to create room with host:', hostName);
 
-  socket.emit('create-room', hostName.trim(), (response: { success: boolean; roomCode?: string; gameState?: GameState; board?: BoardSquare[]; error?: string; }) => {
+  socket.emit('create-room', hostName.trim(), (response: { success: boolean; roomCode?: string; gameState?: GameState; error?: string; }) => {
       console.log('Create room response:', response);
       setIsCreating(false);
       
       if (response.success) {
         console.log('Room created successfully:', response.roomCode);
-  onCreateSuccess(response.roomCode!, response.gameState!, response.board!);
+  onCreateSuccess(response.roomCode!, response.gameState!);
       } else {
   console.error('Room creation failed:', response.error ?? 'Unknown error');
   alert('Failed to create room: ' + (response.error ?? 'Unknown error'));

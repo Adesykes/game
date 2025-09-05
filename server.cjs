@@ -107,7 +107,6 @@ const createPlayer = (name, isHost = false) => {
 
 const playerColors = ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'];
 const playerAvatars = ['🦊', '🐻', '🐱', '🐸', '🦁', '🐼'];
-const BOARD_SIZE = 50;
 const MAX_PLAYERS = 6;
 
 const assignPlayerAppearance = (player, existingPlayers) => {
@@ -124,27 +123,6 @@ const assignPlayerAppearance = (player, existingPlayers) => {
   };
 };
 
-const generateBoard = () => {
-  const board = [];
-  
-  for (let i = 0; i < BOARD_SIZE; i++) {
-    if (i === 0) {
-      board.push({ id: i, type: 'start' });
-    } else {
-      const rand = Math.random();
-      if (rand < 0.6) {
-        board.push({ id: i, type: 'question' });
-      } else if (rand < 0.8) {
-        board.push({ id: i, type: 'chance' });
-      } else {
-        board.push({ id: i, type: 'normal' });
-      }
-    }
-  }
-  
-  return board;
-};
-
 // Questions pool (server-side) - Using expanded question set with additional categories
 const { allQuestions } = require('./server_data/expanded_questions.cjs');
 
@@ -156,19 +134,6 @@ const getRandomQuestion = (usedQuestionIds = []) => {
     return allQuestions[Math.floor(Math.random() * allQuestions.length)];
   }
   return available[Math.floor(Math.random() * available.length)];
-};
-
-const rollDice = () => Math.floor(Math.random() * 6) + 1;
-
-const chanceEvents = [
-  { type: 'move', value: 3, description: 'Lucky break! Move forward 3 spaces!' },
-  { type: 'move', value: -2, description: 'Oops! Move back 2 spaces!' },
-  { type: 'points', value: 50, description: 'Bonus points! Gain 50 points!' },
-  { type: 'points', value: -25, description: 'Point penalty! Lose 25 points!' }
-];
-
-const getRandomChanceEvent = () => {
-  return chanceEvents[Math.floor(Math.random() * chanceEvents.length)];
 };
 
 // Socket event handlers
@@ -197,9 +162,9 @@ io.on('connection', (socket) => {
       socket.join(roomCode);
 
       // Send back the current state so the client can resync UI
-      callback?.({ success: true, gameState: room.gameState, board: room.board, playerId });
+      callback?.({ success: true, gameState: room.gameState, playerId });
       // Also emit a one-off state-sync event to this socket (optional)
-      io.to(socket.id).emit('state-sync', { gameState: room.gameState, board: room.board });
+      io.to(socket.id).emit('state-sync', { gameState: room.gameState });
     } catch (err) {
       console.error('Error in rejoin-room:', err);
       callback?.({ success: false, error: 'Internal error' });
@@ -238,7 +203,6 @@ io.on('connection', (socket) => {
       const room = {
         id: roomCode,
         gameState,
-        board: generateBoard(),
         usedQuestionIds: []
       };
 
@@ -249,7 +213,7 @@ io.on('connection', (socket) => {
       console.log('Callback function exists:', typeof callback === 'function');
       if (typeof callback === 'function') {
         console.log('Calling callback with success response');
-        callback({ success: true, roomCode, gameState, board: room.board });
+        callback({ success: true, roomCode, gameState });
       } else {
         console.error('Callback is not a function!');
       }
@@ -288,7 +252,7 @@ io.on('connection', (socket) => {
     socket.join(roomCode);
     
     io.to(roomCode).emit('player-joined', { gameState: room.gameState, player: assignedPlayer });
-    callback({ success: true, gameState: room.gameState, board: room.board, playerId: assignedPlayer.id });
+    callback({ success: true, gameState: room.gameState, playerId: assignedPlayer.id });
   });
 
   socket.on('start-game', (roomCode) => {
@@ -306,96 +270,7 @@ io.on('connection', (socket) => {
     console.log('Starting game, setting phase to category_selection');
     room.gameState.gamePhase = 'category_selection';
     console.log(`Current game state: ${JSON.stringify(room.gameState)}`);
-    io.to(roomCode).emit('game-started', { gameState: room.gameState, board: room.board });
-  });
-
-  socket.on('roll-dice', (roomCode, playerId) => {
-    const room = rooms.get(roomCode);
-    if (!room) return;
-
-    const currentPlayer = room.gameState.players[room.gameState.currentPlayerIndex];
-    if (currentPlayer.id !== playerId) return;
-
-  const diceRoll = rollDice();
-  const player = room.gameState.players.find(p => p.id === playerId);
-  const newPosition = (player.position + diceRoll) % BOARD_SIZE;
-
-  player.position = newPosition;
-    const boardSquare = room.board[newPosition];
-    
-    io.to(roomCode).emit('dice-rolled', { 
-      diceRoll, 
-      gameState: room.gameState, 
-      playerId,
-      newPosition,
-      squareType: boardSquare.type
-    });
-
-    setTimeout(() => {
-      if (boardSquare.type === 'question') {
-        // Get a question avoiding repeats
-        let question = getRandomQuestion(room.usedQuestionIds);
-        // If pool seems exhausted (available length 0), reset used list and draw again for freshness
-        if (room.usedQuestionIds.length >= allQuestions.length - 1) {
-          room.usedQuestionIds = [];
-          question = getRandomQuestion(room.usedQuestionIds);
-        }
-        room.usedQuestionIds.push(question.id);
-        room.gameState.currentQuestion = question;
-        room.gameState.gamePhase = 'question';
-        
-        io.to(roomCode).emit('question-presented', { 
-          question, 
-          gameState: room.gameState,
-          playerId 
-        });
-
-        // Clear any existing timeout for this room, then start a new one
-        const existing = questionTimeouts.get(roomCode);
-        if (existing) clearTimeout(existing);
-
-        const timeoutMs = 30000; // 30s to answer
-        const handle = setTimeout(() => {
-          // If still on the same question phase, auto-resolve as incorrect
-          if (room.gameState.gamePhase === 'question' && room.gameState.currentQuestion) {
-            const current = room.gameState.players[room.gameState.currentPlayerIndex];
-            const correctAnswer = room.gameState.currentQuestion.correctAnswer;
-            room.gameState.currentQuestion = null;
-            room.gameState.gamePhase = 'playing';
-
-            io.to(roomCode).emit('answer-submitted', {
-              playerId: current.id,
-              answerIndex: -1,
-              isCorrect: false,
-              points: 0,
-              correctAnswer,
-              gameState: room.gameState
-            });
-
-            setTimeout(() => nextTurn(room, roomCode), 1500);
-          }
-        }, timeoutMs);
-        questionTimeouts.set(roomCode, handle);
-      } else if (boardSquare.type === 'chance') {
-        const event = getRandomChanceEvent();
-        
-        if (event.type === 'move') {
-          player.position = Math.max(0, Math.min(BOARD_SIZE - 1, player.position + event.value));
-        } else if (event.type === 'points') {
-          player.score = Math.max(0, player.score + event.value);
-        }
-        
-        io.to(roomCode).emit('chance-event', { 
-          event, 
-          gameState: room.gameState,
-          playerId 
-        });
-        
-        setTimeout(() => nextTurn(room, roomCode), 3000);
-      } else {
-        nextTurn(room, roomCode);
-      }
-    }, 1500);
+    io.to(roomCode).emit('game-started', { gameState: room.gameState });
   });
 
   socket.on('select-category', (roomCode, playerId, category) => {
@@ -601,7 +476,7 @@ io.on('connection', (socket) => {
       playerId,
       isCorrect,
       correctAnswer,
-      gameState: room.gameState,
+    gameState: JSON.parse(JSON.stringify(room.gameState)),
       categoryLocked: isCorrect && currentQ ? currentQ.category : null,
       lockedCategories: room.gameState.globalLockedCategories || [],
       recentCategories: room.gameState.globalRecentCategories || [],
@@ -612,9 +487,19 @@ io.on('connection', (socket) => {
     // For correct answers only, add a small delay before changing turn
     // This ensures client UI has time to show the correct answer
     console.log(`[submit-answer] Turn advancement check: isCorrect=${isCorrect}, gamePhase=${room.gameState.gamePhase}, currentPlayer=${currentPlayer.id}`);
-    if (isCorrect && room.gameState.gamePhase === 'category_selection') {
+    if (isCorrect) {
       console.log(`[submit-answer] CALLING nextTurn for correct answer by ${playerId}`);
-      nextTurn(room, roomCode);
+      // Use setTimeout to ensure the answer-submitted event is processed first
+      setTimeout(() => {
+        console.log(`[submit-answer] Delayed nextTurn executing for ${playerId}`);
+        nextTurn(room, roomCode);
+        // Send an additional game state update to ensure clients have latest state
+        console.log(`[submit-answer] Sending additional game-state-update after nextTurn`);
+        io.to(roomCode).emit('game-state-update', { 
+          gameState: room.gameState,
+          message: 'Turn advanced after correct answer'
+        });
+      }, 500);
     } else {
       console.log(`[submit-answer] NOT calling nextTurn: isCorrect=${isCorrect}, gamePhase=${room.gameState.gamePhase}`);
     }
@@ -855,8 +740,7 @@ io.on('connection', (socket) => {
         success: true,
         isHost: existingPlayer.isHost,
         playerId: existingPlayer.id,
-        gameState: room.gameState,
-        board: room.board
+        gameState: room.gameState
       });
       return;
     } else if (persistentId && playerName) {
@@ -877,8 +761,7 @@ io.on('connection', (socket) => {
           success: true,
           isHost: false,
           playerId: assignedPlayer.id,
-          gameState: room.gameState,
-          board: room.board
+          gameState: room.gameState
         });
         return;
       }
@@ -991,22 +874,24 @@ function nextTurn(room, roomCode) {
   const newIndex = room.gameState.currentPlayerIndex;
   console.log(`[nextTurn] After: room=${roomCode} newIndex=${newIndex} newPlayer=${players[newIndex]?.id} attempts=${attempts}`);
   
-  // Reset game phase to 'playing' for the new player's turn
-  // This ensures the new player can roll dice and start their turn properly
-  // BUT keep 'category_selection' phase if that's what the game requires
-  if (room.gameState.gamePhase === 'category_selection') {
-    // Keep category_selection phase for the next player to choose a category
-    console.log(`[nextTurn] Keeping gamePhase as 'category_selection' for new player ${players[newIndex]?.id} to select category`);
-  } else if (room.gameState.gamePhase !== 'forfeit' && room.gameState.gamePhase !== 'charade_guessing') {
-    // Only reset to 'playing' for other phases
-    room.gameState.gamePhase = 'playing';
-    console.log(`[nextTurn] Reset gamePhase to 'playing' for new player ${players[newIndex]?.id}`);
+  // Always set the game phase to 'category_selection' for the next player
+  // This ensures that after a correct answer, the next player sees the category selection screen
+  if (room.gameState.gamePhase !== 'forfeit' && room.gameState.gamePhase !== 'charade_guessing') {
+    room.gameState.gamePhase = 'category_selection';
+    console.log(`[nextTurn] Set gamePhase to 'category_selection' for new player ${players[newIndex]?.id} to select category`);
+  } else {
+    console.log(`[nextTurn] Keeping gamePhase as '${room.gameState.gamePhase}' since we're in a forfeit or charade`);
   }
   
   // Emit the turn change event with updated game state
   console.log(`[nextTurn] Emitting next-turn: gamePhase=${room.gameState.gamePhase}, currentPlayerIndex=${room.gameState.currentPlayerIndex}, currentPlayer=${players[newIndex]?.name} (${players[newIndex]?.id})`);
-  io.to(roomCode).emit('next-turn', { gameState: room.gameState });
-  console.log(`[nextTurn] COMPLETED: room=${roomCode}`);
+  console.log(`[nextTurn] Player order: ${players.map(p => p.name).join(' -> ')}`);
+  console.log(`[nextTurn] Player IDs: ${players.map(p => p.id).join(', ')}`);
+  io.to(roomCode).emit('next-turn', { gameState: JSON.parse(JSON.stringify(room.gameState)) });
+  
+  // Log the state after emitting the event
+  console.log(`[nextTurn] COMPLETED: room=${roomCode}, final gamePhase=${room.gameState.gamePhase}, final currentPlayerIndex=${room.gameState.currentPlayerIndex}`);
+  console.log(`[nextTurn] Final current player: ${players[room.gameState.currentPlayerIndex]?.name} (${players[room.gameState.currentPlayerIndex]?.id})`);
 }
 
 // Function to check if only one player remains
