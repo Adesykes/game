@@ -3,7 +3,7 @@ import { useWakeLock } from '../hooks/useWakeLock';
 import { useFullScreen } from '../hooks/useFullScreen';
 import { Socket } from 'socket.io-client';
 import { GameState, Question, AnswerResult } from '../types/game';
-import { Star, Heart, Clock, AlertTriangle, Maximize, Minimize } from 'lucide-react';
+import { Heart, Clock, AlertTriangle, Maximize, Minimize } from 'lucide-react';
 import { questionCategories } from '../data/questions';
 import { DrawingCanvas, DrawingDisplay } from './DrawingComponents';
 
@@ -233,10 +233,6 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
           <div className="text-6xl mb-2">{player.avatar}</div>
           <h1 className="text-2xl font-bold text-white mb-1">{player.name}</h1>
           <div className="flex justify-center items-center space-x-6">
-            <div className="flex items-center text-yellow-400">
-              <Star className="w-5 h-5 mr-1" />
-              <span className="font-bold">{player.score}</span>
-            </div>
             <div className="flex items-center text-red-400">
               <Heart className="w-5 h-5 mr-1" />
               <span className="font-bold">{player.lives}</span>
@@ -594,13 +590,11 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
           </div>
         )}
 
-        {/* Player Scores */}
+    {/* Player List (no scores) */}
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
           <h2 className="text-xl font-bold text-white mb-4">Players</h2>
           <div className="space-y-3">
-            {gameState.players
-              .sort((a, b) => b.score - a.score)
-              .map((p) => (
+      {gameState.players.map((p) => (
                 <div key={p.id} 
                      className={`flex items-center justify-between p-3 rounded-xl ${
                        p.isEliminated ? 'bg-red-900/30 opacity-60' : 
@@ -614,10 +608,6 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                     )}
                   </div>
                   <div className="flex space-x-4">
-                    <div className="flex items-center text-yellow-400">
-                      <Star className="w-4 h-4 mr-1" />
-                      <span className="font-bold">{p.score}</span>
-                    </div>
                     <div className="flex items-center text-red-400">
                       <Heart className="w-4 h-4 mr-1" />
                       <span className="font-bold">{p.lives}</span>

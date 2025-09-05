@@ -471,9 +471,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
           </div>
           
           <div className="space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto pr-2">
-            {gameState.players
-              .sort((a, b) => b.score - a.score)
-              .map((player) => (
+            {gameState.players.map((player) => (
                 <div
                   key={player.id}
                   className={`flex items-center justify-between p-3 rounded-xl ${
@@ -492,7 +490,6 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                         {player.isHost && <span className="ml-2 text-xs bg-yellow-500/50 px-2 py-1 rounded">Host</span>}
                       </div>
                       <div className="flex mt-1">
-                        <span className="text-yellow-400 text-xs mr-3">Score: {player.score}</span>
                         <span className="text-red-400 text-xs">Lives: {player.lives}</span>
                       </div>
                     </div>

@@ -1,6 +1,5 @@
 import { Player, GameState, Question } from '../types/game';
-import { allQuestions, questionCategories } from '../data/questions';
-import { getRandomChanceEvent } from '../data/chanceEvents';
+import { allQuestions } from '../data/questions';
 
 export const MAX_PLAYERS = 6;
 
@@ -34,7 +33,6 @@ export const createPlayer = (name: string, isHost: boolean = false): Player => {
     name,
     color: '',
     avatar: '',
-    score: 0,
     lives: 3, // Initialize with 3 lives
     isHost,
     isEliminated: false,
@@ -69,49 +67,11 @@ export const getRandomQuestion = (usedQuestionIds: string[] = []): Question => {
   return availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
 };
 
-export const addPointsToPlayer = (gameState: GameState, playerId: string, points: number): GameState => {
-  const newGameState = { ...gameState };
-  const playerIndex = newGameState.players.findIndex(p => p.id === playerId);
-  
-  if (playerIndex !== -1) {
-    newGameState.players[playerIndex] = {
-      ...newGameState.players[playerIndex],
-      score: Math.max(0, newGameState.players[playerIndex].score + points)
-    };
-  }
-  
-  return newGameState;
-};
+// addPointsToPlayer removed – scoring no longer used
 
-export const processChanceEvent = (gameState: GameState, playerId: string) => {
-  const event = getRandomChanceEvent();
-  let newGameState = { ...gameState };
-  
-  switch (event.type) {
-    case 'move':
-      // Since we don't have a board, we can convert 'move' to points
-      newGameState = addPointsToPlayer(newGameState, playerId, event.value * 10);
-      break;
-    case 'points':
-      newGameState = addPointsToPlayer(newGameState, playerId, event.value);
-      break;
-    case 'skip':
-      // Skip logic would be handled in the main game loop
-      break;
-  }
-  
-  return { gameState: newGameState, event };
-};
+// processChanceEvent deprecated (scoring & board removed)
 
-export const checkWinCondition = (gameState: GameState): Player | null => {
-  // Win by max rounds reached - highest score wins
-  if (gameState.round >= gameState.maxRounds) {
-    const sortedPlayers = [...gameState.players].sort((a, b) => b.score - a.score);
-    return sortedPlayers[0];
-  }
-  
-  return null;
-};
+// checkWinCondition deprecated – server handles win by category completion or elimination
 
 export const getNextPlayer = (gameState: GameState): number => {
   return (gameState.currentPlayerIndex + 1) % gameState.players.length;

@@ -184,7 +184,7 @@ const createPlayer = (name, isHost = false) => {
     name,
     color: '',
     avatar: '',
-    score: 0,
+  // score removed (no longer used), rely on per-category progress only
     lives: 3,
     isHost,
     isEliminated: false,
@@ -460,9 +460,7 @@ io.on('connection', (socket) => {
     if (currentPlayer.id !== playerId) return;
 
     const isCorrect = answerIndex === room.gameState.currentQuestion.correctAnswer;
-    const points = isCorrect ? 100 : 0;
-    
-    currentPlayer.score += points;
+  // Points/score removed; only category progress matters
     const currentQ = room.gameState.currentQuestion;
     const correctAnswer = currentQ.correctAnswer;
     
@@ -695,7 +693,7 @@ io.on('connection', (socket) => {
 
       // Small reward for the actor for successfully conveying the word
       const actor = gameState.players[gameState.currentPlayerIndex];
-      actor.score = (actor.score || 0) + 50;
+  // Removed score bonus for actor; no scoring system
       
       // Reset the charade life flag since they succeeded
       actor.needsCharadeForLife = false;
@@ -767,7 +765,7 @@ io.on('connection', (socket) => {
 
       // Small reward for the drawer for successfully conveying the word
       const drawer = gameState.players[gameState.currentPlayerIndex];
-      drawer.score = (drawer.score || 0) + 50;
+  // Removed score bonus for drawer; no scoring system
       
       // Reset the charade life flag since they succeeded
       drawer.needsCharadeForLife = false;

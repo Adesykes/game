@@ -78,7 +78,6 @@ export const useGameEvents = (
         answerIndex: -1, // Not needed for this implementation
         isCorrect, 
         correctAnswer: correctAnswer ?? currentQuestion?.correctAnswer ?? 0, 
-        points: isCorrect ? 100 : 0,
         categoryLocked,
         lockedCategories: lockedCategories || [],
         recentCategories: recentCategories || [],

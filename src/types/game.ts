@@ -3,7 +3,6 @@ export interface Player {
   name: string;
   color: string;
   avatar: string;
-  score: number;
   lives: number; // Players start with 3 lives
   isHost: boolean;
   isEliminated: boolean; // True when player has lost all lives
@@ -59,7 +58,6 @@ export interface AnswerResult {
   playerId: string;
   answerIndex: number;
   isCorrect: boolean;
-  points: number;
   correctAnswer: number;
   categoryLocked?: string; // Category that was locked after correct answer
   lockedCategories?: string[]; // All categories currently locked for this player
