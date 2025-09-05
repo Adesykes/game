@@ -1,3 +1,43 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Full screen styles */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+#root {
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Full screen specific styles */
+:fullscreen {
+  background: black;
+}
+
+:fullscreen body {
+  background: transparent;
+}
+
+/* Webkit fullscreen support */
+:-webkit-full-screen {
+  background: black;
+}
+
+:-webkit-full-screen body {
+  background: transparent;
+}
+
+/* Mozilla fullscreen support */
+:-moz-full-screen {
+  background: black;
+}
+
+:-moz-full-screen body {
+  background: transparent;
+}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSocket } from './hooks/useSocket';
 import { useGameEvents } from './hooks/useGameEvents';
+import { useFullScreen } from './hooks/useFullScreen';
 import type { Socket } from 'socket.io-client';
 import WelcomeScreen from './components/WelcomeScreen';
 import CreateGame from './components/CreateGame';
@@ -13,6 +14,7 @@ type AppMode = 'welcome' | 'create' | 'join' | 'host' | 'player';
 
 function App() {
   const { socket, connected } = useSocket();
+  const { enterFullScreen } = useFullScreen();
   const [mode, setMode] = useState<AppMode>('welcome');
   const [roomCode, setRoomCode] = useState('');
   const [playerId, setPlayerId] = useState('');
@@ -23,7 +25,7 @@ function App() {
   useEffect(() => {
     const path = window.location.pathname;
     const pathParts = path.split('/');
-    
+
     // Check if the URL is in the format /join/ROOMCODE
     if (pathParts.length >= 3 && pathParts[1].toLowerCase() === 'join') {
       const joinRoomCode = pathParts[2].toUpperCase();
@@ -33,6 +35,16 @@ function App() {
       }
     }
   }, []);
+
+  // Enter full screen when game starts
+  useEffect(() => {
+    if ((mode === 'host' || mode === 'player') && gameState && !document.fullscreenElement) {
+      console.log('Entering full screen mode for game');
+      enterFullScreen().catch(error => {
+        console.log('Full screen request failed (this is normal on first load):', error.message);
+      });
+    }
+  }, [mode, enterFullScreen]);
 
   const handleCreateSuccess = (newRoomCode: string, newGameState: GameState) => {
     setRoomCode(newRoomCode);

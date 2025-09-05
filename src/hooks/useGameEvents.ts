@@ -171,7 +171,7 @@ export const useGameEvents = (
     });
     socket.on('next-turn', onNextTurn);
     socket.on('category-selected', (data) => {
-      console.log('Category selected event received:', data);
+      console.log('Category selected event received:', data?.question?.category || 'Unknown', 'by player:', data?.gameState?.players?.[data?.gameState?.currentPlayerIndex]?.name || 'Unknown');
       onCategorySelected(data);
     });
     socket.on('answer-submitted', onAnswerSubmitted);

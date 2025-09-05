@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useFullScreen } from '../hooks/useFullScreen';
 import { Socket } from 'socket.io-client';
 import { GameState } from '../types/game';
-import { Users, Trophy, Clock } from 'lucide-react';
+import { Users, Trophy, Clock, Maximize, Minimize } from 'lucide-react';
 import { questionCategories } from '../data/questions';
 import QRCodeDisplay from './QRCodeDisplay';
 import { DrawingCanvas, DrawingDisplay } from './DrawingComponents';
@@ -26,6 +27,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
   const [charadeTimeLeft, setCharadeTimeLeft] = useState(120);
   const [pictionaryTimeLeft, setPictionaryTimeLeft] = useState(60);
   const [questionTimeLeft, setQuestionTimeLeft] = useState(30);
+  const { isFullScreen, toggleFullScreen } = useFullScreen();
   
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const activePlayers = gameState.players.filter(p => !p.isEliminated);
@@ -119,7 +121,20 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-4">
       <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Host Header */}
-        <div className="lg:col-span-3 bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 text-center">
+        <div className="lg:col-span-3 bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 text-center relative">
+          {/* Full Screen Toggle Button */}
+          <button
+            onClick={toggleFullScreen}
+            className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+            title={isFullScreen ? 'Exit Full Screen' : 'Enter Full Screen'}
+          >
+            {isFullScreen ? (
+              <Minimize className="w-5 h-5 text-white" />
+            ) : (
+              <Maximize className="w-5 h-5 text-white" />
+            )}
+          </button>
+          
           <h1 className="text-3xl font-bold text-white mb-1">Game Host</h1>
           <p className="text-white/80 mb-4">Room Code: <span className="font-mono text-yellow-400 font-bold">{roomCode}</span></p>
           

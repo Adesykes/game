@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useWakeLock } from '../hooks/useWakeLock';
+import { useFullScreen } from '../hooks/useFullScreen';
 import { Socket } from 'socket.io-client';
 import { GameState, Question, AnswerResult } from '../types/game';
-import { Star, Heart, Clock, AlertTriangle } from 'lucide-react';
+import { Star, Heart, Clock, AlertTriangle, Maximize, Minimize } from 'lucide-react';
 import { questionCategories } from '../data/questions';
 import { DrawingCanvas, DrawingDisplay } from './DrawingComponents';
 
@@ -31,6 +32,7 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
   const [charadeTimeLeft, setCharadeTimeLeft] = useState(120);
   const [pictionaryGuessInput, setPictionaryGuessInput] = useState('');
   const [pictionaryTimeLeft, setPictionaryTimeLeft] = useState(60);
+  const { isFullScreen, toggleFullScreen } = useFullScreen();
 
   // Ref to track the latest game state for race condition prevention
   const gameStateRef = useRef(gameState);
@@ -172,7 +174,20 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-4">
       <div className="max-w-md mx-auto">
         {/* Player Header */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-white/20 text-center">
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-white/20 text-center relative">
+          {/* Full Screen Toggle Button */}
+          <button
+            onClick={toggleFullScreen}
+            className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+            title={isFullScreen ? 'Exit Full Screen' : 'Enter Full Screen'}
+          >
+            {isFullScreen ? (
+              <Minimize className="w-5 h-5 text-white" />
+            ) : (
+              <Maximize className="w-5 h-5 text-white" />
+            )}
+          </button>
+          
           <div className="text-6xl mb-2">{player.avatar}</div>
           <h1 className="text-2xl font-bold text-white mb-1">{player.name}</h1>
           <div className="flex justify-center items-center space-x-6">
