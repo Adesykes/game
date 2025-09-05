@@ -1,4 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+// Import audio asset (ensures bundling for all clients)
+// Adjust relative path if mp3 folder moves to /public or /src/assets
+// @ts-ignore - module declaration added in vite-env.d.ts
+import lobbyTrack from '../mp3/soulsweeper-252499.mp3';
 import { useSocket } from './hooks/useSocket';
 import { useGameEvents } from './hooks/useGameEvents';
 import { useFullScreen } from './hooks/useFullScreen';
@@ -21,6 +25,142 @@ function App() {
   const [playerId, setPlayerId] = useState('');
   const [gameState, setGameState] = useState<GameState | null>(null);
   const { currentQuestion, answerResult, charadeDeadline, pictionaryDeadline } = useGameEvents(socket, setGameState);
+  // Global background music only during waiting / ready phases (all clients)
+  const bgAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Create element once
+  useEffect(() => {
+    if (!bgAudioRef.current) {
+      const el = new Audio(lobbyTrack);
+      el.loop = true;
+      el.volume = 0.25;
+      el.preload = 'auto';
+      bgAudioRef.current = el;
+    }
+  }, []);
+
+  // Explicit lobby music stop signal from server
+  useEffect(() => {
+    if (!socket) return;
+    const handler = () => {
+      const audio = bgAudioRef.current;
+      if (!audio) return;
+      // Fade out over 600ms
+      const fadeSteps = 12;
+      const startVol = audio.volume;
+      let step = 0;
+      const interval = setInterval(() => {
+        step++;
+        const v = startVol * (1 - step / fadeSteps);
+        audio.volume = Math.max(0, v);
+        if (step >= fadeSteps) {
+          clearInterval(interval);
+          audio.pause();
+          audio.currentTime = 0;
+          audio.volume = startVol; // reset for next lobby
+        }
+      }, 50);
+    };
+    socket.on('lobby-music-stop', handler);
+    return () => { socket.off('lobby-music-stop', handler); };
+  }, [socket]);
+
+  const shouldPlay = (
+    mode === 'welcome' || mode === 'create' || mode === 'join' ||
+    (mode === 'host' && (gameState?.gamePhase === 'waiting' || gameState?.gamePhase === 'ready_check')) ||
+    (mode === 'player' && (gameState?.gamePhase === 'waiting' || gameState?.gamePhase === 'ready_check'))
+  );
+
+  useEffect(() => {
+    const audio = bgAudioRef.current;
+    if (!audio) return;
+
+    let interactionBound = false;
+
+    const gesturePlay = () => {
+      audio.play().finally(() => {
+        window.removeEventListener('pointerdown', gesturePlay);
+        window.removeEventListener('keydown', gesturePlay);
+        window.removeEventListener('visibilitychange', visibilityAttempt);
+      });
+    };
+
+    const visibilityAttempt = () => {
+      if (document.visibilityState === 'visible' && shouldPlay && audio.paused) {
+        audio.play().catch(() => {/* gesture still needed */});
+      }
+    };
+
+    const attempt = () => {
+      if (!shouldPlay) return;
+      audio.play().catch(() => {
+        if (!interactionBound) {
+          interactionBound = true;
+          window.addEventListener('pointerdown', gesturePlay, { once: true });
+          window.addEventListener('keydown', gesturePlay, { once: true });
+          window.addEventListener('visibilitychange', visibilityAttempt);
+        }
+      });
+    };
+
+    if (shouldPlay) {
+      attempt();
+    } else {
+      if (!audio.paused) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+      window.removeEventListener('pointerdown', gesturePlay);
+      window.removeEventListener('keydown', gesturePlay);
+      window.removeEventListener('visibilitychange', visibilityAttempt);
+    }
+
+    return () => {
+      window.removeEventListener('pointerdown', gesturePlay);
+      window.removeEventListener('keydown', gesturePlay);
+      window.removeEventListener('visibilitychange', visibilityAttempt);
+    };
+  }, [shouldPlay]);
+
+  // Start & sync handlers
+  useEffect(() => {
+    if (!socket) return;
+    const handleStart = () => {
+      const audio = bgAudioRef.current; if (!audio) return;
+      audio.currentTime = 0; audio.play().catch(()=>{});
+    };
+    const handleSync = (data: { t: number; ts: number }) => {
+      const audio = bgAudioRef.current; if (!audio) return;
+      if (!shouldPlay) return; // only adjust while in lobby
+      const hostTime = data.t;
+      const diff = Math.abs(audio.currentTime - hostTime);
+      if (diff > 0.35) {
+        audio.currentTime = hostTime;
+      }
+    };
+    socket.on('lobby-music-start', handleStart);
+    socket.on('lobby-music-sync', handleSync);
+    return () => {
+      socket.off('lobby-music-start', handleStart);
+      socket.off('lobby-music-sync', handleSync);
+    };
+  }, [socket, shouldPlay]);
+
+  // Host periodically sends current playback time for sync
+  useEffect(() => {
+    if (!socket || !gameState) return;
+    const hostPlayer = gameState.players.find(p => p.isHost);
+    const isHostClient = hostPlayer && gameState.players.some(p => p.isHost && p.id === hostPlayer.id) && mode === 'host';
+    if (!isHostClient) return;
+    let interval: any;
+    interval = setInterval(() => {
+      const audio = bgAudioRef.current; if (!audio) return;
+      if (shouldPlay && !audio.paused) {
+        socket.emit('lobby-music-time', roomCode || gameState.id, audio.currentTime);
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [socket, gameState, mode, shouldPlay, roomCode]);
   
   // Check if we landed on a join URL from a QR code
   useEffect(() => {

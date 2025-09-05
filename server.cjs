@@ -368,6 +368,8 @@ io.on('connection', (socket) => {
     room.gameState.allReady = false;
     console.log('Entering ready_check phase before starting categories');
     io.to(roomCode).emit('game-started', { gameState: room.gameState, message: 'Ready check started' });
+  // Notify clients to begin lobby track (fresh start at 0)
+  io.to(roomCode).emit('lobby-music-start', { startAt: Date.now() });
   });
 
   // Player presses Ready
@@ -386,7 +388,8 @@ io.on('connection', (socket) => {
       // Small delay for dramatic effect then start game proper
       setTimeout(() => {
         room.gameState.gamePhase = 'category_selection';
-        io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'All players ready. Game starting!' });
+  io.to(roomCode).emit('lobby-music-stop');
+  io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'All players ready. Game starting!' });
       }, 1200);
     }
   });
@@ -401,7 +404,20 @@ io.on('connection', (socket) => {
     console.log(`[host-force-start] Host ${host.name} is forcing game start in room ${roomCode}`);
     room.gameState.gamePhase = 'category_selection';
     room.gameState.allReady = false; // indicate override
+  io.to(roomCode).emit('lobby-music-stop');
     io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'Host forced game start' });
+  });
+
+  // Host emits periodic music time sync
+  socket.on('lobby-music-time', (roomCode, currentTimeSec) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    // Only allow host to broadcast sync
+    const host = room.gameState.players.find(p => p.isHost);
+    if (!host) return;
+    const hostSocketIds = [...io.sockets.sockets.keys()];
+    // Broadcast to everyone else
+    socket.to(roomCode).emit('lobby-music-sync', { t: currentTimeSec, ts: Date.now() });
   });
 
   socket.on('select-category', (roomCode, playerId, category) => {

@@ -18,6 +18,8 @@ const ReadyScreen: React.FC<ReadyScreenProps> = ({ socket, gameState, playerId, 
   }, []);
 
   const me = gameState.players.find(p => p.id === playerId);
+
+  // Global forced music handled centrally (remove local toggle)
   const handleReady = () => {
     if (!me?.isReady) socket.emit('player-ready', roomCode, playerId);
   };
@@ -33,12 +35,13 @@ const ReadyScreen: React.FC<ReadyScreenProps> = ({ socket, gameState, playerId, 
   <div className="absolute inset-0 opacity-30 mix-blend-screen bg-[radial-gradient(circle_at_30%_40%,rgba(255,255,255,0.15),transparent_60%),radial-gradient(circle_at_70%_60%,rgba(255,255,255,0.1),transparent_65%)]" />
 
       <div className={`relative z-10 text-center transform transition-all ${pulse ? 'scale-[1.02]' : 'scale-100'}`}>
-        <div className="flex items-center justify-center mb-6 gap-4">
+        <div className="flex items-center justify-center mb-6 gap-4 relative">
           <Sparkles className="w-10 h-10 text-yellow-300 animate-spin-slow" />
           <h1 className="text-4xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-pink-300 to-purple-300 drop-shadow-[0_0_12px_rgba(255,255,255,0.25)]">
             WELCOME TO DRUNK GAMES NIGHT
           </h1>
           <Sparkles className="w-10 h-10 text-pink-300 animate-spin-slow-rev" />
+          <span className="absolute -right-4 -top-8 md:right-0 md:top-1 px-3 py-1 rounded-full text-[10px] font-semibold tracking-wide bg-white/10 text-white/60 backdrop-blur border border-white/15">Music Active</span>
         </div>
         <p className="text-white/80 max-w-xl mx-auto mb-10 text-sm md:text-base leading-relaxed">
           Get your drinks ready 🍻 – once everyone hits <span className="text-yellow-300 font-semibold">READY</span>, the madness begins.

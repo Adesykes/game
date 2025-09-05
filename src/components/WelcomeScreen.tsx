@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Trophy, Users, Heart, BookOpen, Music, Globe, Dices, Utensils, Microscope, MonitorPlay } from 'lucide-react';
 
 interface WelcomeScreenProps {
@@ -9,7 +9,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onModeSelect }) => {
   console.log('WelcomeScreen component rendered');
   
   // Force clear localStorage on load to avoid persistence issues
-  React.useEffect(() => {
+  useEffect(() => {
     console.log('WelcomeScreen useEffect triggered');
     // Only clear if there's a saved app mode but we're on welcome screen
     // This means something went wrong with the navigation or state management
@@ -19,6 +19,15 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onModeSelect }) => {
       console.log("Cleared localStorage due to inconsistent state");
     }
   }, []);
+
+  // Forced global music handled in App.tsx (removed local controls)
+
+  // Restore preference
+  useEffect(() => {
+    // Clear any old preference keys since option removed
+    localStorage.removeItem('ambientHaunting');
+  }, []);
+
 
   const handleResetGame = () => {
     localStorage.clear();
@@ -35,6 +44,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onModeSelect }) => {
           <p className="text-xl text-white/80 mb-8">
             Local multiplayer trivia game for up to 6 players
           </p>
+          <div className="mt-4 text-xs text-white/40 tracking-wide">Haunting soundtrack active</div>
         </div>
 
         {/* Main Actions */}
