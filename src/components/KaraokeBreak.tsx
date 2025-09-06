@@ -10,7 +10,6 @@ interface KaraokeBreakProps {
   roomCode: string;
 }
 
-
 const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId, roomCode }) => {
   const song = gameState.currentKaraokeSong;
   const isHost = gameState.players.find(p=>p.id===playerId)?.isHost;
@@ -113,26 +112,49 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
     return () => { cancelAnimationFrame(frame); window.removeEventListener('resize', w); };
   }, []);
 
-  // Speak Alexa play only on host
+  // --- Voice selection helper (choose a natural female voice if available) ---
+  const preferredVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
+  function selectPreferredVoice() {
+    if (!('speechSynthesis' in window)) return null;
+    if (preferredVoiceRef.current) return preferredVoiceRef.current;
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices || voices.length === 0) return null;
+    const targetNames = [
+      'Google UK English Female', 'Google US English', 'Google English',
+      'Microsoft Zira', 'Microsoft Aria', 'Microsoft Jenny', 'Samantha', 'Victoria', 'Zira'
+    ].map(v => v.toLowerCase());
+    const femaleRegex = /female|aria|jenny|zira|samantha|victoria/i;
+    let candidate = voices.find(v => targetNames.includes(v.name.toLowerCase()));
+    if (!candidate) candidate = voices.find(v => femaleRegex.test(v.name));
+    if (!candidate) candidate = voices.find(v => /en-/i.test(v.lang));
+    preferredVoiceRef.current = candidate || null;
+    return preferredVoiceRef.current;
+  }
+  function speak(text: string, rate=0.95, pitch=1.0) {
+    if (!('speechSynthesis' in window)) return;
+    const utter = new SpeechSynthesisUtterance(text);
+    const voice = selectPreferredVoice();
+    if (voice) utter.voice = voice;
+    utter.rate = rate; utter.pitch = pitch; utter.volume = 1;
+    window.speechSynthesis.speak(utter);
+  }
+  // Re-select once voices load asynchronously
+  useEffect(() => {
+    if (!('speechSynthesis' in window)) return;
+    const handle = () => { selectPreferredVoice(); };
+    window.speechSynthesis.addEventListener('voiceschanged', handle);
+    return () => window.speechSynthesis.removeEventListener('voiceschanged', handle);
+  }, []);
+
+  // Speak Alexa play only on host (using enhanced female voice selection)
   useEffect(() => {
     if (!song || !isHost) return;
-    if ('speechSynthesis' in window) {
-      const u = new SpeechSynthesisUtterance(`Alexa, play ${song.alexaPhrase}`);
-      u.rate = 0.95; u.pitch = 1.0; u.volume = 1;
-      window.speechSynthesis.speak(u);
-    }
+    speak(`Alexa, play ${song.alexaPhrase}`, 0.95, 1.0);
   }, [song, isHost]);
 
   // Speak Alexa stop on explicit server karaoke-ended event (covers auto + manual end)
   useEffect(() => {
-    const handler = () => {
-      if (!isHost) return;
-      if ('speechSynthesis' in window) {
-        const u = new SpeechSynthesisUtterance('Alexa, stop');
-        u.rate = 0.95; u.pitch = 1.0; u.volume = 1;
-        window.speechSynthesis.speak(u);
-      }
-    };
+    const handler = () => { if (isHost) speak('Alexa, stop', 0.95, 1.0); };
     socket.on('karaoke-ended', handler);
     return () => { socket.off('karaoke-ended', handler); };
   }, [socket, isHost]);

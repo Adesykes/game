@@ -1046,7 +1046,6 @@ const KARAOKE_SONGS = [
   { title: 'Bohemian Rhapsody', artist: 'Queen', alexaPhrase: 'Bohemian Rhapsody by Queen', difficulty: 'hard', durationHintSec: 60 },
   { title: 'Livin\' on a Prayer', artist: 'Bon Jovi', alexaPhrase: "Livin' on a Prayer by Bon Jovi", difficulty: 'medium', durationHintSec: 55 },
   { title: 'Wonderwall', artist: 'Oasis', alexaPhrase: 'Wonderwall by Oasis', difficulty: 'easy', durationHintSec: 45 },
-  { title: 'Mr. Brightside', artist: 'The Killers', alexaPhrase: 'Mr Brightside by The Killers', difficulty: 'medium', durationHintSec: 50 },
   { title: 'I Want It That Way', artist: 'Backstreet Boys', alexaPhrase: 'I Want It That Way by Backstreet Boys', difficulty: 'easy', durationHintSec: 45 },
   { title: 'Angels', artist: 'Robbie Williams', alexaPhrase: 'Angels by Robbie Williams', difficulty: 'easy', durationHintSec: 50 },
   { title: 'Flowers', artist: 'Miley Cyrus', alexaPhrase: 'Flowers by Miley Cyrus', difficulty: 'easy', durationHintSec: 45 },
