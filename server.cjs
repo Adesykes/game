@@ -1047,7 +1047,19 @@ const KARAOKE_SONGS = [
   { title: 'Livin\' on a Prayer', artist: 'Bon Jovi', alexaPhrase: "Livin' on a Prayer by Bon Jovi", difficulty: 'medium', durationHintSec: 55 },
   { title: 'Wonderwall', artist: 'Oasis', alexaPhrase: 'Wonderwall by Oasis', difficulty: 'easy', durationHintSec: 45 },
   { title: 'Mr. Brightside', artist: 'The Killers', alexaPhrase: 'Mr Brightside by The Killers', difficulty: 'medium', durationHintSec: 50 },
-  { title: 'I Want It That Way', artist: 'Backstreet Boys', alexaPhrase: 'I Want It That Way by Backstreet Boys', difficulty: 'easy', durationHintSec: 45 }
+  { title: 'I Want It That Way', artist: 'Backstreet Boys', alexaPhrase: 'I Want It That Way by Backstreet Boys', difficulty: 'easy', durationHintSec: 45 },
+  { title: 'Angels', artist: 'Robbie Williams', alexaPhrase: 'Angels by Robbie Williams', difficulty: 'easy', durationHintSec: 50 },
+  { title: 'Flowers', artist: 'Miley Cyrus', alexaPhrase: 'Flowers by Miley Cyrus', difficulty: 'easy', durationHintSec: 45 },
+  { title: "It's Raining Men", artist: 'The Weather Girls', alexaPhrase: "It's Raining Men by The Weather Girls", difficulty: 'easy', durationHintSec: 50 },
+  { title: 'Poison', artist: 'Alice Cooper', alexaPhrase: 'Poison by Alice Cooper', difficulty: 'medium', durationHintSec: 55 },
+  { title: 'Total Eclipse of the Heart', artist: 'Bonnie Tyler', alexaPhrase: 'Total Eclipse of the Heart by Bonnie Tyler', difficulty: 'hard', durationHintSec: 60 },
+  { title: 'I Will Survive', artist: 'Gloria Gaynor', alexaPhrase: 'I Will Survive by Gloria Gaynor', difficulty: 'medium', durationHintSec: 55 },
+  { title: 'Creep', artist: 'Radiohead', alexaPhrase: 'Creep by Radiohead', difficulty: 'medium', durationHintSec: 55 },
+  { title: 'Purple Rain', artist: 'Prince', alexaPhrase: 'Purple Rain by Prince', difficulty: 'hard', durationHintSec: 65 },
+  { title: 'A Million Dreams', artist: 'The Greatest Showman Cast', alexaPhrase: 'A Million Dreams from The Greatest Showman soundtrack', difficulty: 'medium', durationHintSec: 55 },
+  { title: 'Mamma Mia', artist: 'ABBA', alexaPhrase: 'Mamma Mia by ABBA', difficulty: 'easy', durationHintSec: 45 },
+  { title: 'Torn', artist: 'Natalie Imbruglia', alexaPhrase: 'Torn by Natalie Imbruglia', difficulty: 'easy', durationHintSec: 45 },
+  { title: 'Wannabe', artist: 'Spice Girls', alexaPhrase: 'Wannabe by Spice Girls', difficulty: 'easy', durationHintSec: 45 }
 ];
 
 function pickKaraokeSong() {
