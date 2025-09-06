@@ -426,10 +426,12 @@ io.on('connection', (socket) => {
     const host = room.gameState.players.find(p => p.id === playerId && p.isHost);
     if (!host) return;
     if (room.gameState.gamePhase !== 'karaoke_break') return;
-    // Resume game
     room.gameState.currentKaraokeSong = null;
     room.gameState.gamePhase = 'category_selection';
-    io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'Karaoke ended' });
+    const endedAt = Date.now();
+    io.to(roomCode).emit('karaoke-ended', { endedAt });
+    io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'Karaoke ended (manual)' });
+    setTimeout(() => { try { nextTurn(room, roomCode); } catch(e) { console.error('[karaoke] Error advancing turn after manual end', e); } }, 1000);
   });
 
   // Player presses Ready
@@ -729,8 +731,20 @@ io.on('connection', (socket) => {
       
       // Notify clients about the shot forfeit
       io.to(roomCode).emit('forfeit-completed', { gameState, forfeitType: 'shot' });
-      
-      // Move to next turn after a short delay
+      // Attempt an automatic karaoke break based on probability settings
+      const beforePhase = gameState.gamePhase;
+      try {
+        maybeTriggerKaraoke(room, roomCode);
+      } catch (err) {
+        console.error('[karaoke] maybeTriggerKaraoke error after shot forfeit', err);
+      }
+      const afterPhase = gameState.gamePhase;
+      if (afterPhase === 'karaoke_break') {
+        console.log('[karaoke] Karaoke break triggered after shot forfeit; skipping scheduled nextTurn until karaoke ends');
+        return; // Karaoke flow will reset phase & progression afterward
+      }
+      // If karaoke did not trigger, move to next turn after a short delay
+      console.log(`[forfeit] No karaoke break (phase stayed ${beforePhase} -> ${afterPhase}); scheduling nextTurn in 5s`);
       setTimeout(() => nextTurn(room, roomCode), 5000);
       return;
     }
@@ -1053,9 +1067,7 @@ function triggerKaraoke(room, roomCode, manual=false) {
   gs.karaokeStartAt = now;
   gs.gamePhase = 'karaoke_break';
   io.to(roomCode).emit('game-state-update', { gameState: gs, message: manual ? 'Manual karaoke break!' : 'Karaoke break!' });
-  // Send an explicit karaoke sync payload for clients to align timers
   io.to(roomCode).emit('karaoke-sync', { startAt: gs.karaokeStartAt, duration: gs.karaokeSettings.durationSec });
-  // Auto end after duration
   setTimeout(() => {
     if (gs.gamePhase === 'karaoke_break') {
       gs.currentKaraokeSong = null;
@@ -1063,6 +1075,7 @@ function triggerKaraoke(room, roomCode, manual=false) {
       const endedAt = Date.now();
       io.to(roomCode).emit('karaoke-ended', { endedAt });
       io.to(roomCode).emit('game-state-update', { gameState: gs, message: 'Karaoke ended (auto)' });
+      setTimeout(() => { try { nextTurn(room, roomCode); } catch(e) { console.error('[karaoke] Error advancing turn after auto end', e); } }, 1000);
     }
   }, gs.karaokeSettings.durationSec * 1000);
 }

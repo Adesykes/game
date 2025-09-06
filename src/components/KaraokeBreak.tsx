@@ -123,22 +123,24 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
     }
   }, [song, isHost]);
 
-  if (!song) return null;
-
-  const duration = gameState.karaokeSettings?.durationSec || song.durationHintSec || 45;
-  const remaining = duration - elapsed;
-
-  // Speak Alexa stop only on host when karaoke ends
+  // Speak Alexa stop on explicit server karaoke-ended event (covers auto + manual end)
   useEffect(() => {
-    if (!isHost) return;
-    if (gameState.gamePhase !== 'karaoke_break' && song) {
+    const handler = () => {
+      if (!isHost) return;
       if ('speechSynthesis' in window) {
         const u = new SpeechSynthesisUtterance('Alexa, stop');
         u.rate = 0.95; u.pitch = 1.0; u.volume = 1;
         window.speechSynthesis.speak(u);
       }
-    }
-  }, [gameState.gamePhase, song, isHost]);
+    };
+    socket.on('karaoke-ended', handler);
+    return () => { socket.off('karaoke-ended', handler); };
+  }, [socket, isHost]);
+
+  if (!song) return null;
+
+  const duration = gameState.karaokeSettings?.durationSec || song.durationHintSec || 45;
+  const remaining = duration - elapsed;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-6">
