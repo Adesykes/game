@@ -44,6 +44,7 @@ export interface GameState {
   currentKaraokeSong?: KaraokeSong | null; // Active karaoke selection
   karaokeBreakCount?: number; // Number of karaoke breaks triggered
   karaokeSettings?: KaraokeSettings; // Host-adjustable settings
+  karaokeStartAt?: number; // Server timestamp when current karaoke break started
 }
 
 // No longer using board squares or chance events

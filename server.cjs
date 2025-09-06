@@ -408,6 +408,18 @@ io.on('connection', (socket) => {
     triggerKaraoke(room, roomCode, true);
   });
 
+  // Host emits periodic karaoke-sync while in karaoke_break
+  socket.on('request-karaoke-sync', (roomCode, playerId) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const gs = room.gameState;
+    const host = gs.players.find(p => p.id === playerId && p.isHost);
+    if (!host) return;
+    if (gs.gamePhase === 'karaoke_break' && gs.karaokeStartAt) {
+      io.to(roomCode).emit('karaoke-sync', { startAt: gs.karaokeStartAt, duration: gs.karaokeSettings?.durationSec || 45 });
+    }
+  });
+
   socket.on('karaoke-end', (roomCode, playerId) => {
     const room = rooms.get(roomCode);
     if (!room) return;
@@ -1038,13 +1050,18 @@ function triggerKaraoke(room, roomCode, manual=false) {
   gs.karaokeSettings.lastTriggeredAt = now;
   gs.currentKaraokeSong = { ...pickKaraokeSong(), durationHintSec: gs.karaokeSettings.durationSec };
   gs.karaokeBreakCount = (gs.karaokeBreakCount || 0) + 1;
+  gs.karaokeStartAt = now;
   gs.gamePhase = 'karaoke_break';
   io.to(roomCode).emit('game-state-update', { gameState: gs, message: manual ? 'Manual karaoke break!' : 'Karaoke break!' });
+  // Send an explicit karaoke sync payload for clients to align timers
+  io.to(roomCode).emit('karaoke-sync', { startAt: gs.karaokeStartAt, duration: gs.karaokeSettings.durationSec });
   // Auto end after duration
   setTimeout(() => {
     if (gs.gamePhase === 'karaoke_break') {
       gs.currentKaraokeSong = null;
       gs.gamePhase = 'category_selection';
+      const endedAt = Date.now();
+      io.to(roomCode).emit('karaoke-ended', { endedAt });
       io.to(roomCode).emit('game-state-update', { gameState: gs, message: 'Karaoke ended (auto)' });
     }
   }, gs.karaokeSettings.durationSec * 1000);

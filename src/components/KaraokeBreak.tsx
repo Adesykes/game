@@ -15,16 +15,46 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
   const song = gameState.currentKaraokeSong;
   const isHost = gameState.players.find(p=>p.id===playerId)?.isHost;
   const [elapsed, setElapsed] = useState(0);
-  const [startedAt] = useState(Date.now());
+  const [startedAt, setStartedAt] = useState<number | null>(null);
   const barsRef = useRef<number[]>(Array.from({length:24},()=>Math.random()));
   const [, forceTick] = useState(0);
   const confettiRef = useRef<HTMLCanvasElement | null>(null);
   const confettiPieces = useRef<any[]>([]);
 
+  // Timer based on synchronized start time
   useEffect(() => {
+    if (!startedAt) return;
     const i = setInterval(()=> setElapsed(Math.floor((Date.now()-startedAt)/1000)), 500);
     return () => clearInterval(i);
   }, [startedAt]);
+
+  // Initialize from gameState or wait for sync
+  useEffect(() => {
+    if (gameState.gamePhase === 'karaoke_break' && gameState.karaokeStartAt) {
+      setStartedAt(gameState.karaokeStartAt);
+    }
+  }, [gameState.gamePhase, gameState.karaokeStartAt]);
+
+  // Listen for karaoke-sync events for correction
+  useEffect(() => {
+    const handler = (data: { startAt: number; duration: number }) => {
+      if (!startedAt || Math.abs(startedAt - data.startAt) > 500) {
+        setStartedAt(data.startAt);
+      }
+    };
+    socket.on('karaoke-sync', handler);
+    return () => { socket.off('karaoke-sync', handler); };
+  }, [socket, startedAt]);
+
+  // Host periodically requests sync broadcast (or could directly emit if desired)
+  useEffect(() => {
+    if (!isHost) return;
+    if (gameState.gamePhase !== 'karaoke_break') return;
+    const id = setInterval(() => {
+      socket.emit('request-karaoke-sync', roomCode, playerId);
+    }, 4000);
+    return () => clearInterval(id);
+  }, [isHost, gameState.gamePhase, socket, roomCode, playerId]);
 
   // Equalizer animation
   useEffect(() => {
@@ -83,22 +113,24 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
     return () => { cancelAnimationFrame(frame); window.removeEventListener('resize', w); };
   }, []);
 
-  // Speak Alexa phrase once (user must have interacted earlier)
+  // Speak Alexa play only on host
   useEffect(() => {
-    if (!song) return;
+    if (!song || !isHost) return;
     if ('speechSynthesis' in window) {
       const u = new SpeechSynthesisUtterance(`Alexa, play ${song.alexaPhrase}`);
       u.rate = 0.95; u.pitch = 1.0; u.volume = 1;
       window.speechSynthesis.speak(u);
     }
-  }, [song]);
+  }, [song, isHost]);
 
   if (!song) return null;
 
-  const remaining = (song.durationHintSec || 45) - elapsed;
+  const duration = gameState.karaokeSettings?.durationSec || song.durationHintSec || 45;
+  const remaining = duration - elapsed;
 
-  // Speak "Alexa stop" when karaoke ends
+  // Speak Alexa stop only on host when karaoke ends
   useEffect(() => {
+    if (!isHost) return;
     if (gameState.gamePhase !== 'karaoke_break' && song) {
       if ('speechSynthesis' in window) {
         const u = new SpeechSynthesisUtterance('Alexa, stop');
@@ -106,7 +138,7 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
         window.speechSynthesis.speak(u);
       }
     }
-  }, [gameState.gamePhase, song]);
+  }, [gameState.gamePhase, song, isHost]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-6">
