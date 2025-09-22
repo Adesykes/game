@@ -17,44 +17,52 @@ const JoinGame: React.FC<JoinGameProps> = ({ socket, onJoinSuccess, initialRoomC
 
   const joinRoom = (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!playerName.trim() || !roomCode.trim()) {
       setError('Please enter both your name and room code');
       return;
     }
-
     if (!socket) {
       setError('No connection to server. Please refresh the page and try again.');
       return;
     }
-
     setIsJoining(true);
     setError('');
-
-    // Add a timeout to handle server unresponsiveness
     const timeout = setTimeout(() => {
       setIsJoining(false);
       setError('Server did not respond. Please check your connection and try again.');
     }, 10000);
-
-    console.log(`Attempting to join room ${roomCode.trim().toUpperCase()} as ${playerName.trim()}`);
-    console.log('Socket connected:', socket.connected);
-    console.log('Socket ID:', socket.id);
-
-    socket.emit('join-room', roomCode.trim().toUpperCase(), playerName.trim(), (response: { success: boolean; roomCode?: string; playerId?: string; gameState?: GameState; error?: string; }) => {
-      console.log('Received callback from server:', response);
-      clearTimeout(timeout);
-      setIsJoining(false);
-
-      if (response?.success) {
-        console.log('Join successful:', response);
-        localStorage.setItem('playerName', playerName.trim());
-        onJoinSuccess(response.roomCode ?? roomCode.trim().toUpperCase(), response.playerId!, response.gameState!);
-      } else {
-        console.error('Join failed:', response);
-        setError(response?.error ?? 'Failed to join room. Please check the room code and try again.');
-      }
-    });
+    const storedPlayerId = localStorage.getItem(`playerId:${roomCode.trim().toUpperCase()}`);
+    if (storedPlayerId) {
+      // Try rejoin-room for reconnects
+      console.log(`[JoinGame] Attempting rejoin-room for playerId=${storedPlayerId} in room ${roomCode.trim().toUpperCase()}`);
+      socket.emit('rejoin-room', roomCode.trim().toUpperCase(), storedPlayerId, (response: { success: boolean; roomCode?: string; playerId?: string; gameState?: GameState; error?: string; }) => {
+        console.log('[JoinGame] rejoin-room response:', response);
+        clearTimeout(timeout);
+        setIsJoining(false);
+        if (response?.success) {
+          localStorage.setItem('playerName', playerName.trim());
+          onJoinSuccess(response.roomCode ?? roomCode.trim().toUpperCase(), response.playerId!, response.gameState!);
+        } else {
+          setError('[Reconnect] ' + (response?.error ?? 'Failed to rejoin room. Try again or contact host.'));
+        }
+      });
+    } else {
+      // New join
+      console.log(`[JoinGame] Attempting join-room for ${playerName.trim()} in room ${roomCode.trim().toUpperCase()}`);
+      socket.emit('join-room', roomCode.trim().toUpperCase(), playerName.trim(), (response: { success: boolean; roomCode?: string; playerId?: string; gameState?: GameState; error?: string; }) => {
+        console.log('[JoinGame] join-room response:', response);
+        clearTimeout(timeout);
+        setIsJoining(false);
+        if (response?.success) {
+          localStorage.setItem('playerName', playerName.trim());
+          // Store playerId for future reconnects
+          localStorage.setItem(`playerId:${roomCode.trim().toUpperCase()}`, response.playerId!);
+          onJoinSuccess(response.roomCode ?? roomCode.trim().toUpperCase(), response.playerId!, response.gameState!);
+        } else {
+          setError('[Join] ' + (response?.error ?? 'Failed to join room. Please check the room code and try again.'));
+        }
+      });
+    }
   };
 
   return (

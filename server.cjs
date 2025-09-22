@@ -108,16 +108,53 @@ function initRoomRandomPools(room) {
 function drawQuestionFromPools(room, category) {
   const key = category.toLowerCase();
   if (room._categoryPools && room._categoryPools[key]) {
-    let idx = room._categoryIndices[key];
-    if (idx >= room._categoryPools[key].length) {
-      // reshuffle per category when exhausted to avoid identical cycles
-      room._categoryPools[key] = shuffleArray(room._categoryPools[key]);
-      room._categoryIndices[key] = 0;
-      idx = 0;
+    // Adaptive difficulty weighting: compute player performance
+    const gs = room.gameState;
+    const currentPlayer = gs?.players?.[gs.currentPlayerIndex];
+    let targetDifficulty = null;
+    if (currentPlayer) {
+      const total = currentPlayer.totalAnswers || 0;
+      const correct = currentPlayer.correctAnswers || 0;
+      const accuracy = total > 0 ? correct / total : 0.5;
+      // Map accuracy to difficulty aim
+      if (accuracy < 0.45) targetDifficulty = 'easy';
+      else if (accuracy < 0.7) targetDifficulty = 'medium';
+      else targetDifficulty = 'hard';
     }
-    const qId = room._categoryPools[key][idx];
-    room._categoryIndices[key] = idx + 1;
-    return allQuestions.find(q => q.id === qId);
+    // Gather candidate IDs cycling from pool
+    // We'll look ahead a small window (e.g., next 8) to find best difficulty match before falling back
+    const windowSize = 8;
+    let collected = [];
+    let localIdx = room._categoryIndices[key];
+    for (let i = 0; i < windowSize; i++) {
+      if (localIdx >= room._categoryPools[key].length) {
+        room._categoryPools[key] = shuffleArray(room._categoryPools[key]);
+        room._categoryIndices[key] = 0;
+        localIdx = 0;
+      }
+      collected.push(room._categoryPools[key][localIdx]);
+      localIdx++;
+    }
+    // Choose best match by difficulty
+    let chosenId = collected[0];
+    if (targetDifficulty) {
+      const byDiff = collected
+        .map(id => allQuestions.find(q => q.id === id))
+        .filter(Boolean);
+      const exact = byDiff.find(q => q.difficulty === targetDifficulty);
+      if (exact) chosenId = exact.id;
+      else {
+        // fallback priority order near target
+        const priority = targetDifficulty === 'easy' ? ['easy','medium','hard'] : targetDifficulty === 'medium' ? ['medium','easy','hard'] : ['hard','medium','easy'];
+        for (const diff of priority) {
+          const alt = byDiff.find(q => q.difficulty === diff);
+          if (alt) { chosenId = alt.id; break; }
+        }
+      }
+    }
+    // Advance main index only by one (consumption model) even if we looked ahead
+    room._categoryIndices[key] = room._categoryIndices[key] + 1;
+    return allQuestions.find(q => q.id === chosenId);
   }
   // fallback global
     if (room._allIndex >= room._allQuestionIds.length) {
@@ -190,7 +227,13 @@ const createPlayer = (name, isHost = false) => {
     isEliminated: false,
     categoryScores,
     charadeCount: 0,
-    needsCharadeForLife: false // Track if player got question wrong and needs to lose life on charade failure
+  needsCharadeForLife: false, // Track if player got question wrong and needs to lose life on charade failure
+  correctAnswers: 0,
+  totalAnswers: 0,
+  difficultyAccuracy: { easy: { correct: 0, total: 0 }, medium: { correct: 0, total: 0 }, hard: { correct: 0, total: 0 } },
+  categoryAccuracy: {},
+  // Give each player an initial set of power-ups. Steal starts at 1 so feature can be exercised.
+  powerUps: { swap_question: 1, double_chance: 1, steal_category: 1 }
   };
 };
 
@@ -572,11 +615,38 @@ io.on('connection', (socket) => {
     const currentPlayer = room.gameState.players[room.gameState.currentPlayerIndex];
     if (currentPlayer.id !== playerId) return;
 
-    const isCorrect = answerIndex === room.gameState.currentQuestion.correctAnswer;
+    let isCorrect = answerIndex === room.gameState.currentQuestion.correctAnswer;
+    const questionDifficulty = room.gameState.currentQuestion.difficulty || 'easy';
+
+    // Power-up: double_chance allows one retry if first attempt wrong
+    if (!isCorrect && currentPlayer.powerUps && currentPlayer.powerUps.double_chance && !currentPlayer._doubleChanceConsumed) {
+      currentPlayer._doubleChanceConsumed = true; // mark per-question usage
+      currentPlayer.powerUps.double_chance -= 1;
+      // Broadcast to entire room so targeted player can react (simpler than maintaining socket mapping)
+      io.to(roomCode).emit('powerup-double-chance-used', { playerId, message: 'Second chance! Try again.' });
+      return; // Do not resolve question yet; client will allow another submit
+    }
+
+    // Reset per-question consumption flag on resolution
+    if (currentPlayer._doubleChanceConsumed) delete currentPlayer._doubleChanceConsumed;
   // Points/score removed; only category progress matters
     const currentQ = room.gameState.currentQuestion;
     const correctAnswer = currentQ.correctAnswer;
     
+    // Update adaptive stats
+    currentPlayer.totalAnswers = (currentPlayer.totalAnswers || 0) + 1;
+    if (!currentPlayer.difficultyAccuracy) currentPlayer.difficultyAccuracy = { easy: { correct: 0, total: 0 }, medium: { correct: 0, total: 0 }, hard: { correct: 0, total: 0 } };
+    currentPlayer.difficultyAccuracy[questionDifficulty].total += 1;
+    if (!currentPlayer.categoryAccuracy) currentPlayer.categoryAccuracy = {};
+    const qCat = room.gameState.currentQuestion.category;
+    if (!currentPlayer.categoryAccuracy[qCat]) currentPlayer.categoryAccuracy[qCat] = { correct: 0, total: 0 };
+    currentPlayer.categoryAccuracy[qCat].total += 1;
+    if (isCorrect) {
+      currentPlayer.correctAnswers = (currentPlayer.correctAnswers || 0) + 1;
+      currentPlayer.difficultyAccuracy[questionDifficulty].correct += 1;
+      currentPlayer.categoryAccuracy[qCat].correct += 1;
+    }
+
     if (!isCorrect) {
       // On incorrect answers, mark that player needs to do charade (but don't deduct life yet)
       // Life will only be deducted if they fail the charade
@@ -705,6 +775,62 @@ io.on('connection', (socket) => {
       }, 1800);
     } else {
       console.log(`[submit-answer] NOT calling nextTurn: isCorrect=${isCorrect}, gamePhase=${room.gameState.gamePhase}`);
+    }
+  });
+
+  // Power-up: swap_question (host or current player triggers) – rerolls current question once per power-up unit
+  socket.on('powerup-swap-question', (roomCode, playerId) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const gs = room.gameState;
+    if (gs.gamePhase !== 'question' || !gs.currentQuestion) return;
+    const currentPlayer = gs.players[gs.currentPlayerIndex];
+    if (currentPlayer.id !== playerId) return; // only active player
+    if (!currentPlayer.powerUps || !currentPlayer.powerUps.swap_question) return;
+    currentPlayer.powerUps.swap_question -= 1;
+    // Draw another question from same category using adaptive draw
+    const newQ = drawQuestionFromPools(room, gs.currentQuestion.category);
+    gs.currentQuestion = newQ;
+    io.to(roomCode).emit('question-swapped', { gameState: gs, question: newQ, playerId });
+  });
+
+  // Power-up: steal_category – active player steals one progress point from a target player's category
+  // Constraints: only during their own category_selection phase (before picking a category)
+  // Does NOT affect global lock arrays; does count toward win condition.
+  socket.on('powerup-steal-category', (roomCode, playerId, targetPlayerId, category) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const gs = room.gameState;
+    if (gs.gamePhase !== 'category_selection') return;
+    const currentPlayer = gs.players[gs.currentPlayerIndex];
+    if (!currentPlayer || currentPlayer.id !== playerId) return; // must be your turn
+    if (!currentPlayer.powerUps || !currentPlayer.powerUps.steal_category) return;
+    const target = gs.players.find(p => p.id === targetPlayerId);
+    if (!target || target.id === currentPlayer.id) return;
+    if (!CATEGORIES.includes(category)) return;
+    if (!target.categoryScores) target.categoryScores = {};
+    if (!currentPlayer.categoryScores) currentPlayer.categoryScores = {};
+    const targetScore = target.categoryScores[category] || 0;
+    if (targetScore <= 0) return; // nothing to steal
+    // Apply steal
+    target.categoryScores[category] = targetScore - 1;
+    currentPlayer.categoryScores[category] = (currentPlayer.categoryScores[category] || 0) + 1;
+    currentPlayer.powerUps.steal_category -= 1;
+
+    // Check win condition for thief after steal
+    const hasAll = CATEGORIES.every(cat => (currentPlayer.categoryScores?.[cat] || 0) >= REQUIRED_PER_CATEGORY);
+    io.to(roomCode).emit('powerup-steal-category-result', {
+      gameState: gs,
+      thiefId: currentPlayer.id,
+      targetId: target.id,
+      category,
+      amount: 1
+    });
+    if (hasAll) {
+      endGame(room, roomCode, currentPlayer);
+    } else {
+      // Emit general game state update so clients refresh inventory counts
+      io.to(roomCode).emit('game-state-update', { gameState: gs, message: `${currentPlayer.name} stole progress in ${category}` });
     }
   });
 
