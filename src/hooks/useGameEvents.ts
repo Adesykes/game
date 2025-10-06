@@ -174,9 +174,24 @@ export const useGameEvents = (
       alert(detailedMessage);
     };
 
-    const onPowerupDoubleChanceUsed = ({ playerId, message }: { playerId: string; message: string }) => {
-      console.log(`[client] powerup-double-chance-used by ${playerId}: ${message}`);
-      // This will be handled by the QuestionOverlay component
+    const onLifelineFiftyFiftyUsed = ({ gameState, playerId, removedIndices }) => {
+      console.log(`[client] lifeline-fifty-fifty-used by ${playerId}, removed indices: ${removedIndices}`);
+      setGameState(gameState);
+    };
+
+    const onLifelinePassToRandomUsed = ({ gameState, fromPlayerId, toPlayerId }) => {
+      console.log(`[client] lifeline-pass-to-random-used from ${fromPlayerId} to ${toPlayerId}`);
+      setGameState(gameState);
+    };
+
+    const onQuestionSwapped = ({ gameState, playerId }) => {
+      console.log(`[client] question-swapped by ${playerId}`);
+      setGameState(gameState);
+    };
+
+    const onPowerupStealCategoryResult = ({ gameState, thiefId, targetId, category, amount }) => {
+      console.log(`[client] powerup-steal-category-result: ${thiefId} stole ${amount} from ${targetId} in ${category}`);
+      setGameState(gameState);
     };
 
     // Register event listeners
@@ -202,7 +217,10 @@ export const useGameEvents = (
     socket.on('game-finished', onGameFinished);
     socket.on('game-state-update', onGameStateUpdate);
     socket.on('category-locked', onCategoryLocked);
-    socket.on('powerup-double-chance-used', onPowerupDoubleChanceUsed);
+    socket.on('lifeline-fifty-fifty-used', onLifelineFiftyFiftyUsed);
+    socket.on('lifeline-pass-to-random-used', onLifelinePassToRandomUsed);
+    socket.on('question-swapped', onQuestionSwapped);
+    socket.on('powerup-steal-category-result', onPowerupStealCategoryResult);
 
     // Clean up
     return () => {
@@ -222,7 +240,10 @@ export const useGameEvents = (
       socket.off('game-finished', onGameFinished);
       socket.off('game-state-update', onGameStateUpdate);
       socket.off('category-locked', onCategoryLocked);
-      socket.off('powerup-double-chance-used', onPowerupDoubleChanceUsed);
+      socket.off('lifeline-fifty-fifty-used', onLifelineFiftyFiftyUsed);
+      socket.off('lifeline-pass-to-random-used', onLifelinePassToRandomUsed);
+      socket.off('question-swapped', onQuestionSwapped);
+      socket.off('powerup-steal-category-result', onPowerupStealCategoryResult);
     };
   }, [socket, setGameState, currentQuestion, playCorrect, playWrong, playReady, playStart]);
 

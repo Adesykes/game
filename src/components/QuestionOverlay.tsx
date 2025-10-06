@@ -7,54 +7,90 @@ interface QuestionOverlayProps {
   isMyTurn: boolean;
   onSubmit: (answerIndex: number) => void;
   socket: Socket;
+  lifelines: {
+    fiftyFifty: number;
+    passToRandom: number;
+  };
+  powerUps: {
+    swap_question: number;
+    steal_category: number;
+  };
+  playerId: string;
+  roomCode: string;
 }
 
-const QuestionOverlay: React.FC<QuestionOverlayProps> = ({ question, isMyTurn, onSubmit, socket }) => {
+const QuestionOverlay: React.FC<QuestionOverlayProps> = ({ question, isMyTurn, onSubmit, socket, lifelines, powerUps, playerId, roomCode }) => {
   const [selectedAnswer, setSelectedAnswer] = React.useState<number | null>(null);
-  const [showSecondChance, setShowSecondChance] = React.useState(false);
 
   React.useEffect(() => {
     // Reset when question changes
     setSelectedAnswer(null);
-    setShowSecondChance(false);
   }, [question]);
 
   const handleSubmit = (answerIndex: number) => {
-    if (!isMyTurn || (selectedAnswer !== null && !showSecondChance)) return;
+    if (!isMyTurn || selectedAnswer !== null) return;
     setSelectedAnswer(answerIndex);
     onSubmit(answerIndex);
   };
 
-  // Listen for double chance power-up usage
-  React.useEffect(() => {
-    const handleDoubleChance = () => {
-      setShowSecondChance(true);
-      setSelectedAnswer(null); // Allow selecting again
-    };
+  const handleFiftyFifty = () => {
+    if (!isMyTurn || lifelines.fiftyFifty <= 0) return;
+    socket.emit('use-lifeline-fifty-fifty', roomCode, playerId);
+  };
 
-    socket.on('powerup-double-chance-used', handleDoubleChance);
+  const handlePassToRandom = () => {
+    if (!isMyTurn || lifelines.passToRandom <= 0) return;
+    socket.emit('use-lifeline-pass-to-random', roomCode, playerId);
+  };
 
-    return () => {
-      socket.off('powerup-double-chance-used', handleDoubleChance);
-    };
-  }, [socket]);
+  const handleSwapQuestion = () => {
+    if (!isMyTurn || powerUps.swap_question <= 0) return;
+    socket.emit('powerup-swap-question', roomCode, playerId);
+  };
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
       <div className="bg-gray-800 p-6 md:p-8 rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <h2 className="text-2xl font-bold mb-4 text-white">{question.category}</h2>
         <p className="text-lg mb-6 text-white">{question.question}</p>
-        {showSecondChance && (
-          <div className="bg-yellow-600/20 border border-yellow-500/50 rounded-lg p-3 mb-4">
-            <p className="text-yellow-300 font-bold">🎯 Second Chance! Try again.</p>
+        
+        {/* Lifelines and Power-ups */}
+        {isMyTurn && (
+          <div className="mb-6">
+            <div className="flex flex-wrap gap-3 mb-3">
+              <button
+                onClick={handleFiftyFifty}
+                disabled={lifelines.fiftyFifty <= 0}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                50/50 ({lifelines.fiftyFifty})
+              </button>
+              <button
+                onClick={handlePassToRandom}
+                disabled={lifelines.passToRandom <= 0}
+                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Pass to Random ({lifelines.passToRandom})
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={handleSwapQuestion}
+                disabled={powerUps.swap_question <= 0}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                🔄 Swap Question ({powerUps.swap_question})
+              </button>
+            </div>
           </div>
         )}
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {question.options.map((option, index) => (
             <button
               key={index}
               onClick={() => handleSubmit(index)}
-              disabled={!isMyTurn || (selectedAnswer !== null && !showSecondChance)}
+              disabled={!isMyTurn || selectedAnswer !== null}
               className={`p-4 rounded-lg text-left transition-all ${
                 selectedAnswer === index
                   ? 'bg-blue-600 text-white border-2 border-blue-400'
@@ -66,7 +102,7 @@ const QuestionOverlay: React.FC<QuestionOverlayProps> = ({ question, isMyTurn, o
             </button>
           ))}
         </div>
-        {selectedAnswer !== null && !showSecondChance && (
+        {selectedAnswer !== null && (
           <div className="mt-4 text-center">
             <p className="text-white/70">Answer submitted! Waiting for result...</p>
           </div>

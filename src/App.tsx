@@ -215,21 +215,25 @@ function App() {
           ) : (gameState.gamePhase === 'karaoke_break' || gameState.gamePhase === 'karaoke_voting') ? (
             <>
               <HostDashboard
+                key={`host-karaoke-${gameState.currentQuestion?.id || 'none'}`}
                 socket={socket as Socket}
                 gameState={gameState}
                 roomCode={roomCode}
                 charadeDeadline={charadeDeadline}
                 pictionaryDeadline={pictionaryDeadline}
+                playerId={gameState.players.find(p=>p.isHost)?.id || ''}
               />
               <KaraokeBreak gameState={gameState} socket={socket as Socket} playerId={gameState.players.find(p=>p.isHost)?.id || ''} roomCode={roomCode} />
             </>
           ) : (
             <HostDashboard
+              key={`host-main-${gameState.currentQuestion?.id || 'none'}`}
               socket={socket as Socket}
               gameState={gameState}
               roomCode={roomCode}
               charadeDeadline={charadeDeadline}
               pictionaryDeadline={pictionaryDeadline}
+              playerId={gameState.players.find(p=>p.isHost)?.id || ''}
             />
           )
         );
@@ -280,12 +284,17 @@ function App() {
       {renderContent()}
       {mode === 'player' && gameState && currentQuestion && gameState.gamePhase === 'question' && socket && (
         <QuestionOverlay
+          key={`${currentQuestion.id}-${currentQuestion.options.length}`}
           question={currentQuestion}
           isMyTurn={gameState.players[gameState.currentPlayerIndex]?.id === playerId}
           onSubmit={(answerIndex) => {
             socket.emit('submit-answer', gameState.id, playerId, answerIndex);
           }}
           socket={socket}
+          playerId={playerId}
+          roomCode={roomCode}
+          lifelines={gameState.players.find(p => p.id === playerId)?.lifelines || { fiftyFifty: 0, passToRandom: 0 }}
+          powerUps={gameState.players.find(p => p.id === playerId)?.powerUps || { swap_question: 0, steal_category: 0 }}
         />
       )}
     </div>

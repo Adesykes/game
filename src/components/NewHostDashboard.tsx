@@ -13,6 +13,7 @@ interface HostDashboardProps {
   roomCode: string;
   charadeDeadline?: number | null;
   pictionaryDeadline?: number | null;
+  playerId: string;
 }
 
 const HostDashboard: React.FC<HostDashboardProps> = ({
@@ -21,6 +22,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
   roomCode,
   charadeDeadline,
   pictionaryDeadline,
+  playerId,
 }) => {
   const [showQR, setShowQR] = useState(true);
   const [guessInput, setGuessInput] = useState('');
@@ -46,6 +48,22 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
   const activePlayers = gameState.players.filter(p => !p.isEliminated);
   const hostPlayer = gameState.players.find(p => p.isHost);
   const isHostTurn = !!currentPlayer?.isHost;
+
+  // Lifeline and power-up handlers
+  const handleFiftyFifty = () => {
+    if (!isHostTurn || !hostPlayer || hostPlayer.lifelines.fiftyFifty <= 0) return;
+    socket.emit('use-lifeline-fifty-fifty', roomCode, playerId);
+  };
+
+  const handlePassToRandom = () => {
+    if (!isHostTurn || !hostPlayer || hostPlayer.lifelines.passToRandom <= 0) return;
+    socket.emit('use-lifeline-pass-to-random', roomCode, playerId);
+  };
+
+  const handleSwapQuestion = () => {
+    if (!isHostTurn || !hostPlayer || hostPlayer.powerUps.swap_question <= 0) return;
+    socket.emit('powerup-swap-question', roomCode, playerId);
+  };
   const isCurrentPlayerTurn = currentPlayer?.id === hostPlayer?.id;
   // Host should always be able to manage karaoke regardless of whose turn it is
   const hostId = hostPlayer?.id;
@@ -180,6 +198,67 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
               </button>
               
               {showQR && <QRCodeDisplay roomCode={roomCode} />}
+              
+              {/* Game Instructions */}
+              <div className="mt-6 bg-white/10 backdrop-blur-lg rounded-xl p-6 max-w-4xl w-full border border-white/20">
+                <h3 className="text-2xl font-bold text-white mb-4 text-center">🎮 How to Play Trivia Master</h3>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="text-lg font-bold text-yellow-400 mb-2">🎯 Game Objective</h4>
+                    <p className="text-white/80 mb-4">
+                      Be the first player to complete all trivia categories! Answer questions correctly to progress in each category.
+                    </p>
+                    
+                    <h4 className="text-lg font-bold text-yellow-400 mb-2">📋 Categories & Progress</h4>
+                    <p className="text-white/80 mb-4">
+                      There are multiple trivia categories. Each correct answer advances you one level in that category. Reach the required level in ALL categories to win!
+                    </p>
+                    
+                    <h4 className="text-lg font-bold text-yellow-400 mb-2">❤️ Lives System</h4>
+                    <p className="text-white/80 mb-4">
+                      Each player starts with 3 lives. Wrong answers trigger forfeits (charades, pictionary, or shots). Lose all lives and you're eliminated!
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-lg font-bold text-yellow-400 mb-2">🛡️ Lifelines</h4>
+                    <p className="text-white/80 mb-4">
+                      Each player gets 2 lifelines:
+                      <br />• <strong>50/50:</strong> Removes two wrong answers, leaving the correct answer and one wrong choice
+                      <br />• <strong>Pass to Random:</strong> Passes the question to another random player
+                    </p>
+                    
+                    <h4 className="text-lg font-bold text-yellow-400 mb-2">⚡ Power-ups</h4>
+                    <p className="text-white/80 mb-4">
+                      Strategic abilities you can use:
+                      <br />• <strong>Swap Question:</strong> Replace the current question with a new one
+                      <br />• <strong>Steal Category:</strong> Take progress points from another player's category
+                    </p>
+                    
+                    <h4 className="text-lg font-bold text-yellow-400 mb-2">🎭 Forfeits</h4>
+                    <p className="text-white/80 mb-4">
+                      When you answer incorrectly:
+                      <br />• <strong>Charade:</strong> Act out a word/phrase for others to guess
+                      <br />• <strong>Pictionary:</strong> Draw a word/phrase for others to guess
+                      <br />• <strong>Shot:</strong> Take a drink (or skip if preferred)
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="mt-6 p-4 bg-yellow-500/20 rounded-lg border border-yellow-500/30">
+                  <h4 className="text-lg font-bold text-yellow-300 mb-2">🎉 Special Events</h4>
+                  <p className="text-yellow-200">
+                    Occasionally, the game triggers karaoke breaks where everyone votes on songs to sing! These are fun interruptions that happen randomly during gameplay.
+                  </p>
+                </div>
+                
+                <div className="mt-4 text-center">
+                  <p className="text-white/60 text-sm">
+                    Need at least 2 players to start. Host controls game settings and can start when ready!
+                  </p>
+                </div>
+              </div>
               
               <button
                 onClick={startGame}
@@ -357,6 +436,37 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                       </div>
                     </div>
                     <p className="text-white text-lg mb-4">{gameState.currentQuestion.question}</p>
+                    
+                    {/* Lifelines and Power-ups */}
+                    {isHostTurn && hostPlayer && (
+                      <div className="mb-6">
+                        <div className="flex flex-wrap gap-3 mb-3">
+                          <button
+                            onClick={handleFiftyFifty}
+                            disabled={hostPlayer.lifelines.fiftyFifty <= 0}
+                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            50/50 ({hostPlayer.lifelines.fiftyFifty})
+                          </button>
+                          <button
+                            onClick={handlePassToRandom}
+                            disabled={hostPlayer.lifelines.passToRandom <= 0}
+                            className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Pass to Random ({hostPlayer.lifelines.passToRandom})
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                          <button
+                            onClick={handleSwapQuestion}
+                            disabled={hostPlayer.powerUps.swap_question <= 0}
+                            className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            🔄 Swap Question ({hostPlayer.powerUps.swap_question})
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     
                     {isHostTurn ? (
                       <div className="grid grid-cols-2 gap-2">

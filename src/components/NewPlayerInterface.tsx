@@ -245,8 +245,69 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
           <div className="text-center">
             {gameState.gamePhase === 'waiting' && (
               <div>
-                <h2 className="text-xl font-bold text-white mb-2">Waiting for players...</h2>
-                <p className="text-white/80">Room: {gameState.id}</p>
+                <h2 className="text-xl font-bold text-white mb-4">Waiting for players...</h2>
+                <p className="text-white/80 mb-6">Room: {gameState.id}</p>
+                
+                {/* Game Instructions */}
+                <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 max-w-4xl w-full border border-white/20">
+                  <h3 className="text-2xl font-bold text-white mb-4 text-center">🎮 How to Play Trivia Master</h3>
+                  
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="text-lg font-bold text-yellow-400 mb-2">🎯 Game Objective</h4>
+                      <p className="text-white/80 mb-4">
+                        Be the first player to complete all trivia categories! Answer questions correctly to progress in each category.
+                      </p>
+                      
+                      <h4 className="text-lg font-bold text-yellow-400 mb-2">📋 Categories & Progress</h4>
+                      <p className="text-white/80 mb-4">
+                        There are multiple trivia categories. Each correct answer advances you one level in that category. Reach the required level in ALL categories to win!
+                      </p>
+                      
+                      <h4 className="text-lg font-bold text-yellow-400 mb-2">❤️ Lives System</h4>
+                      <p className="text-white/80 mb-4">
+                        Each player starts with 3 lives. Wrong answers trigger forfeits (charades, pictionary, or shots). Lose all lives and you're eliminated!
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-lg font-bold text-yellow-400 mb-2">🛡️ Lifelines</h4>
+                      <p className="text-white/80 mb-4">
+                        Each player gets 2 lifelines:
+                        <br />• <strong>50/50:</strong> Removes two wrong answers, leaving the correct answer and one wrong choice
+                        <br />• <strong>Pass to Random:</strong> Passes the question to another random player
+                      </p>
+                      
+                      <h4 className="text-lg font-bold text-yellow-400 mb-2">⚡ Power-ups</h4>
+                      <p className="text-white/80 mb-4">
+                        Strategic abilities you can use:
+                        <br />• <strong>Swap Question:</strong> Replace the current question with a new one
+                        <br />• <strong>Steal Category:</strong> Take progress points from another player's category
+                      </p>
+                      
+                      <h4 className="text-lg font-bold text-yellow-400 mb-2">🎭 Forfeits</h4>
+                      <p className="text-white/80 mb-4">
+                        When you answer incorrectly:
+                        <br />• <strong>Charade:</strong> Act out a word/phrase for others to guess
+                        <br />• <strong>Pictionary:</strong> Draw a word/phrase for others to guess
+                        <br />• <strong>Shot:</strong> Take a drink (or skip if preferred)
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6 p-4 bg-yellow-500/20 rounded-lg border border-yellow-500/30">
+                    <h4 className="text-lg font-bold text-yellow-300 mb-2">🎉 Special Events</h4>
+                    <p className="text-yellow-200">
+                      Occasionally, the game triggers karaoke breaks where everyone votes on songs to sing! These are fun interruptions that happen randomly during gameplay.
+                    </p>
+                  </div>
+                  
+                  <div className="mt-4 text-center">
+                    <p className="text-white/60 text-sm">
+                      Waiting for the host to start the game. Make sure you're ready!
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -262,6 +323,42 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                 </h2>
                 
                 {/* Defensive double-guard: only render buttons if still the current player */}
+                {isMyTurn && currentPlayerIdFromState === playerId && (
+                  <div className="mb-4">
+                    <button
+                      onClick={() => {
+                        const currentPlayer = gameState.players.find(p => p.id === playerId);
+                        if (!currentPlayer?.powerUps?.steal_category || currentPlayer.powerUps.steal_category <= 0) return;
+                        
+                        // Find eligible targets (other players with progress in categories)
+                        const eligibleTargets = gameState.players.filter(p => 
+                          p.id !== playerId && 
+                          !p.isEliminated && 
+                          Object.values(p.categoryScores || {}).some(score => (score || 0) > 0)
+                        );
+                        
+                        if (eligibleTargets.length === 0) return;
+                        
+                        // For simplicity, pick first target and first category they have progress in
+                        const targetPlayer = eligibleTargets[0];
+                        const availableCategories = Object.keys(targetPlayer.categoryScores || {}).filter(cat => 
+                          (targetPlayer.categoryScores[cat] || 0) > 0
+                        );
+                        
+                        if (availableCategories.length === 0) return;
+                        
+                        const categoryToSteal = availableCategories[0];
+                        
+                        socket.emit('powerup-steal-category', gameState.id, playerId, targetPlayer.id, categoryToSteal);
+                      }}
+                      disabled={(gameState.players.find(p => p.id === playerId)?.powerUps?.steal_category || 0) <= 0}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+                    >
+                      🏴‍☠️ Steal Category ({gameState.players.find(p => p.id === playerId)?.powerUps?.steal_category || 0})
+                    </button>
+                  </div>
+                )}
+                
                 {isMyTurn && currentPlayerIdFromState === playerId && (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2" data-test="category-button-grid">
                     {questionCategories.map(category => {

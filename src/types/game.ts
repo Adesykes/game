@@ -11,6 +11,14 @@ export interface Player {
   lockedCategories: string[]; // Categories locked until player selects 3 different categories
   recentCategories: string[]; // Last 3 categories selected by this player
   isReady?: boolean; // Player has pressed Ready on pre-game screen
+  lifelines: {
+    fiftyFifty: number;
+    passToRandom: number;
+  };
+  powerUps: {
+    swap_question: number;
+    steal_category: number;
+  };
 }
 
 export interface Question {

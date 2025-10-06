@@ -233,8 +233,20 @@ const createPlayer = (name, isHost = false) => {
   difficultyAccuracy: { easy: { correct: 0, total: 0 }, medium: { correct: 0, total: 0 }, hard: { correct: 0, total: 0 } },
   categoryAccuracy: {},
   // Give each player an initial set of power-ups. Steal starts at 1 so feature can be exercised.
-  powerUps: { swap_question: 1, double_chance: 1, steal_category: 1 }
+  powerUps: { swap_question: 1, steal_category: 1 },
+  lifelines: { fiftyFifty: 2, passToRandom: 2 }
   };
+};
+
+// Ensure all players have lifelines (for backward compatibility)
+const ensurePlayerHasLifelines = (player) => {
+  if (!player.lifelines) {
+    player.lifelines = { fiftyFifty: 2, passToRandom: 2 };
+  }
+  if (!player.powerUps) {
+    player.powerUps = { swap_question: 1, steal_category: 1 };
+  }
+  return player;
 };
 
 const playerColors = ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'];
@@ -294,6 +306,8 @@ io.on('connection', (socket) => {
       socket.join(roomCode);
 
       // Send back the current state so the client can resync UI
+      room.gameState.players.forEach(player => ensurePlayerHasLifelines(player));
+      
       callback?.({ success: true, gameState: room.gameState, playerId });
       // Also emit a one-off state-sync event to this socket (optional)
       io.to(socket.id).emit('state-sync', { gameState: room.gameState });
@@ -312,6 +326,7 @@ io.on('connection', (socket) => {
       // Store the persistent ID with the player
       host.persistentId = socket.handshake.auth.persistentId || null;
       const assignedHost = assignPlayerAppearance(host, []);
+      ensurePlayerHasLifelines(assignedHost);
       
       const gameState = {
         id: roomCode,
@@ -360,6 +375,9 @@ io.on('connection', (socket) => {
       console.log('Callback function exists:', typeof callback === 'function');
       if (typeof callback === 'function') {
         console.log('Calling callback with success response');
+        // Ensure all players have lifelines and powerUps before sending
+        gameState.players.forEach(player => ensurePlayerHasLifelines(player));
+        
         callback({ success: true, roomCode, gameState });
       } else {
         console.error('Callback is not a function!');
@@ -394,11 +412,17 @@ io.on('connection', (socket) => {
 
     const newPlayer = createPlayer(playerName);
     const assignedPlayer = assignPlayerAppearance(newPlayer, room.gameState.players);
+    ensurePlayerHasLifelines(assignedPlayer);
     
     room.gameState.players.push(assignedPlayer);
     socket.join(roomCode);
     
+    room.gameState.players.forEach(player => ensurePlayerHasLifelines(player));
+    
     io.to(roomCode).emit('player-joined', { gameState: room.gameState, player: assignedPlayer });
+    // Ensure all players have lifelines and powerUps before sending
+    room.gameState.players.forEach(player => ensurePlayerHasLifelines(player));
+    
     callback({ success: true, gameState: room.gameState, playerId: assignedPlayer.id });
   });
 
@@ -505,7 +529,10 @@ io.on('connection', (socket) => {
       setTimeout(() => {
         room.gameState.gamePhase = 'category_selection';
   io.to(roomCode).emit('lobby-music-stop');
-  io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'All players ready. Game starting!' });
+    // Ensure all players have lifelines and powerUps before sending
+    room.gameState.players.forEach(player => ensurePlayerHasLifelines(player));
+    
+    io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'All players ready. Game starting!' });
       }, 1200);
     }
   });
@@ -629,15 +656,6 @@ io.on('connection', (socket) => {
 
     let isCorrect = answerIndex === room.gameState.currentQuestion.correctAnswer;
     const questionDifficulty = room.gameState.currentQuestion.difficulty || 'easy';
-
-    // Power-up: double_chance allows one retry if first attempt wrong
-    if (!isCorrect && currentPlayer.powerUps && currentPlayer.powerUps.double_chance && !currentPlayer._doubleChanceConsumed) {
-      currentPlayer._doubleChanceConsumed = true; // mark per-question usage
-      currentPlayer.powerUps.double_chance -= 1;
-      // Broadcast to entire room so targeted player can react (simpler than maintaining socket mapping)
-      io.to(roomCode).emit('powerup-double-chance-used', { playerId, message: 'Second chance! Try again.' });
-      return; // Do not resolve question yet; client will allow another submit
-    }
 
     // Reset per-question consumption flag on resolution
     if (currentPlayer._doubleChanceConsumed) delete currentPlayer._doubleChanceConsumed;
@@ -801,7 +819,17 @@ io.on('connection', (socket) => {
     if (!currentPlayer.powerUps || !currentPlayer.powerUps.swap_question) return;
     currentPlayer.powerUps.swap_question -= 1;
     // Draw another question from same category using adaptive draw
-    const newQ = drawQuestionFromPools(room, gs.currentQuestion.category);
+    let newQ;
+    let attempts = 0;
+    do {
+      newQ = drawQuestionFromPools(room, gs.currentQuestion.category);
+      attempts++;
+      if (attempts > 10) {
+        console.log(`[server] swap question: giving up after ${attempts} attempts, using whatever we got`);
+        break;
+      }
+    } while (newQ && newQ.id === gs.currentQuestion.id);
+    
     gs.currentQuestion = newQ;
     io.to(roomCode).emit('question-swapped', { gameState: gs, question: newQ, playerId });
   });
@@ -844,6 +872,78 @@ io.on('connection', (socket) => {
       // Emit general game state update so clients refresh inventory counts
       io.to(roomCode).emit('game-state-update', { gameState: gs, message: `${currentPlayer.name} stole progress in ${category}` });
     }
+  });
+
+  // Lifeline: fifty-fifty - removes two wrong answers, leaving correct + one wrong
+  socket.on('use-lifeline-fifty-fifty', (roomCode, playerId) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const gs = room.gameState;
+    if (gs.gamePhase !== 'question' || !gs.currentQuestion) return;
+    const currentPlayer = gs.players[gs.currentPlayerIndex];
+    if (currentPlayer.id !== playerId) return; // only active player
+    if (!currentPlayer.lifelines || currentPlayer.lifelines.fiftyFifty <= 0) return;
+    
+    currentPlayer.lifelines.fiftyFifty -= 1;
+    
+    // Get wrong answer indices
+    const wrongIndices = [];
+    for (let i = 0; i < gs.currentQuestion.options.length; i++) {
+      if (i !== gs.currentQuestion.correctAnswer) {
+        wrongIndices.push(i);
+      }
+    }
+    
+    // Shuffle and keep 1 wrong answer
+    shuffleArray(wrongIndices);
+    const keptWrongIndex = wrongIndices[0];
+    
+    // Create new options array with correct answer and one wrong answer
+    const newOptions = [
+      gs.currentQuestion.options[gs.currentQuestion.correctAnswer],
+      gs.currentQuestion.options[keptWrongIndex]
+    ];
+    
+    // Update correct answer index (will be 0 since correct is first)
+    const originalCorrectIndex = gs.currentQuestion.correctAnswer;
+    gs.currentQuestion.correctAnswer = 0;
+    gs.currentQuestion.options = newOptions;
+    
+    io.to(roomCode).emit('lifeline-fifty-fifty-used', { 
+      gameState: gs, 
+      playerId,
+      removedIndices: wrongIndices.slice(1) // indices that were removed
+    });
+  });
+
+  // Lifeline: pass to random player - passes question to another random player
+  socket.on('use-lifeline-pass-to-random', (roomCode, playerId) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const gs = room.gameState;
+    if (gs.gamePhase !== 'question' || !gs.currentQuestion) return;
+    const currentPlayer = gs.players[gs.currentPlayerIndex];
+    if (currentPlayer.id !== playerId) return; // only active player
+    if (!currentPlayer.lifelines || currentPlayer.lifelines.passToRandom <= 0) return;
+    
+    currentPlayer.lifelines.passToRandom -= 1;
+    
+    // Get eligible players (not eliminated, not current player)
+    const eligiblePlayers = gs.players.filter(p => !p.isEliminated && p.id !== playerId);
+    if (eligiblePlayers.length === 0) return; // no one to pass to
+    
+    // Select random player
+    const randomPlayer = eligiblePlayers[Math.floor(Math.random() * eligiblePlayers.length)];
+    const newPlayerIndex = gs.players.findIndex(p => p.id === randomPlayer.id);
+    
+    // Change current player
+    gs.currentPlayerIndex = newPlayerIndex;
+    
+    io.to(roomCode).emit('lifeline-pass-to-random-used', { 
+      gameState: gs, 
+      fromPlayerId: playerId,
+      toPlayerId: randomPlayer.id
+    });
   });
 
   // Forfeit: start the charade or pictionary timer and reveal the word to audience (as needed)
@@ -1086,6 +1186,7 @@ io.on('connection', (socket) => {
     
     if (existingPlayer) {
       // Existing player reconnecting
+      ensurePlayerHasLifelines(existingPlayer);
       socket.join(gameId);
       console.log(`Player ${playerId} reconnected to game ${gameId}`);
       
@@ -1102,6 +1203,7 @@ io.on('connection', (socket) => {
         const newPlayer = createPlayer(playerName, false);
         newPlayer.persistentId = persistentId;
         const assignedPlayer = assignPlayerAppearance(newPlayer, room.gameState.players);
+        ensurePlayerHasLifelines(assignedPlayer);
         
         room.gameState.players.push(assignedPlayer);
         socket.join(gameId);
@@ -1110,6 +1212,9 @@ io.on('connection', (socket) => {
         io.to(gameId).emit('player-joined', { gameState: room.gameState });
         
         console.log(`New player ${assignedPlayer.id} joined game ${gameId} via reconnection`);
+        // Ensure all players have lifelines and powerUps before sending
+        room.gameState.players.forEach(player => ensurePlayerHasLifelines(player));
+        
         callback?.({
           success: true,
           isHost: false,
