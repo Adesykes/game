@@ -447,8 +447,19 @@ io.on('connection', (socket) => {
     const host = room.gameState.players.find(p => p.id === playerId && p.isHost);
     if (!host) return;
     // Only allow manual start if not already in karaoke and not on finished
-    if (room.gameState.gamePhase === 'karaoke_break') return;
-    triggerKaraoke(room, roomCode, true);
+    if (room.gameState.gamePhase === 'karaoke_break' || room.gameState.gamePhase === 'karaoke_voting') return;
+    triggerKaraoke(room, roomCode, true, false); // manual=true, skipVoting=false
+  });
+
+  socket.on('karaoke-vote', (roomCode, playerId, songIndex) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const gs = room.gameState;
+    if (gs.gamePhase !== 'karaoke_voting') return;
+    const player = gs.players.find(p => p.id === playerId);
+    if (!player) return;
+    if (songIndex < 0 || songIndex >= (gs.karaokeVotingOptions?.length || 0)) return;
+    gs.karaokeVotes[playerId] = songIndex;
   });
 
   // Host emits periodic karaoke-sync while in karaoke_break
@@ -611,6 +622,7 @@ io.on('connection', (socket) => {
   socket.on('submit-answer', (roomCode, playerId, answerIndex) => {
     const room = rooms.get(roomCode);
     if (!room || !room.gameState.currentQuestion) return;
+    if (room.gameState.gamePhase === 'karaoke_voting' || room.gameState.gamePhase === 'karaoke_break') return;
 
     const currentPlayer = room.gameState.players[room.gameState.currentPlayerIndex];
     if (currentPlayer.id !== playerId) return;
@@ -1187,23 +1199,89 @@ const KARAOKE_SONGS = [
   { title: 'Wannabe', artist: 'Spice Girls', alexaPhrase: 'Wannabe by Spice Girls', difficulty: 'easy', durationHintSec: 45 }
 ];
 
-function pickKaraokeSong() {
-  return KARAOKE_SONGS[Math.floor(Math.random() * KARAOKE_SONGS.length)];
+function pickKaraokeOptions() {
+  const shuffled = [...KARAOKE_SONGS].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, 12);
 }
 
-function triggerKaraoke(room, roomCode, manual=false) {
+function triggerKaraoke(room, roomCode, manual=false, skipVoting=false) {
   const gs = room.gameState;
-  if (gs.gamePhase === 'karaoke_break') return;
+  if (gs.gamePhase === 'karaoke_break' || gs.gamePhase === 'karaoke_voting') return;
   if (!gs.karaokeSettings) gs.karaokeSettings = { probability: 0.4, durationSec: 45, cooldownSec: 180, lastTriggeredAt: 0 };
   const now = Date.now();
   const since = now - (gs.karaokeSettings.lastTriggeredAt || 0);
   if (!manual && since < gs.karaokeSettings.cooldownSec * 1000) return;
   gs.karaokeSettings.lastTriggeredAt = now;
-  gs.currentKaraokeSong = { ...pickKaraokeSong(), durationHintSec: gs.karaokeSettings.durationSec };
-  gs.karaokeBreakCount = (gs.karaokeBreakCount || 0) + 1;
-  gs.karaokeStartAt = now;
+  
+  if (skipVoting) {
+    // Skip voting - pick random song directly
+    gs.currentKaraokeSong = { ...KARAOKE_SONGS[Math.floor(Math.random() * KARAOKE_SONGS.length)], durationHintSec: gs.karaokeSettings.durationSec };
+    gs.karaokeBreakCount = (gs.karaokeBreakCount || 0) + 1;
+    gs.karaokeStartAt = now;
+    gs.gamePhase = 'karaoke_break';
+    io.to(roomCode).emit('game-state-update', { gameState: gs, message: manual ? 'Manual karaoke break!' : 'Karaoke break!' });
+    io.to(roomCode).emit('karaoke-sync', { startAt: gs.karaokeStartAt, duration: gs.karaokeSettings.durationSec });
+    setTimeout(() => {
+      if (gs.gamePhase === 'karaoke_break') {
+        gs.currentKaraokeSong = null;
+        gs.gamePhase = 'category_selection';
+        const endedAt = Date.now();
+        io.to(roomCode).emit('karaoke-ended', { endedAt });
+        io.to(roomCode).emit('game-state-update', { gameState: gs, message: 'Karaoke ended (auto)' });
+        setTimeout(() => { try { nextTurn(room, roomCode); } catch(e) { console.error('[karaoke] Error advancing turn after auto end', e); } }, 1000);
+      }
+    }, gs.karaokeSettings.durationSec * 1000);
+  } else {
+    // Start voting phase for automatic triggers
+    gs.karaokeVotingOptions = pickKaraokeOptions();
+    gs.karaokeVotes = {};
+    gs.karaokeBreakCount = (gs.karaokeBreakCount || 0) + 1;
+    gs.karaokeVotingEndAt = now + 30000; // 30 seconds for voting
+    gs.gamePhase = 'karaoke_voting';
+    io.to(roomCode).emit('game-state-update', { gameState: gs, message: 'Karaoke voting!' });
+    // Start voting timer
+    setTimeout(() => {
+      if (gs.gamePhase === 'karaoke_voting') {
+        endKaraokeVoting(room, roomCode);
+      }
+    }, 30000);
+  }
+}
+
+function endKaraokeVoting(room, roomCode) {
+  const gs = room.gameState;
+  if (gs.gamePhase !== 'karaoke_voting') return;
+  
+  // Count votes
+  const voteCounts = {};
+  for (const playerId in gs.karaokeVotes) {
+    const voteIndex = gs.karaokeVotes[playerId];
+    if (voteIndex >= 0 && voteIndex < gs.karaokeVotingOptions.length) {
+      voteCounts[voteIndex] = (voteCounts[voteIndex] || 0) + 1;
+    }
+  }
+  
+  // Find the song with most votes (first one wins ties)
+  let maxVotes = -1;
+  let winningIndex = 0;
+  for (let i = 0; i < gs.karaokeVotingOptions.length; i++) {
+    const votes = voteCounts[i] || 0;
+    if (votes > maxVotes) {
+      maxVotes = votes;
+      winningIndex = i;
+    }
+  }
+  
+  // Start karaoke with winning song
+  gs.currentKaraokeSong = { ...gs.karaokeVotingOptions[winningIndex], durationHintSec: gs.karaokeSettings.durationSec };
+  gs.karaokeStartAt = Date.now();
   gs.gamePhase = 'karaoke_break';
-  io.to(roomCode).emit('game-state-update', { gameState: gs, message: manual ? 'Manual karaoke break!' : 'Karaoke break!' });
+  // Clear voting data
+  delete gs.karaokeVotingOptions;
+  delete gs.karaokeVotes;
+  delete gs.karaokeVotingEndAt;
+  
+  io.to(roomCode).emit('game-state-update', { gameState: gs, message: `Karaoke: ${gs.currentKaraokeSong.title} by ${gs.currentKaraokeSong.artist}!` });
   io.to(roomCode).emit('karaoke-sync', { startAt: gs.karaokeStartAt, duration: gs.karaokeSettings.durationSec });
   setTimeout(() => {
     if (gs.gamePhase === 'karaoke_break') {
@@ -1278,7 +1356,7 @@ function nextTurn(room, roomCode) {
   
   // Always set the game phase to 'category_selection' for the next player
   // This ensures that after a correct answer, the next player sees the category selection screen
-  if (room.gameState.gamePhase !== 'forfeit' && room.gameState.gamePhase !== 'charade_guessing') {
+  if (room.gameState.gamePhase !== 'forfeit' && room.gameState.gamePhase !== 'charade_guessing' && room.gameState.gamePhase !== 'karaoke_voting' && room.gameState.gamePhase !== 'karaoke_break') {
     room.gameState.gamePhase = 'category_selection';
     console.log(`[nextTurn] Set gamePhase to 'category_selection' for new player ${players[newIndex]?.id} to select category`);
   } else {

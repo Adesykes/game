@@ -28,7 +28,7 @@ export interface GameState {
   currentPlayerIndex: number;
   currentQuestion: Question | null;
   selectedCategory: string | null; // Currently selected category
-  gamePhase: 'waiting' | 'ready_check' | 'category_selection' | 'question' | 'forfeit' | 'charade_guessing' | 'pictionary_drawing' | 'karaoke_break' | 'finished';
+  gamePhase: 'waiting' | 'ready_check' | 'category_selection' | 'question' | 'forfeit' | 'charade_guessing' | 'pictionary_drawing' | 'karaoke_voting' | 'karaoke_break' | 'finished';
   allReady?: boolean; // Flag when all players pressed ready
   winner: Player | null;
   round: number;
@@ -45,6 +45,9 @@ export interface GameState {
   karaokeBreakCount?: number; // Number of karaoke breaks triggered
   karaokeSettings?: KaraokeSettings; // Host-adjustable settings
   karaokeStartAt?: number; // Server timestamp when current karaoke break started
+  karaokeVotingOptions?: KaraokeSong[]; // 12 song options for voting
+  karaokeVotes?: { [playerId: string]: number }; // Player votes (index of chosen song)
+  karaokeVotingEndAt?: number; // When voting ends
 }
 
 // No longer using board squares or chance events

@@ -15,6 +15,7 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
   const isHost = gameState.players.find(p=>p.id===playerId)?.isHost;
   const [elapsed, setElapsed] = useState(0);
   const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [selectedVote, setSelectedVote] = useState<number | null>(null);
   const barsRef = useRef<number[]>(Array.from({length:24},()=>Math.random()));
   const [, forceTick] = useState(0);
   const confettiRef = useRef<HTMLCanvasElement | null>(null);
@@ -31,8 +32,10 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
   useEffect(() => {
     if (gameState.gamePhase === 'karaoke_break' && gameState.karaokeStartAt) {
       setStartedAt(gameState.karaokeStartAt);
+    } else if (gameState.gamePhase === 'karaoke_voting' && gameState.karaokeVotingEndAt) {
+      setStartedAt(gameState.karaokeVotingEndAt - 30000); // Voting starts 30s before end
     }
-  }, [gameState.gamePhase, gameState.karaokeStartAt]);
+  }, [gameState.gamePhase, gameState.karaokeStartAt, gameState.karaokeVotingEndAt]);
 
   // Listen for karaoke-sync events for correction
   useEffect(() => {
@@ -48,7 +51,7 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
   // Host periodically requests sync broadcast (or could directly emit if desired)
   useEffect(() => {
     if (!isHost) return;
-    if (gameState.gamePhase !== 'karaoke_break') return;
+    if (gameState.gamePhase !== 'karaoke_break' && gameState.gamePhase !== 'karaoke_voting') return;
     const id = setInterval(() => {
       socket.emit('request-karaoke-sync', roomCode, playerId);
     }, 4000);
@@ -158,6 +161,67 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
     socket.on('karaoke-ended', handler);
     return () => { socket.off('karaoke-ended', handler); };
   }, [socket, isHost]);
+
+  if (gameState.gamePhase === 'karaoke_voting') {
+    const votingOptions = gameState.karaokeVotingOptions || [];
+    const votingEndAt = gameState.karaokeVotingEndAt || 0;
+    const timeLeft = Math.max(0, Math.floor((votingEndAt - Date.now()) / 1000));
+    const hasVoted = gameState.karaokeVotes && gameState.karaokeVotes[playerId] !== undefined;
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 md:p-6">
+        <div className="relative max-w-4xl w-full max-h-[90vh] overflow-y-auto bg-gradient-to-br from-fuchsia-700/40 via-indigo-700/30 to-purple-800/40 border border-white/20 rounded-3xl p-6 md:p-8 shadow-2xl">
+          <div className="relative z-10">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <Music2 className="w-8 h-8 text-pink-300 animate-pulse" />
+              <h1 className="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-pink-300 to-purple-300">
+                KARAOKE VOTING
+              </h1>
+              <Mic className="w-8 h-8 text-yellow-300 animate-pulse" />
+            </div>
+            <p className="text-white/80 text-sm mb-6">Vote for your favorite song! Voting ends in {timeLeft}s</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+              {votingOptions.map((option, index) => {
+                const isSelected = selectedVote === index;
+                const isVoted = hasVoted && gameState.karaokeVotes![playerId] === index;
+                return (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      if (!hasVoted) {
+                        setSelectedVote(index);
+                        socket.emit('karaoke-vote', roomCode, playerId, index);
+                      }
+                    }}
+                    disabled={hasVoted}
+                    className={`p-4 rounded-xl border transition-all ${
+                      isVoted
+                        ? 'bg-green-600/30 border-green-400 text-green-200'
+                        : isSelected
+                        ? 'bg-blue-600/30 border-blue-400 text-blue-200'
+                        : hasVoted
+                        ? 'bg-gray-600/30 border-gray-500 text-gray-400 cursor-not-allowed'
+                        : 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40'
+                    }`}
+                  >
+                    <div className="font-bold text-lg mb-1">{option.title}</div>
+                    <div className="text-sm opacity-80">by {option.artist}</div>
+                    <div className="text-xs opacity-60 uppercase mt-1">{option.difficulty}</div>
+                    {isVoted && <div className="text-green-300 font-bold mt-2">✓ Voted!</div>}
+                  </button>
+                );
+              })}
+            </div>
+            {hasVoted && (
+              <div className="text-green-400 font-bold text-xl">
+                Vote submitted! Waiting for others...
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!song) return null;
 

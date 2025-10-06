@@ -14,6 +14,7 @@ import HostDashboard from './components/NewHostDashboard';
 import ReadyScreen from './components/ReadyScreen';
 import PlayerInterface from './components/NewPlayerInterface';
 import KaraokeBreak from './components/KaraokeBreak';
+import QuestionOverlay from './components/QuestionOverlay';
 import { GameState } from './types/game';
 
 type AppMode = 'welcome' | 'create' | 'join' | 'host' | 'player';
@@ -211,7 +212,7 @@ function App() {
         return gameState && (
           gameState.gamePhase === 'ready_check' ? (
             <ReadyScreen socket={socket as Socket} gameState={gameState} playerId={gameState.players.find(p=>p.isHost)?.id || ''} roomCode={roomCode} />
-          ) : gameState.gamePhase === 'karaoke_break' ? (
+          ) : (gameState.gamePhase === 'karaoke_break' || gameState.gamePhase === 'karaoke_voting') ? (
             <>
               <HostDashboard
                 socket={socket as Socket}
@@ -236,7 +237,7 @@ function App() {
         return gameState && (
           gameState.gamePhase === 'ready_check' ? (
             <ReadyScreen socket={socket as Socket} gameState={gameState} playerId={playerId} roomCode={roomCode} />
-          ) : gameState.gamePhase === 'karaoke_break' ? (
+          ) : (gameState.gamePhase === 'karaoke_break' || gameState.gamePhase === 'karaoke_voting') ? (
             <>
               <PlayerInterface
                 socket={socket as Socket}
@@ -277,6 +278,16 @@ function App() {
   return (
     <div className={mode === 'player' ? 'overflow-auto' : ''}>
       {renderContent()}
+      {mode === 'player' && gameState && currentQuestion && gameState.gamePhase === 'question' && socket && (
+        <QuestionOverlay
+          question={currentQuestion}
+          isMyTurn={gameState.players[gameState.currentPlayerIndex]?.id === playerId}
+          onSubmit={(answerIndex) => {
+            socket.emit('submit-answer', gameState.id, playerId, answerIndex);
+          }}
+          socket={socket}
+        />
+      )}
     </div>
   );
 }

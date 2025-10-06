@@ -54,8 +54,8 @@ export const useGameEvents = (
       setCurrentQuestion(question);
     };
 
-  const onAnswerSubmitted = ({ 
-      gameState, 
+  const onAnswerSubmitted = ({
+      gameState,
       isCorrect,
       playerId,
       correctAnswer,
@@ -63,7 +63,7 @@ export const useGameEvents = (
       lockedCategories,
       recentCategories,
       categoryLockMessage
-    }: { 
+    }: {
       gameState: GameState;
       isCorrect: boolean;
       playerId: string;
@@ -75,22 +75,22 @@ export const useGameEvents = (
     }) => {
   console.log(`[client] answer-submitted by ${playerId}, isCorrect: ${isCorrect}`);
   if (isCorrect) playCorrect(); else playWrong();
-      
+
       // Update game state first
   setGameState(cloneState(gameState));
-      
+
       // Set answer result for feedback with category locking info
-      setAnswerResult({ 
-        playerId, 
+      setAnswerResult({
+        playerId,
         answerIndex: -1, // Not needed for this implementation
-        isCorrect, 
-        correctAnswer: correctAnswer ?? currentQuestion?.correctAnswer ?? 0, 
+        isCorrect,
+        correctAnswer: correctAnswer ?? currentQuestion?.correctAnswer ?? 0,
         categoryLocked,
         lockedCategories: lockedCategories || [],
         recentCategories: recentCategories || [],
         categoryLockMessage
       });
-      
+
       // Only reset current question for incorrect answers initially
       // For correct answers, we'll clear it on next-turn or game-state-update
       if (!isCorrect) {
@@ -103,19 +103,19 @@ export const useGameEvents = (
         }, 2000);
       }
     };
-    
+
     const onCharadeStarted = ({ gameState, deadline }: { gameState: GameState, deadline?: number }) => {
       console.log('[client] charade-started deadline:', deadline);
   setGameState(cloneState(gameState));
       setCharadeDeadline(typeof deadline === 'number' ? deadline : null);
     };
-    
+
     const onCharadeSolved = ({ gameState, solverId }: { gameState: GameState, solverId: string }) => {
       console.log('[client] charade-solved by:', solverId);
   setGameState(cloneState(gameState));
       setCharadeDeadline(null);
     };
-    
+
     const onCharadeFailed = ({ gameState, playerId }: { gameState: GameState, playerId: string }) => {
       console.log('[client] charade-failed by:', playerId);
   setGameState(cloneState(gameState));
@@ -127,13 +127,13 @@ export const useGameEvents = (
   setGameState(cloneState(gameState));
       setPictionaryDeadline(typeof deadline === 'number' ? deadline : null);
     };
-    
+
     const onPictionarySolved = ({ gameState, solverId }: { gameState: GameState, solverId: string }) => {
       console.log('[client] pictionary-solved by:', solverId);
   setGameState(cloneState(gameState));
       setPictionaryDeadline(null);
     };
-    
+
     const onPictionaryFailed = ({ gameState, playerId }: { gameState: GameState, playerId: string }) => {
       console.log('[client] pictionary-failed by:', playerId);
   setGameState(cloneState(gameState));
@@ -149,7 +149,7 @@ export const useGameEvents = (
       setCharadeDeadline(null);
       setPictionaryDeadline(null);
     };
-    
+
     const onForfeitCompleted = ({ gameState, forfeitType }: { gameState: GameState, forfeitType: string }) => {
       console.log(`[client] forfeit-completed of type: ${forfeitType}`);
   setGameState(cloneState(gameState));
@@ -157,12 +157,12 @@ export const useGameEvents = (
       setPictionaryDeadline(null);
     };
 
-    const onCategoryLocked = ({ 
-      category, 
-      message, 
-      lockedCategories, 
-      recentCategories 
-    }: { 
+    const onCategoryLocked = ({
+      category,
+      message,
+      lockedCategories,
+      recentCategories
+    }: {
       category: string;
       message: string;
       lockedCategories: string[];
@@ -172,6 +172,11 @@ export const useGameEvents = (
       // Show an alert to the user with detailed information
       const detailedMessage = `${message}\n\nLocked categories: ${lockedCategories.join(', ')}\nRecent categories: ${recentCategories.join(', ')} (${recentCategories.length}/3)`;
       alert(detailedMessage);
+    };
+
+    const onPowerupDoubleChanceUsed = ({ playerId, message }: { playerId: string; message: string }) => {
+      console.log(`[client] powerup-double-chance-used by ${playerId}: ${message}`);
+      // This will be handled by the QuestionOverlay component
     };
 
     // Register event listeners
@@ -197,6 +202,7 @@ export const useGameEvents = (
     socket.on('game-finished', onGameFinished);
     socket.on('game-state-update', onGameStateUpdate);
     socket.on('category-locked', onCategoryLocked);
+    socket.on('powerup-double-chance-used', onPowerupDoubleChanceUsed);
 
     // Clean up
     return () => {
@@ -216,6 +222,7 @@ export const useGameEvents = (
       socket.off('game-finished', onGameFinished);
       socket.off('game-state-update', onGameStateUpdate);
       socket.off('category-locked', onCategoryLocked);
+      socket.off('powerup-double-chance-used', onPowerupDoubleChanceUsed);
     };
   }, [socket, setGameState, currentQuestion, playCorrect, playWrong, playReady, playStart]);
 
