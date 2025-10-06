@@ -53,7 +53,7 @@ const CreateGame: React.FC<CreateGameProps> = ({ socket, onCreateSuccess }) => {
         <div className="text-center mb-8">
           <div className="text-6xl mb-4">🏆</div>
           <h1 className="text-3xl font-bold text-white mb-2">Host Game</h1>
-          <p className="text-white/80">Create a new trivia game room</p>
+          <p className="text-white/80">Create a new game room</p>
         </div>
 
         <form onSubmit={createRoom} className="space-y-6">

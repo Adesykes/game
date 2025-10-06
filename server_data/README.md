@@ -1,4 +1,4 @@
-# Expanded Questions for Trivia Master Multiplayer
+# Expanded Questions for Drunk Games Night
 
 This package includes an expanded set of trivia questions for your game, with:
 

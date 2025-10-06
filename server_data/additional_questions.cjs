@@ -1,4 +1,4 @@
-// Additional questions for Trivia Master Multiplayer
+// Additional questions for Drunk Games Night
 // Contains expanded categories and new questions
 
 // This file contains additional question categories and questions that could be added to the game

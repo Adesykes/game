@@ -250,7 +250,7 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                 
                 {/* Game Instructions */}
                 <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 max-w-4xl w-full border border-white/20">
-                  <h3 className="text-2xl font-bold text-white mb-4 text-center">🎮 How to Play Trivia Master</h3>
+                  <h3 className="text-2xl font-bold text-white mb-4 text-center">🎮 How to Play Drunk Games Night</h3>
                   
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>

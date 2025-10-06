@@ -56,24 +56,24 @@ export const useGameEvents = (
 
   const onAnswerSubmitted = ({
       gameState,
-      isCorrect,
       playerId,
+      isCorrect,
       correctAnswer,
       categoryLocked,
       lockedCategories,
       recentCategories,
-      categoryLockMessage
+      categoryLockMessage,
     }: {
       gameState: GameState;
-      isCorrect: boolean;
       playerId: string;
+      isCorrect: boolean;
       correctAnswer: number;
       categoryLocked?: string;
       lockedCategories?: string[];
       recentCategories?: string[];
       categoryLockMessage?: string;
     }) => {
-  console.log(`[client] answer-submitted by ${playerId}, isCorrect: ${isCorrect}`);
+  console.log(`[client] answer-submitted by ${playerId}, isCorrect: ${isCorrect}, new phase: ${gameState.gamePhase}`);
   if (isCorrect) playCorrect(); else playWrong();
 
       // Update game state first
@@ -105,7 +105,7 @@ export const useGameEvents = (
     };
 
     const onCharadeStarted = ({ gameState, deadline }: { gameState: GameState, deadline?: number }) => {
-      console.log('[client] charade-started deadline:', deadline);
+      console.log('[client] charade-started received! gamePhase:', gameState.gamePhase, 'deadline:', deadline);
   setGameState(cloneState(gameState));
       setCharadeDeadline(typeof deadline === 'number' ? deadline : null);
     };
@@ -117,7 +117,7 @@ export const useGameEvents = (
     };
 
     const onCharadeFailed = ({ gameState, playerId }: { gameState: GameState, playerId: string }) => {
-      console.log('[client] charade-failed by:', playerId);
+      console.log('[client] charade-failed by:', playerId, 'new gamePhase:', gameState.gamePhase);
   setGameState(cloneState(gameState));
       setCharadeDeadline(null);
     };
@@ -135,7 +135,7 @@ export const useGameEvents = (
     };
 
     const onPictionaryFailed = ({ gameState, playerId }: { gameState: GameState, playerId: string }) => {
-      console.log('[client] pictionary-failed by:', playerId);
+      console.log('[client] pictionary-failed by:', playerId, 'new gamePhase:', gameState.gamePhase);
   setGameState(cloneState(gameState));
       setPictionaryDeadline(null);
     };
@@ -151,7 +151,7 @@ export const useGameEvents = (
     };
 
     const onForfeitCompleted = ({ gameState, forfeitType }: { gameState: GameState, forfeitType: string }) => {
-      console.log(`[client] forfeit-completed of type: ${forfeitType}`);
+      console.log(`[client] forfeit-completed of type: ${forfeitType}, new gamePhase: ${gameState.gamePhase}`);
   setGameState(cloneState(gameState));
       setCharadeDeadline(null);
       setPictionaryDeadline(null);

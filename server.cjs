@@ -956,6 +956,8 @@ io.on('connection', (socket) => {
     const currentPlayer = gameState.players[gameState.currentPlayerIndex];
     if (currentPlayer.id !== playerId) return;
     
+    console.log(`[start-charade] Starting forfeit type: ${gameState.currentForfeit.type} for player ${currentPlayer.name}`);
+    
     // Handle different forfeit types
     if (gameState.currentForfeit.type === 'shot') {
       // For shot forfeits, we just wait a moment then move to next turn
@@ -1002,6 +1004,7 @@ io.on('connection', (socket) => {
       const endsAt = startedAt + CHARADE_DURATION_MS;
       console.log(`[charade] start: room=${roomCode} player=${currentPlayer.id} durationMs=${CHARADE_DURATION_MS} endsAt=${new Date(endsAt).toISOString()}`);
       io.to(roomCode).emit('charade-started', { gameState, deadline: endsAt });
+      console.log(`[charade] emitted charade-started to room ${roomCode}`);
 
       // Start a 30s countdown
       const prev = charadeTimeouts.get(roomCode);

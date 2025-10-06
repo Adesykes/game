@@ -40,9 +40,9 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onModeSelect }) => {
         {/* Header */}
         <div className="mb-12">
           <div className="text-8xl mb-6">🧠</div>
-          <h1 className="text-5xl font-bold text-white mb-4">Trivia Master</h1>
+          <h1 className="text-5xl font-bold text-white mb-4">Drunk Games Night</h1>
           <p className="text-xl text-white/80 mb-8">
-            Local multiplayer trivia game for up to 6 players
+            Local multiplayer game for up to 6 players
           </p>
           <div className="mt-4 text-xs text-white/40 tracking-wide">Haunting soundtrack active</div>
         </div>

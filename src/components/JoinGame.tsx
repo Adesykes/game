@@ -71,7 +71,7 @@ const JoinGame: React.FC<JoinGameProps> = ({ socket, onJoinSuccess, initialRoomC
         <div className="text-center mb-8">
           <div className="text-6xl mb-4">🎮</div>
           <h1 className="text-3xl font-bold text-white mb-2">Join Game</h1>
-          <p className="text-white/80">Enter your details to join the trivia game</p>
+          <p className="text-white/80">Enter your details to join the game</p>
         </div>
 
         <form onSubmit={joinRoom} className="space-y-6">
