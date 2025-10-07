@@ -65,6 +65,24 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
     if (!isHostTurn || !hostPlayer || hostPlayer.powerUps.swap_question <= 0) return;
     socket.emit('powerup-swap-question', roomCode, playerId);
   };
+  const handleStealCategory = () => {
+    if (!isHostTurn || !hostPlayer) return;
+    if (!hostPlayer.powerUps?.steal_category || hostPlayer.powerUps.steal_category <= 0) return;
+    // Find eligible targets (other players with progress in categories)
+    const eligibleTargets = gameState.players.filter(p =>
+      p.id !== hostPlayer.id &&
+      !p.isEliminated &&
+      Object.values(p.categoryScores || {}).some(score => (score || 0) > 0)
+    );
+    if (eligibleTargets.length === 0) return;
+    const targetPlayer = eligibleTargets[0];
+    const availableCategories = Object.keys(targetPlayer.categoryScores || {}).filter(cat =>
+      (targetPlayer.categoryScores[cat] || 0) > 0
+    );
+    if (availableCategories.length === 0) return;
+    const categoryToSteal = availableCategories[0];
+    socket.emit('powerup-steal-category', gameState.id, hostPlayer.id, targetPlayer.id, categoryToSteal);
+  };
   const isCurrentPlayerTurn = currentPlayer?.id === hostPlayer?.id;
   // Host should always be able to manage karaoke regardless of whose turn it is
   const hostId = hostPlayer?.id;
@@ -368,6 +386,18 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                     </p>
                     {isHostTurn && (
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 max-w-3xl mx-auto">
+                        {/* Host power-up: Steal Category */}
+                        {(hostPlayer?.powerUps?.steal_category || 0) > 0 && (
+                          <div className="col-span-2 sm:col-span-3 md:col-span-5 mb-2 flex justify-center">
+                            <button
+                              onClick={handleStealCategory}
+                              className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Steal 1 progress from another player's category"
+                            >
+                              🏴‍☠️ Steal Category ({hostPlayer?.powerUps?.steal_category || 0})
+                            </button>
+                          </div>
+                        )}
                         {questionCategories.map((category) => {
                           const isLocked = gameState?.globalLockedCategories?.includes(category) || false;
                           const isRecent = gameState?.globalRecentCategories?.includes(category) || false;

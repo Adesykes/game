@@ -15,7 +15,7 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
   const isHost = gameState.players.find(p=>p.id===playerId)?.isHost;
   const [elapsed, setElapsed] = useState(0);
   const [startedAt, setStartedAt] = useState<number | null>(null);
-  const [selectedVote, setSelectedVote] = useState<number | null>(null);
+  const [selectedVotes, setSelectedVotes] = useState<number[]>([]);
   const barsRef = useRef<number[]>(Array.from({length:24},()=>Math.random()));
   const [, forceTick] = useState(0);
   const confettiRef = useRef<HTMLCanvasElement | null>(null);
@@ -166,7 +166,7 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
     const votingOptions = gameState.karaokeVotingOptions || [];
     const votingEndAt = gameState.karaokeVotingEndAt || 0;
     const timeLeft = Math.max(0, Math.floor((votingEndAt - Date.now()) / 1000));
-    const hasVoted = gameState.karaokeVotes && gameState.karaokeVotes[playerId] !== undefined;
+  const hasVoted = gameState.karaokeVotes && gameState.karaokeVotes[playerId] !== undefined;
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 md:p-6">
@@ -179,19 +179,33 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
               </h1>
               <Mic className="w-8 h-8 text-yellow-300 animate-pulse" />
             </div>
-            <p className="text-white/80 text-sm mb-6">Vote for your favorite song! Voting ends in {timeLeft}s</p>
+            <p className="text-white/80 text-sm mb-6">Choose two songs you want to sing! Most votes win. Voting ends in {timeLeft}s</p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
               {votingOptions.map((option, index) => {
-                const isSelected = selectedVote === index;
-                const isVoted = hasVoted && gameState.karaokeVotes![playerId] === index;
+                const playerVotes = Array.isArray(gameState.karaokeVotes?.[playerId])
+                  ? (gameState.karaokeVotes![playerId] as number[])
+                  : (gameState.karaokeVotes?.[playerId] !== undefined ? [gameState.karaokeVotes![playerId] as unknown as number] : []);
+                const isSelected = selectedVotes.includes(index);
+                const isVoted = hasVoted && playerVotes.includes(index);
                 return (
                   <button
                     key={index}
                     onClick={() => {
-                      if (!hasVoted) {
-                        setSelectedVote(index);
+                      if (hasVoted) return;
+                      setSelectedVotes(prev => {
+                        let next = prev;
+                        if (prev.includes(index)) {
+                          next = prev.filter(i => i !== index);
+                        } else if (prev.length < 2) {
+                          next = [...prev, index];
+                        } else {
+                          // replace the first one to keep at most two
+                          next = [prev[1], index];
+                        }
+                        // emit each change; server caps at two per player
                         socket.emit('karaoke-vote', roomCode, playerId, index);
-                      }
+                        return next;
+                      });
                     }}
                     disabled={hasVoted}
                     className={`p-4 rounded-xl border transition-all ${
@@ -212,10 +226,14 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
                 );
               })}
             </div>
+            {/* Submission notice */}
             {hasVoted && (
               <div className="text-green-400 font-bold text-xl">
-                Vote submitted! Waiting for others...
+                Votes submitted! Waiting for others...
               </div>
+            )}
+            {!hasVoted && (
+              <div className="text-white/70 text-sm text-center">Tap to select up to two songs. Tap again to unselect. Your latest two choices are counted.</div>
             )}
           </div>
         </div>

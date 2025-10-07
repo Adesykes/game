@@ -483,7 +483,18 @@ io.on('connection', (socket) => {
     const player = gs.players.find(p => p.id === playerId);
     if (!player) return;
     if (songIndex < 0 || songIndex >= (gs.karaokeVotingOptions?.length || 0)) return;
-    gs.karaokeVotes[playerId] = songIndex;
+    // Allow up to two distinct votes per player
+    if (!Array.isArray(gs.karaokeVotes[playerId])) gs.karaokeVotes[playerId] = [];
+    const arr = gs.karaokeVotes[playerId];
+    if (!arr.includes(songIndex)) {
+      if (arr.length < 2) {
+        arr.push(songIndex);
+      } else {
+        // If already has two, replace the oldest to honor latest intent
+        arr.shift();
+        arr.push(songIndex);
+      }
+    }
   });
 
   // Host emits periodic karaoke-sync while in karaoke_break
@@ -1347,8 +1358,8 @@ function triggerKaraoke(room, roomCode, manual=false, skipVoting=false) {
     }, gs.karaokeSettings.durationSec * 1000);
   } else {
     // Start voting phase for automatic triggers
-    gs.karaokeVotingOptions = pickKaraokeOptions();
-    gs.karaokeVotes = {};
+  gs.karaokeVotingOptions = pickKaraokeOptions();
+  gs.karaokeVotes = {};
     gs.karaokeBreakCount = (gs.karaokeBreakCount || 0) + 1;
     gs.karaokeVotingEndAt = now + 30000; // 30 seconds for voting
     gs.gamePhase = 'karaoke_voting';
@@ -1366,12 +1377,22 @@ function endKaraokeVoting(room, roomCode) {
   const gs = room.gameState;
   if (gs.gamePhase !== 'karaoke_voting') return;
   
-  // Count votes
+  // Count votes (each player can have up to two selections)
   const voteCounts = {};
   for (const playerId in gs.karaokeVotes) {
-    const voteIndex = gs.karaokeVotes[playerId];
-    if (voteIndex >= 0 && voteIndex < gs.karaokeVotingOptions.length) {
-      voteCounts[voteIndex] = (voteCounts[voteIndex] || 0) + 1;
+    const votes = gs.karaokeVotes[playerId];
+    if (Array.isArray(votes)) {
+      votes.forEach((vi) => {
+        if (vi >= 0 && vi < gs.karaokeVotingOptions.length) {
+          voteCounts[vi] = (voteCounts[vi] || 0) + 1;
+        }
+      });
+    } else {
+      // Backward compatibility: single index stored
+      const vi = votes;
+      if (vi >= 0 && vi < gs.karaokeVotingOptions.length) {
+        voteCounts[vi] = (voteCounts[vi] || 0) + 1;
+      }
     }
   }
   

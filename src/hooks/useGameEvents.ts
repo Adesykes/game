@@ -184,12 +184,16 @@ export const useGameEvents = (
       setGameState(gameState);
     };
 
-    const onQuestionSwapped = ({ gameState, playerId }) => {
-      console.log(`[client] question-swapped by ${playerId}`);
-      setGameState(gameState);
+    const onQuestionSwapped = ({ gameState, playerId, question }: { gameState: GameState; playerId: string; question: Question }) => {
+      console.log(`[client] question-swapped by ${playerId} -> ${question?.category || 'unknown'} (${question?.id || 'no-id'})`);
+      // Update state and replace the current question with the new one from server
+      setGameState(cloneState(gameState));
+      if (question) {
+        setCurrentQuestion(question);
+      }
     };
 
-    const onPowerupStealCategoryResult = ({ gameState, thiefId, targetId, category, amount }) => {
+    const onPowerupStealCategoryResult = ({ gameState, thiefId, targetId, category, amount }: { gameState: GameState; thiefId: string; targetId: string; category: string; amount: number; }) => {
       console.log(`[client] powerup-steal-category-result: ${thiefId} stole ${amount} from ${targetId} in ${category}`);
       setGameState(gameState);
     };
