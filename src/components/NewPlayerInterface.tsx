@@ -313,6 +313,14 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
 
             {gameState.gamePhase === 'category_selection' && (
               <div>
+                {/* Hide categories during server-scheduled turn cooldown */}
+                {gameState.turnCooldownUntil && Date.now() < gameState.turnCooldownUntil ? (
+                  <div className="text-center py-12">
+                    <div className="text-white/70 text-lg mb-2">Preparing next turn…</div>
+                    <p className="text-white/50 text-sm">Please wait a moment…</p>
+                  </div>
+                ) : (
+                  <>
                 <h2 className="text-xl font-bold text-white mb-4">
                   {isMyTurn ? 'Choose a category' : `${currentPlayer.name} is choosing a category`}
                   {!isMyTurn && (
@@ -369,6 +377,9 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                         <button
                           key={category}
                           onClick={() => {
+                            if (gameState.turnCooldownUntil && Date.now() < gameState.turnCooldownUntil) {
+                              return;
+                            }
                             // Double-check it's still our turn before emitting using latest game state
                             const latestGameState = gameStateRef.current;
                             const currentPlayerCheck = latestGameState.players?.[latestGameState.currentPlayerIndex];
@@ -428,6 +439,8 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                       <span className="text-xs bg-gray-600/50 text-gray-400 px-2 py-1 rounded">🔒 Locked</span>
                     </div>
                   </div>
+                )}
+                  </>
                 )}
               </div>
             )}

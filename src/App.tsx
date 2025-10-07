@@ -26,7 +26,7 @@ function App() {
   const [roomCode, setRoomCode] = useState('');
   const [playerId, setPlayerId] = useState('');
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const { currentQuestion, answerResult, charadeDeadline, pictionaryDeadline } = useGameEvents(socket, setGameState);
+  const { currentQuestion, answerResult, charadeDeadline, pictionaryDeadline, questionDeadline } = useGameEvents(socket, setGameState);
   // Global background music only during waiting / ready phases (all clients)
   const bgAudioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -296,6 +296,7 @@ function App() {
           roomCode={roomCode}
           lifelines={gameState.players.find(p => p.id === playerId)?.lifelines || { fiftyFifty: 0, passToRandom: 0 }}
           powerUps={gameState.players.find(p => p.id === playerId)?.powerUps || { swap_question: 0, steal_category: 0 }}
+          deadlineMs={questionDeadline || null}
         />
       )}
     </div>

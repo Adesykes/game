@@ -37,6 +37,8 @@ export interface GameState {
   currentQuestion: Question | null;
   selectedCategory: string | null; // Currently selected category
   gamePhase: 'waiting' | 'ready_check' | 'category_selection' | 'question' | 'forfeit' | 'charade_guessing' | 'pictionary_drawing' | 'karaoke_voting' | 'karaoke_break' | 'finished';
+  // During server-scheduled turn transitions, categories should be hidden until this timestamp (ms since epoch)
+  turnCooldownUntil?: number;
   allReady?: boolean; // Flag when all players pressed ready
   winner: Player | null;
   round: number;

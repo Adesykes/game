@@ -379,6 +379,13 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
               <div className="mt-4">
                 {gameState.gamePhase === 'category_selection' && (
                   <div>
+                    {gameState.turnCooldownUntil && Date.now() < gameState.turnCooldownUntil ? (
+                      <div className="text-center py-12">
+                        <div className="text-white/70 text-lg mb-2">Preparing next turn…</div>
+                        <p className="text-white/50 text-sm">Please wait a moment…</p>
+                      </div>
+                    ) : (
+                      <>
                     <p className="text-white/80 mb-3">
                       {isHostTurn
                         ? 'Choose a category for your question:'
@@ -405,7 +412,10 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                           return (
                             <button
                               key={category}
-                              onClick={() => !isLocked && selectCategory(category)}
+                              onClick={() => {
+                                if (gameState.turnCooldownUntil && Date.now() < gameState.turnCooldownUntil) return;
+                                if (!isLocked) selectCategory(category);
+                              }}
                               disabled={isLocked}
                               className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors relative ${
                                 isLocked 
@@ -451,6 +461,8 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                           <span className="text-xs bg-gray-600/50 text-gray-400 px-2 py-1 rounded">🔒 Locked</span>
                         </div>
                       </div>
+                    )}
+                    </>
                     )}
                   </div>
                 )}

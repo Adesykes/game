@@ -268,6 +268,85 @@ const assignPlayerAppearance = (player, existingPlayers) => {
 };
 
 // Questions pool (server-side) - Using expanded question set with additional categories
+
+// Centralized next-turn scheduler to avoid race conditions and enforce a delay
+const nextTurnTimers = new Map(); // roomCode -> timeout handle
+
+function scheduleNextTurn(room, roomCode, reason = 'default', delayMs = 3000) {
+  try {
+    const existing = nextTurnTimers.get(roomCode);
+    if (existing) clearTimeout(existing);
+  } catch {}
+  console.log(`[scheduleNextTurn] room=${roomCode} in ${delayMs}ms reason=${reason}`);
+  // Mark a short cooldown so clients hide categories during the delay
+  try {
+    room.gameState.turnCooldownUntil = Date.now() + delayMs;
+    io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: `Turn cooldown (${reason})` });
+  } catch (e) {
+    console.warn('[scheduleNextTurn] Failed to set cooldown flag', e);
+  }
+  const handle = setTimeout(() => {
+    nextTurnTimers.delete(roomCode);
+    try {
+      nextTurn(room, roomCode);
+      // Ensure clients have the latest state after advancing turn
+      // Clear cooldown flag now that the turn has advanced
+      if (room.gameState.turnCooldownUntil) delete room.gameState.turnCooldownUntil;
+      io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: `Turn advanced (${reason})` });
+    } catch (e) {
+      console.error('[scheduleNextTurn] Error advancing turn', e);
+    }
+  }, delayMs);
+  nextTurnTimers.set(roomCode, handle);
+}
+
+// ---------------- Fuzzy matching helpers for charade/pictionary guesses ----------------
+function stripDiacritics(str) {
+  try { return str.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } catch { return str; }
+}
+
+function normalizeForComparison(input) {
+  const s = stripDiacritics(String(input || '').toLowerCase());
+  // Remove punctuation, keep alphanumerics and spaces, collapse spaces
+  return s.replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const dp = new Array(n + 1);
+  for (let j = 0; j <= n; j++) dp[j] = j;
+  for (let i = 1; i <= m; i++) {
+    let prev = dp[0];
+    dp[0] = i;
+    for (let j = 1; j <= n; j++) {
+      const tmp = dp[j];
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[j] = Math.min(
+        dp[j] + 1,        // deletion
+        dp[j - 1] + 1,    // insertion
+        prev + cost       // substitution
+      );
+      prev = tmp;
+    }
+  }
+  return dp[n];
+}
+
+function isCloseMatch(guess, answer) {
+  if (!guess || !answer) return false;
+  if (guess === answer) return true;
+  // Allow minor typos based on length
+  const len = Math.max(guess.length, answer.length);
+  const dist = levenshtein(guess, answer);
+  if (len <= 4) return dist === 0;         // very short words must match exactly
+  if (len <= 6) return dist <= 1;          // allow 1 typo
+  if (len <= 10) return dist <= 2;         // allow 2 typos
+  // For longer phrases, allow up to 20% of length as edits (cap at 4)
+  const allowed = Math.min(4, Math.ceil(len * 0.2));
+  return dist <= allowed;
+}
 const { allQuestions } = require('./server_data/expanded_questions.cjs');
 
 // Select a random question avoiding repeats until pool is exhausted
@@ -520,7 +599,8 @@ io.on('connection', (socket) => {
     const endedAt = Date.now();
     io.to(roomCode).emit('karaoke-ended', { endedAt });
     io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'Karaoke ended (manual)' });
-    setTimeout(() => { try { nextTurn(room, roomCode); } catch(e) { console.error('[karaoke] Error advancing turn after manual end', e); } }, 1000);
+  // Advance using centralized scheduler
+  scheduleNextTurn(room, roomCode, 'karaoke manual end', 3000);
   });
 
   // Player presses Ready
@@ -787,16 +867,8 @@ io.on('connection', (socket) => {
     if (isCorrect) {
       console.log(`[submit-answer] CALLING nextTurn for correct answer by ${playerId}`);
       // Use setTimeout to ensure the answer-submitted event is processed first
-      setTimeout(() => {
-        console.log(`[submit-answer] Delayed nextTurn executing for ${playerId}`);
-        nextTurn(room, roomCode);
-        // Send an additional game state update to ensure clients have latest state
-        console.log(`[submit-answer] Sending additional game-state-update after nextTurn`);
-        io.to(roomCode).emit('game-state-update', { 
-          gameState: room.gameState,
-          message: 'Turn advanced after correct answer'
-        });
-      }, 500);
+      // Schedule with centralized 3s delay (overrides earlier 500ms)
+      scheduleNextTurn(room, roomCode, 'after correct answer', 3000);
 
       // Watchdog: if for some reason turn did not advance (missed event), force it once
       const previousIndex = room.gameState.currentPlayerIndex;
@@ -804,11 +876,7 @@ io.on('connection', (socket) => {
         try {
           if (room.gameState.players.length > 1 && room.gameState.currentPlayerIndex === previousIndex) {
             console.warn('[watchdog] Detected stalled turn after correct answer; forcing nextTurn');
-            nextTurn(room, roomCode);
-            io.to(roomCode).emit('game-state-update', {
-              gameState: room.gameState,
-              message: 'Watchdog forced turn advancement'
-            });
+            scheduleNextTurn(room, roomCode, 'watchdog after correct answer', 3000);
           }
         } catch (e) {
           console.error('[watchdog] Error attempting forced advancement', e);
@@ -995,8 +1063,8 @@ io.on('connection', (socket) => {
         return; // Karaoke flow will reset phase & progression afterward
       }
       // If karaoke did not trigger, move to next turn after a short delay
-      console.log(`[forfeit] No karaoke break (phase stayed ${beforePhase} -> ${afterPhase}); scheduling nextTurn in 5s`);
-      setTimeout(() => nextTurn(room, roomCode), 5000);
+  console.log(`[forfeit] No karaoke break (phase stayed ${beforePhase} -> ${afterPhase}); scheduling nextTurn in 3s`);
+  scheduleNextTurn(room, roomCode, 'after shot forfeit', 3000);
       return;
     }
     
@@ -1062,11 +1130,11 @@ io.on('connection', (socket) => {
     const gameState = room.gameState;
     if (gameState.gamePhase !== 'charade_guessing' || !gameState.charadeSolution) return;
 
-    const normalized = String(guess || '').trim().toLowerCase();
-    if (!normalized) return;
-    const solution = gameState.charadeSolution.trim().toLowerCase();
+  const normalized = normalizeForComparison(guess);
+  if (!normalized) return;
+  const solution = normalizeForComparison(gameState.charadeSolution);
 
-    if (normalized === solution) {
+  if (normalized === solution || isCloseMatch(normalized, solution)) {
       console.log(`[charade-solved] Correct guess by ${playerId}! Solution: ${solution}`);
       
       // Mark as solved and clear timeout
@@ -1103,11 +1171,9 @@ io.on('connection', (socket) => {
       // Force a game state update to ensure clients are in sync
       io.to(roomCode).emit('game-state-update', { gameState });
       
-      // Finally advance to next turn
-      console.log(`[charade-solved] Advancing turn after charade solved by ${playerId}`);
-      setTimeout(() => {
-        nextTurn(room, roomCode);
-      }, 500); // Small delay to ensure state updates propagate
+      // Finally advance to next turn with centralized scheduler
+      console.log(`[charade-solved] Scheduling next turn after charade solved by ${playerId}`);
+      scheduleNextTurn(room, roomCode, 'charade solved', 3000);
     }
   });
 
@@ -1134,11 +1200,11 @@ io.on('connection', (socket) => {
     const gameState = room.gameState;
     if (gameState.gamePhase !== 'pictionary_drawing' || !gameState.pictionarySolution) return;
 
-    const normalized = String(guess || '').trim().toLowerCase();
-    if (!normalized) return;
-    const solution = gameState.pictionarySolution.trim().toLowerCase();
+  const normalized = normalizeForComparison(guess);
+  if (!normalized) return;
+  const solution = normalizeForComparison(gameState.pictionarySolution);
 
-    if (normalized === solution) {
+  if (normalized === solution || isCloseMatch(normalized, solution)) {
       console.log(`[pictionary-solved] Correct guess by ${playerId}! Solution: ${solution}`);
       
       // Mark as solved and clear timeout
@@ -1175,11 +1241,9 @@ io.on('connection', (socket) => {
       // Force a game state update to ensure clients are in sync
       io.to(roomCode).emit('game-state-update', { gameState });
       
-      // Finally advance to next turn
-      console.log(`[pictionary-solved] Advancing turn after pictionary solved by ${playerId}`);
-      setTimeout(() => {
-        nextTurn(room, roomCode);
-      }, 500); // Small delay to ensure state updates propagate
+      // Finally advance to next turn with centralized scheduler
+      console.log(`[pictionary-solved] Scheduling next turn after pictionary solved by ${playerId}`);
+      scheduleNextTurn(room, roomCode, 'pictionary solved', 3000);
     }
   });
 
@@ -1298,8 +1362,8 @@ function handleForfeitFailure(room, roomCode, currentPlayer, forfeitType) {
   io.to(roomCode).emit(`${forfeitType}-failed`, { gameState, playerId: currentPlayer.id });
   
   // Then advance the turn to the next player
-  console.log(`[${forfeitType}] Advancing turn after ${forfeitType} timeout`);
-  nextTurn(room, roomCode, gameState);
+  console.log(`[${forfeitType}] Scheduling next turn after ${forfeitType} timeout`);
+  scheduleNextTurn(room, roomCode, `${forfeitType} timeout`, 3000);
 }
 
 // ---- Karaoke Feature (auto + manual) ----
@@ -1353,7 +1417,7 @@ function triggerKaraoke(room, roomCode, manual=false, skipVoting=false) {
         const endedAt = Date.now();
         io.to(roomCode).emit('karaoke-ended', { endedAt });
         io.to(roomCode).emit('game-state-update', { gameState: gs, message: 'Karaoke ended (auto)' });
-        setTimeout(() => { try { nextTurn(room, roomCode); } catch(e) { console.error('[karaoke] Error advancing turn after auto end', e); } }, 1000);
+        scheduleNextTurn(room, roomCode, 'karaoke auto end (skip voting)', 3000);
       }
     }, gs.karaokeSettings.durationSec * 1000);
   } else {
@@ -1425,7 +1489,7 @@ function endKaraokeVoting(room, roomCode) {
       const endedAt = Date.now();
       io.to(roomCode).emit('karaoke-ended', { endedAt });
       io.to(roomCode).emit('game-state-update', { gameState: gs, message: 'Karaoke ended (auto)' });
-      setTimeout(() => { try { nextTurn(room, roomCode); } catch(e) { console.error('[karaoke] Error advancing turn after auto end', e); } }, 1000);
+      scheduleNextTurn(room, roomCode, 'karaoke auto end (after voting)', 3000);
     }
   }, gs.karaokeSettings.durationSec * 1000);
 }

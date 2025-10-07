@@ -17,15 +17,30 @@ interface QuestionOverlayProps {
   };
   playerId: string;
   roomCode: string;
+  deadlineMs?: number | null;
 }
 
-const QuestionOverlay: React.FC<QuestionOverlayProps> = ({ question, isMyTurn, onSubmit, socket, lifelines, powerUps, playerId, roomCode }) => {
+const QuestionOverlay: React.FC<QuestionOverlayProps> = ({ question, isMyTurn, onSubmit, socket, lifelines, powerUps, playerId, roomCode, deadlineMs }) => {
   const [selectedAnswer, setSelectedAnswer] = React.useState<number | null>(null);
+  const [timeLeft, setTimeLeft] = React.useState<number>(30);
 
   React.useEffect(() => {
     // Reset when question changes
     setSelectedAnswer(null);
+    // If a server-sourced deadline is provided, compute remaining
+    if (deadlineMs && deadlineMs > Date.now()) {
+      setTimeLeft(Math.max(0, Math.ceil((deadlineMs - Date.now()) / 1000)));
+    } else {
+      setTimeLeft(30);
+    }
   }, [question]);
+
+  React.useEffect(() => {
+    if (!isMyTurn) return;
+    if (timeLeft <= 0) return;
+    const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [isMyTurn, timeLeft]);
 
   const handleSubmit = (answerIndex: number) => {
     if (!isMyTurn || selectedAnswer !== null) return;
@@ -51,7 +66,15 @@ const QuestionOverlay: React.FC<QuestionOverlayProps> = ({ question, isMyTurn, o
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
       <div className="bg-gray-800 p-6 md:p-8 rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <h2 className="text-2xl font-bold mb-4 text-white">{question.category}</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-white">{question.category}</h2>
+          {isMyTurn && (
+            <div className="flex items-center text-yellow-400">
+              <span className="font-bold mr-1">⏱</span>
+              <span className="font-bold">{timeLeft}s</span>
+            </div>
+          )}
+        </div>
         <p className="text-lg mb-6 text-white">{question.question}</p>
         
   {/* Lifelines and Power-ups - only visible to current player */}

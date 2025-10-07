@@ -11,6 +11,7 @@ export const useGameEvents = (
   const [answerResult, setAnswerResult] = useState<AnswerResult | null>(null);
   const [charadeDeadline, setCharadeDeadline] = useState<number | null>(null);
   const [pictionaryDeadline, setPictionaryDeadline] = useState<number | null>(null);
+  const [questionDeadline, setQuestionDeadline] = useState<number | null>(null);
 
   // Sound functions (hook must be top-level)
   const { playCorrect, playWrong, playReady, playStart } = useSound();
@@ -32,6 +33,9 @@ export const useGameEvents = (
       setGameState(cloneState(gameState));
       setCharadeDeadline(null); // Reset charade deadline on state updates
       setPictionaryDeadline(null); // Reset pictionary deadline on state updates
+      if (gameState.gamePhase !== 'question') {
+        setQuestionDeadline(null);
+      }
       if (gameState.gamePhase === 'ready_check' && message?.toLowerCase().includes('ready')) playReady();
       if (gameState.gamePhase === 'category_selection' && message && /starting|forced/i.test(message)) playStart();
     };
@@ -43,15 +47,18 @@ export const useGameEvents = (
       console.log('[client] All players:', gameState.players.map(p => `${p.name} (${p.id})`).join(', '));
       // Immediate update with cloned state
       setGameState(cloneState(gameState));
-      setCurrentQuestion(null);
+  setCurrentQuestion(null);
+  setQuestionDeadline(null);
       setAnswerResult(null);
       setCharadeDeadline(null);
       setPictionaryDeadline(null);
     };
 
     const onCategorySelected = ({ question, gameState }: { question: Question; gameState: GameState }) => {
-  setGameState(cloneState(gameState));
+      setGameState(cloneState(gameState));
       setCurrentQuestion(question);
+      // Start a 30s deadline for answering
+      setQuestionDeadline(Date.now() + 30000);
     };
 
   const onAnswerSubmitted = ({
@@ -95,11 +102,13 @@ export const useGameEvents = (
       // For correct answers, we'll clear it on next-turn or game-state-update
       if (!isCorrect) {
         setCurrentQuestion(null);
+        setQuestionDeadline(null);
       } else {
         console.log('[client] Correct answer - waiting for turn advancement');
         // Add a backup timer to clear the question if we don't get a turn update
         setTimeout(() => {
           setCurrentQuestion(null);
+          setQuestionDeadline(null);
         }, 2000);
       }
     };
@@ -174,12 +183,17 @@ export const useGameEvents = (
       alert(detailedMessage);
     };
 
-    const onLifelineFiftyFiftyUsed = ({ gameState, playerId, removedIndices }) => {
+    const onLifelineFiftyFiftyUsed = ({ gameState, playerId, removedIndices }: { gameState: GameState; playerId: string; removedIndices: number[] }) => {
       console.log(`[client] lifeline-fifty-fifty-used by ${playerId}, removed indices: ${removedIndices}`);
-      setGameState(gameState);
+      const cloned = cloneState(gameState);
+      setGameState(cloned);
+      // Ensure the answering player UI receives the updated, reduced options
+      if (cloned.currentQuestion) {
+        setCurrentQuestion(cloned.currentQuestion);
+      }
     };
 
-    const onLifelinePassToRandomUsed = ({ gameState, fromPlayerId, toPlayerId }) => {
+    const onLifelinePassToRandomUsed = ({ gameState, fromPlayerId, toPlayerId }: { gameState: GameState; fromPlayerId: string; toPlayerId: string }) => {
       console.log(`[client] lifeline-pass-to-random-used from ${fromPlayerId} to ${toPlayerId}`);
       setGameState(gameState);
     };
@@ -190,6 +204,8 @@ export const useGameEvents = (
       setGameState(cloneState(gameState));
       if (question) {
         setCurrentQuestion(question);
+        // Preserve remaining time if a deadline exists; if missing, set a fresh 30s window
+        setQuestionDeadline(prev => prev && prev > Date.now() ? prev : Date.now() + 30000);
       }
     };
 
@@ -251,5 +267,5 @@ export const useGameEvents = (
     };
   }, [socket, setGameState, currentQuestion, playCorrect, playWrong, playReady, playStart]);
 
-  return { currentQuestion, answerResult, charadeDeadline, pictionaryDeadline };
+  return { currentQuestion, answerResult, charadeDeadline, pictionaryDeadline, questionDeadline };
 };
