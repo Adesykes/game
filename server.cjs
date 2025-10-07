@@ -64,6 +64,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Track per-room timeouts to avoid getting stuck in phases
 const questionTimeouts = new Map(); // roomCode -> NodeJS.Timeout
+const lightningTimeouts = new Map(); // roomCode -> NodeJS.Timeout
 const charadeTimeouts = new Map(); // roomCode -> NodeJS.Timeout
 const pictionaryTimeouts = new Map(); // roomCode -> NodeJS.Timeout
 // Charade duration hardcoded to 30 seconds
@@ -601,6 +602,24 @@ io.on('connection', (socket) => {
     io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'Karaoke ended (manual)' });
   // Advance using centralized scheduler
   scheduleNextTurn(room, roomCode, 'karaoke manual end', 3000);
+  });
+
+  // Host: manually start a lightning round
+  socket.on('start-lightning', (roomCode, playerId) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const gs = room.gameState;
+    // Validate host
+    const host = gs.players.find(p => p.id === playerId && p.isHost);
+    if (!host) return;
+    // Avoid starting during incompatible phases or if already active
+    if (gs.gamePhase === 'lightning_round' || gs.lightningActive) return;
+    if (gs.gamePhase === 'karaoke_break' || gs.gamePhase === 'karaoke_voting') return;
+    try {
+      triggerLightning(room, roomCode);
+    } catch (e) {
+      console.error('[start-lightning] Failed to start lightning:', e);
+    }
   });
 
   // Player presses Ready
@@ -1247,6 +1266,58 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Lightning round: buzz-in with an answer index
+  socket.on('lightning-buzz', (roomCode, playerId, answerIndex) => {
+    console.log(`[lightning-buzz] room=${roomCode} player=${playerId} idx=${answerIndex}`);
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const gs = room.gameState;
+    if (!gs.lightningActive || gs.gamePhase !== 'lightning_round' || !gs.lightningQuestion) {
+      console.log('[lightning-buzz] Ignored: not active or wrong phase');
+      return;
+    }
+    if (gs.lightningWinnerId) {
+      console.log('[lightning-buzz] Ignored: winner already decided');
+      return; // already decided
+    }
+    const player = gs.players.find(p => p.id === playerId);
+    if (!player || player.isEliminated) {
+      console.log('[lightning-buzz] Ignored: invalid or eliminated player');
+      return;
+    }
+    const correct = answerIndex === gs.lightningQuestion.correctAnswer;
+    if (!correct) {
+      console.log('[lightning-buzz] Wrong answer; waiting for a correct buzz');
+      return; // only first correct wins
+    }
+    gs.lightningWinnerId = playerId;
+    io.to(roomCode).emit('lightning-winner', { gameState: gs, winnerId: playerId });
+    // Prompt winner to choose reward
+    io.to(roomCode).emit('lightning-reward-choice', { winnerId: playerId, options: ['extra_life', 'lifeline'] });
+    // Stop the round countdown
+    endLightning(room, roomCode, 'winner');
+  });
+
+  // Lightning reward chosen by winner
+  socket.on('choose-lightning-reward', (roomCode, playerId, reward) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const gs = room.gameState;
+    if (gs.lightningWinnerId !== playerId) return;
+    const player = gs.players.find(p => p.id === playerId);
+    if (!player) return;
+    if (reward === 'extra_life') {
+      player.lives = (player.lives || 0) + 1;
+    } else if (reward === 'lifeline') {
+      // Grant one 50/50 by default
+      if (!player.lifelines) player.lifelines = { fiftyFifty: 0, passToRandom: 0 };
+      player.lifelines.fiftyFifty += 1;
+    }
+    io.to(roomCode).emit('lightning-reward-applied', { gameState: gs, playerId, reward });
+    // After reward, proceed to next normal turn with 3s delay
+    scheduleNextTurn(room, roomCode, 'after lightning reward', 3000);
+  });
+
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
   });
@@ -1552,6 +1623,9 @@ function nextTurn(room, roomCode) {
   
   const newIndex = room.gameState.currentPlayerIndex;
   console.log(`[nextTurn] After: room=${roomCode} newIndex=${newIndex} newPlayer=${players[newIndex]?.id} attempts=${attempts}`);
+  // Increment global turn counter and check for lightning round trigger
+  room.gameState.turnsPlayed = (room.gameState.turnsPlayed || 0) + 1;
+  const shouldLightning = room.gameState.turnsPlayed % 10 === 0;
   
   // Always set the game phase to 'category_selection' for the next player
   // This ensures that after a correct answer, the next player sees the category selection screen
@@ -1560,6 +1634,19 @@ function nextTurn(room, roomCode) {
     console.log(`[nextTurn] Set gamePhase to 'category_selection' for new player ${players[newIndex]?.id} to select category`);
   } else {
     console.log(`[nextTurn] Keeping gamePhase as '${room.gameState.gamePhase}' since we're in a forfeit or charade`);
+  }
+  
+  // If it's a lightning turn, trigger lightning round instead of normal flow
+  if (shouldLightning) {
+    console.log(`[lightning] Triggering lightning round on turn ${room.gameState.turnsPlayed}`);
+    try {
+      triggerLightning(room, roomCode);
+    } catch (e) {
+      console.error('[lightning] Failed to trigger lightning', e);
+    }
+    // Do not emit next-turn here; lightning handlers will emit state updates
+    console.log('[nextTurn] COMPLETED with lightning trigger');
+    return;
   }
   
   // Emit the turn change event with updated game state
@@ -1571,6 +1658,38 @@ function nextTurn(room, roomCode) {
   // Log the state after emitting the event
   console.log(`[nextTurn] COMPLETED: room=${roomCode}, final gamePhase=${room.gameState.gamePhase}, final currentPlayerIndex=${room.gameState.currentPlayerIndex}`);
   console.log(`[nextTurn] Final current player: ${players[room.gameState.currentPlayerIndex]?.name} (${players[room.gameState.currentPlayerIndex]?.id})`);
+}
+
+function endLightning(room, roomCode, reason = 'timeout') {
+  const gs = room.gameState;
+  const t = lightningTimeouts.get(roomCode);
+  if (t) { clearTimeout(t); lightningTimeouts.delete(roomCode); }
+  gs.lightningActive = false;
+  gs.lightningQuestion = null;
+  gs.lightningEndAt = null;
+  if (gs.gamePhase === 'lightning_round') {
+    gs.gamePhase = 'category_selection';
+  }
+  io.to(roomCode).emit('lightning-ended', { gameState: gs, reason });
+  io.to(roomCode).emit('game-state-update', { gameState: gs, message: 'Lightning ended' });
+}
+
+function triggerLightning(room, roomCode) {
+  const gs = room.gameState;
+  if (gs.gamePhase === 'karaoke_break' || gs.gamePhase === 'karaoke_voting') return;
+  const q = getRandomQuestion([]);
+  gs.lightningActive = true;
+  gs.lightningQuestion = q;
+  gs.lightningWinnerId = null;
+  gs.lightningEndAt = Date.now() + 8000; // 8 seconds
+  gs.gamePhase = 'lightning_round';
+  io.to(roomCode).emit('lightning-start', { gameState: gs, question: q, deadline: gs.lightningEndAt });
+  const handle = setTimeout(() => {
+    if (gs.gamePhase === 'lightning_round') {
+      endLightning(room, roomCode, 'timeout');
+    }
+  }, 8000);
+  lightningTimeouts.set(roomCode, handle);
 }
 
 // Function to check if only one player remains

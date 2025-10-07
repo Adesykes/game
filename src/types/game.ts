@@ -36,7 +36,7 @@ export interface GameState {
   currentPlayerIndex: number;
   currentQuestion: Question | null;
   selectedCategory: string | null; // Currently selected category
-  gamePhase: 'waiting' | 'ready_check' | 'category_selection' | 'question' | 'forfeit' | 'charade_guessing' | 'pictionary_drawing' | 'karaoke_voting' | 'karaoke_break' | 'finished';
+  gamePhase: 'waiting' | 'ready_check' | 'category_selection' | 'question' | 'forfeit' | 'charade_guessing' | 'pictionary_drawing' | 'karaoke_voting' | 'karaoke_break' | 'lightning_round' | 'finished';
   // During server-scheduled turn transitions, categories should be hidden until this timestamp (ms since epoch)
   turnCooldownUntil?: number;
   allReady?: boolean; // Flag when all players pressed ready
@@ -58,6 +58,12 @@ export interface GameState {
   karaokeVotingOptions?: KaraokeSong[]; // 12 song options for voting
   karaokeVotes?: { [playerId: string]: number[] }; // Player votes (indices of two chosen songs)
   karaokeVotingEndAt?: number; // When voting ends
+  // Lightning round fields
+  lightningActive?: boolean;
+  lightningQuestion?: Question | null;
+  lightningEndAt?: number | null;
+  lightningWinnerId?: string | null;
+  turnsPlayed?: number; // global turn counter
 }
 
 // No longer using board squares or chance events

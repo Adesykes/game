@@ -32,6 +32,11 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
   const [charadeTimeLeft, setCharadeTimeLeft] = useState(120);
   const [pictionaryGuessInput, setPictionaryGuessInput] = useState('');
   const [pictionaryTimeLeft, setPictionaryTimeLeft] = useState(60);
+  const [lightningTimeLeft, setLightningTimeLeft] = useState<number>(0);
+  const [hasBuzzed, setHasBuzzed] = useState<boolean>(false);
+  const [selectedLightningIndex, setSelectedLightningIndex] = useState<number | null>(null);
+  const [showLightningReward, setShowLightningReward] = useState<boolean>(false);
+  const [rewardSubmitting, setRewardSubmitting] = useState<boolean>(false);
   const { isFullScreen, toggleFullScreen } = useFullScreen();
 
   // Ref to track the latest game state for race condition prevention
@@ -144,6 +149,48 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
     return () => clearInterval(id);
   }, [gameState.gamePhase, pictionaryDeadline]);
 
+  // Lightning countdown synced to server
+  useEffect(() => {
+    if (gameState.gamePhase !== 'lightning_round') return;
+    const id = setInterval(() => {
+      const now = Date.now();
+      const dl = gameState.lightningEndAt ?? now;
+      const remaining = Math.max(0, Math.ceil((dl - now) / 1000));
+      setLightningTimeLeft(remaining);
+    }, 250);
+    return () => clearInterval(id);
+  }, [gameState.gamePhase, gameState.lightningEndAt]);
+
+  // Reset buzz flag when entering/exiting lightning phase
+  useEffect(() => {
+    if (gameState.gamePhase === 'lightning_round') {
+      setHasBuzzed(false);
+      setSelectedLightningIndex(null);
+    }
+  }, [gameState.gamePhase]);
+
+  // Listen for reward choice prompt and applied result
+  useEffect(() => {
+    if (!socket) return;
+    const onChoice = ({ winnerId }: { winnerId: string }) => {
+      if (winnerId === playerId) {
+        setShowLightningReward(true);
+      }
+    };
+    const onApplied = ({ playerId: rewardedId }: { playerId: string }) => {
+      if (rewardedId === playerId) {
+        setShowLightningReward(false);
+        setRewardSubmitting(false);
+      }
+    };
+    socket.on('lightning-reward-choice', onChoice);
+    socket.on('lightning-reward-applied', onApplied);
+    return () => {
+      socket.off('lightning-reward-choice', onChoice);
+      socket.off('lightning-reward-applied', onApplied);
+    };
+  }, [socket, playerId]);
+
   const selectCategory = (category: string) => {
     // Re-derive turn at call time for maximum safety
     const liveCurrentPlayerId = gameState.players[gameState.currentPlayerIndex]?.id;
@@ -214,6 +261,14 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
 
   return (
     <div className={containerClass}>
+      {/* Lightning teaser banner */}
+      {typeof gameState.turnsPlayed === 'number' && gameState.gamePhase !== 'lightning_round' && (
+        <div className="max-w-md mx-auto mb-3">
+          <div className="bg-yellow-500/15 border border-yellow-400/30 rounded-lg px-3 py-2 text-center">
+            <span className="text-yellow-200 text-sm font-semibold">⚡ Lightning round in {((10 - ((gameState.turnsPlayed % 10) || 0)) % 10) || 10} turns</span>
+          </div>
+        </div>
+      )}
       <div className="max-w-md mx-auto">
         {/* Player Header */}
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-white/20 text-center relative">
@@ -475,6 +530,41 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
               </div>
             )}
 
+            {/* Lightning Round UI */}
+            {gameState.gamePhase === 'lightning_round' && (
+              <div className="bg-yellow-600/20 border border-yellow-500/40 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-bold text-yellow-300">⚡ Lightning Round!</h3>
+                  <div className={`text-sm font-bold ${lightningTimeLeft <= 3 ? 'text-red-300' : 'text-yellow-200'}`}>⏱ {lightningTimeLeft}s</div>
+                </div>
+                <p className="text-white text-base mb-4">{gameState.lightningQuestion?.question || currentQuestion?.question}</p>
+                <div className="space-y-2">
+                  {(gameState.lightningQuestion?.options || currentQuestion?.options || []).map((opt, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        // Allow multiple attempts; server only accepts first correct globally
+                        setHasBuzzed(true);
+                        setSelectedLightningIndex(idx);
+                        socket.emit('lightning-buzz', gameState.id, playerId, idx);
+                      }}
+                      className={`w-full p-3 rounded-lg text-left transition-colors ${
+                        selectedLightningIndex === idx
+                          ? 'bg-yellow-600/40 border border-yellow-500/60 text-white'
+                          : 'bg-white/10 hover:bg-white/20 text-white'
+                      }`}
+                    >
+                      <span className="mr-2 text-yellow-300 font-bold">{String.fromCharCode(65 + idx)}.</span>
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+                {hasBuzzed && (
+                  <p className="text-white/60 text-sm mt-2 text-center">You buzzed{selectedLightningIndex !== null ? ` on ${String.fromCharCode(65 + selectedLightningIndex)}` : ''}! You can change your choice until someone wins.</p>
+                )}
+              </div>
+            )}
+
             {gameState.gamePhase === 'question' && currentQuestion && !isMyTurn && (
               <div className="bg-white/5 border border-white/10 rounded-xl p-4" data-test="waiting-question-only">
                 <div className="flex items-center justify-between mb-3">
@@ -700,6 +790,38 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
               ) : (
                 <p className="text-white">You'll have to do a forfeit!</p>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Lightning Reward Modal */}
+        {showLightningReward && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 rounded-xl p-6 w-full max-w-sm border border-white/10">
+              <h4 className="text-xl font-bold text-white mb-3">⚡ You won the Lightning Round!</h4>
+              <p className="text-white/80 mb-4">Choose your reward:</p>
+              <div className="grid grid-cols-1 gap-3">
+                <button
+                  disabled={rewardSubmitting}
+                  onClick={() => {
+                    setRewardSubmitting(true);
+                    socket.emit('choose-lightning-reward', gameState.id, playerId, 'extra_life');
+                  }}
+                  className="px-4 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-bold disabled:opacity-60"
+                >
+                  +1 Extra Life
+                </button>
+                <button
+                  disabled={rewardSubmitting}
+                  onClick={() => {
+                    setRewardSubmitting(true);
+                    socket.emit('choose-lightning-reward', gameState.id, playerId, 'lifeline');
+                  }}
+                  className="px-4 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold disabled:opacity-60"
+                >
+                  +1 Lifeline (50/50)
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -183,6 +183,34 @@ export const useGameEvents = (
       alert(detailedMessage);
     };
 
+    // Lightning round events (minimal wiring)
+    const onLightningStart = ({ gameState, question, deadline }: { gameState: GameState; question: Question; deadline: number }) => {
+      console.log('[client] lightning-start');
+      setGameState(cloneState(gameState));
+      setCurrentQuestion(question);
+      setQuestionDeadline(deadline);
+    };
+
+    const onLightningWinner = ({ gameState, winnerId }: { gameState: GameState; winnerId: string }) => {
+      console.log('[client] lightning-winner:', winnerId);
+      setGameState(cloneState(gameState));
+    };
+
+    const onLightningEnded = ({ gameState }: { gameState: GameState }) => {
+      console.log('[client] lightning-ended');
+      setGameState(cloneState(gameState));
+      setCurrentQuestion(null);
+      setQuestionDeadline(null);
+    };
+
+    const onLightningRewardChoice = ({ winnerId, options }: { winnerId: string; options: string[] }) => {
+      // Minimal UX: if we are the winner (by playerId on current gameState), prompt for reward
+      // We don't have direct access to the local playerId here; clients can handle UI elsewhere.
+      // As a fallback, if exactly one player has lifelines changed in gameState, we skip.
+      // For now, leave this as a no-op to avoid noisy prompts without knowing the local player.
+      console.log('[client] lightning-reward-choice for winner:', winnerId, 'options:', options.join(','));
+    };
+
     const onLifelineFiftyFiftyUsed = ({ gameState, playerId, removedIndices }: { gameState: GameState; playerId: string; removedIndices: number[] }) => {
       console.log(`[client] lifeline-fifty-fifty-used by ${playerId}, removed indices: ${removedIndices}`);
       const cloned = cloneState(gameState);
@@ -241,6 +269,10 @@ export const useGameEvents = (
     socket.on('lifeline-pass-to-random-used', onLifelinePassToRandomUsed);
     socket.on('question-swapped', onQuestionSwapped);
     socket.on('powerup-steal-category-result', onPowerupStealCategoryResult);
+  socket.on('lightning-start', onLightningStart);
+  socket.on('lightning-winner', onLightningWinner);
+  socket.on('lightning-ended', onLightningEnded);
+  socket.on('lightning-reward-choice', onLightningRewardChoice);
 
     // Clean up
     return () => {
@@ -264,6 +296,10 @@ export const useGameEvents = (
       socket.off('lifeline-pass-to-random-used', onLifelinePassToRandomUsed);
       socket.off('question-swapped', onQuestionSwapped);
       socket.off('powerup-steal-category-result', onPowerupStealCategoryResult);
+  socket.off('lightning-start', onLightningStart);
+  socket.off('lightning-winner', onLightningWinner);
+  socket.off('lightning-ended', onLightningEnded);
+  socket.off('lightning-reward-choice', onLightningRewardChoice);
     };
   }, [socket, setGameState, currentQuestion, playCorrect, playWrong, playReady, playStart]);
 

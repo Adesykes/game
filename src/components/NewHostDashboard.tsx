@@ -35,6 +35,10 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
   const [karaokeDuration, setKaraokeDuration] = useState<number>(gameState.karaokeSettings?.durationSec ?? 45);
   const [karaokeCooldown, setKaraokeCooldown] = useState<number>(gameState.karaokeSettings?.cooldownSec ?? 180);
   const [settingsSaved, setSettingsSaved] = useState(false);
+  const [lightningTimeLeft, setLightningTimeLeft] = useState<number>(0);
+  const [hostLightningSelectedIdx, setHostLightningSelectedIdx] = useState<number | null>(null);
+  const [showLightningRewardHost, setShowLightningRewardHost] = useState<boolean>(false);
+  const [rewardSubmittingHost, setRewardSubmittingHost] = useState<boolean>(false);
   
   // Update local state when gameState.karaokeSettings changes
   useEffect(() => {
@@ -43,6 +47,20 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
     setKaraokeDuration(gameState.karaokeSettings?.durationSec ?? 45);
     setKaraokeCooldown(gameState.karaokeSettings?.cooldownSec ?? 180);
   }, [gameState.karaokeSettings]);
+
+  // Lightning countdown on host
+  useEffect(() => {
+    if (gameState.gamePhase !== 'lightning_round') return;
+    const id = setInterval(() => {
+      const now = Date.now();
+      const dl = gameState.lightningEndAt ?? now;
+      const remaining = Math.max(0, Math.ceil((dl - now) / 1000));
+      setLightningTimeLeft(remaining);
+    }, 250);
+    return () => clearInterval(id);
+  }, [gameState.gamePhase, gameState.lightningEndAt]);
+  
+  // Host lightning UI is read-only
   
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const activePlayers = gameState.players.filter(p => !p.isEliminated);
@@ -98,7 +116,6 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
   const submitAnswer = (answerIndex: number) => {
     if (gameState.gamePhase !== 'question' || !gameState.currentQuestion) return;
     if (!isHostTurn || !hostPlayer) return; // Only allow host to answer on their turn
-    // Submit on behalf of the host
     console.log('[Host] Submitting answer on behalf of', hostPlayer.name, 'index:', answerIndex);
     socket.emit('submit-answer', gameState.id, hostPlayer.id, answerIndex);
   };
@@ -170,6 +187,15 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
     }
   }, [gameState.currentQuestion, gameState.gamePhase]);
 
+  // Reset host selection/reward state when lightning starts
+  useEffect(() => {
+    if (gameState.gamePhase === 'lightning_round') {
+      setHostLightningSelectedIdx(null);
+      setShowLightningRewardHost(false);
+      setRewardSubmittingHost(false);
+    }
+  }, [gameState.gamePhase]);
+
   // Sync karaoke settings when server updates
   useEffect(() => {
     const handler = (data: any) => {
@@ -186,8 +212,38 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
     return () => { socket.off('karaoke-settings-updated', handler); };
   }, [socket]);
 
+  // Listen for lightning reward events for host (show modal if host wins)
+  useEffect(() => {
+    if (!socket) return;
+    const onChoice = ({ winnerId }: { winnerId: string }) => {
+      if (winnerId === hostPlayer?.id) {
+        setShowLightningRewardHost(true);
+      }
+    };
+    const onApplied = ({ playerId: rewardedId }: { playerId: string }) => {
+      if (rewardedId === hostPlayer?.id) {
+        setShowLightningRewardHost(false);
+        setRewardSubmittingHost(false);
+      }
+    };
+    socket.on('lightning-reward-choice', onChoice);
+    socket.on('lightning-reward-applied', onApplied);
+    return () => {
+      socket.off('lightning-reward-choice', onChoice);
+      socket.off('lightning-reward-applied', onApplied);
+    };
+  }, [socket, hostPlayer?.id]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-4">
+      {/* Lightning teaser banner */}
+      {typeof gameState.turnsPlayed === 'number' && gameState.gamePhase !== 'lightning_round' && (
+        <div className="max-w-6xl mx-auto mb-3">
+          <div className="bg-yellow-500/15 border border-yellow-400/30 rounded-lg px-3 py-2 text-center">
+            <span className="text-yellow-200 text-sm font-semibold">⚡ Lightning round in {((10 - ((gameState.turnsPlayed % 10) || 0)) % 10) || 10} turns</span>
+          </div>
+        </div>
+      )}
       <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Host Header */}
         <div className="lg:col-span-3 bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 text-center relative">
@@ -316,6 +372,17 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                     className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg"
                   >
                     {showKaraokeSettings ? 'Hide' : 'Karaoke Settings'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!hostId) return;
+                      console.log('[Lightning Start] Emitting start-lightning');
+                      socket.emit('start-lightning', gameState.id, hostId);
+                    }}
+                    disabled={gameState.gamePhase === 'lightning_round' || gameState.gamePhase === 'karaoke_break' || gameState.gamePhase === 'karaoke_voting'}
+                    className="bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 text-white font-semibold px-4 py-2 rounded-lg shadow"
+                  >
+                    Start Lightning ⚡
                   </button>
                 </div>
               )}
@@ -532,6 +599,69 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                         Waiting for {currentPlayer?.name} to answer...
                       </div>
                     )}
+                  </div>
+                )}
+
+                {gameState.gamePhase === 'lightning_round' && (
+                  <div className="mt-2 text-left bg-yellow-600/20 p-4 rounded-xl border border-yellow-500/40">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-yellow-300 font-bold">⚡ Lightning Round</span>
+                      <span className={`text-sm font-bold ${lightningTimeLeft <= 3 ? 'text-red-300' : 'text-yellow-200'}`}>⏱ {lightningTimeLeft}s</span>
+                    </div>
+                    <p className="text-white text-lg mb-3">{gameState.lightningQuestion?.question}</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(gameState.lightningQuestion?.options || []).map((opt, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            if (!hostPlayer) return;
+                            setHostLightningSelectedIdx(idx);
+                            socket.emit('lightning-buzz', gameState.id, hostPlayer.id, idx);
+                          }}
+                          className={`p-2 rounded text-left transition-colors ${
+                            hostLightningSelectedIdx === idx
+                              ? 'bg-yellow-600/40 border border-yellow-500/60 text-white'
+                              : 'bg-white/10 hover:bg-white/20 text-white'
+                          }`}
+                        >
+                          <span className="font-bold text-yellow-300 mr-1">{String.fromCharCode(65 + idx)}.</span>
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-white/60 text-xs mt-2">Tap to buzz; first correct across all players wins.</p>
+                  </div>
+                )}
+
+                {/* Lightning Reward Modal for Host */}
+                {showLightningRewardHost && hostPlayer && (
+                  <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+                    <div className="bg-gray-800 rounded-xl p-6 w-full max-w-sm border border-white/10">
+                      <h4 className="text-xl font-bold text-white mb-3">⚡ You won the Lightning Round!</h4>
+                      <p className="text-white/80 mb-4">Choose your reward:</p>
+                      <div className="grid grid-cols-1 gap-3">
+                        <button
+                          disabled={rewardSubmittingHost}
+                          onClick={() => {
+                            setRewardSubmittingHost(true);
+                            socket.emit('choose-lightning-reward', gameState.id, hostPlayer.id, 'extra_life');
+                          }}
+                          className="px-4 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-bold disabled:opacity-60"
+                        >
+                          +1 Extra Life
+                        </button>
+                        <button
+                          disabled={rewardSubmittingHost}
+                          onClick={() => {
+                            setRewardSubmittingHost(true);
+                            socket.emit('choose-lightning-reward', gameState.id, hostPlayer.id, 'lifeline');
+                          }}
+                          className="px-4 py-3 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold disabled:opacity-60"
+                        >
+                          +1 Lifeline (50/50)
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
                 
