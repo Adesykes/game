@@ -282,11 +282,12 @@ function App() {
   return (
     <div className={mode === 'player' ? 'overflow-auto' : ''}>
       {renderContent()}
-      {mode === 'player' && gameState && currentQuestion && gameState.gamePhase === 'question' && socket && (
+      {mode === 'player' && gameState && currentQuestion && gameState.gamePhase === 'question' && socket &&
+        (gameState.players[gameState.currentPlayerIndex]?.id === playerId) && (
         <QuestionOverlay
           key={`${currentQuestion.id}-${currentQuestion.options.length}`}
           question={currentQuestion}
-          isMyTurn={gameState.players[gameState.currentPlayerIndex]?.id === playerId}
+          isMyTurn={true}
           onSubmit={(answerIndex) => {
             socket.emit('submit-answer', gameState.id, playerId, answerIndex);
           }}

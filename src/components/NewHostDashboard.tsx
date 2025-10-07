@@ -48,6 +48,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
   const activePlayers = gameState.players.filter(p => !p.isEliminated);
   const hostPlayer = gameState.players.find(p => p.isHost);
   const isHostTurn = !!currentPlayer?.isHost;
+  const viewerIsHost = playerId === hostPlayer?.id; // Check if the person viewing is actually the host
 
   // Lifeline and power-up handlers
   const handleFiftyFifty = () => {
@@ -426,64 +427,67 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                 
                 {gameState.gamePhase === 'question' && gameState.currentQuestion && (
                   <div className="mt-2 text-left bg-white/10 p-4 rounded-xl">
+                    {/* Always show category + question to everyone to keep context */}
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-yellow-400 font-bold">{gameState.currentQuestion.category}</span>
                       <div className="flex items-center gap-2">
-                        <span className={`text-lg font-bold ${questionTimeLeft <= 10 ? 'text-red-400' : isHostTurn ? 'text-white' : 'text-white/60'}`}>
+                        <span className={`text-lg font-bold ${questionTimeLeft <= 10 ? 'text-red-400' : 'text-white/80'}`}>
                           {questionTimeLeft}s
                         </span>
                         <Clock className="w-5 h-5 text-white/60" />
                       </div>
                     </div>
                     <p className="text-white text-lg mb-4">{gameState.currentQuestion.question}</p>
-                    
-                    {/* Lifelines and Power-ups */}
-                    {isHostTurn && hostPlayer && (
-                      <div className="mb-6">
-                        <div className="flex flex-wrap gap-3 mb-3">
-                          <button
-                            onClick={handleFiftyFifty}
-                            disabled={hostPlayer.lifelines.fiftyFifty <= 0}
-                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            50/50 ({hostPlayer.lifelines.fiftyFifty})
-                          </button>
-                          <button
-                            onClick={handlePassToRandom}
-                            disabled={hostPlayer.lifelines.passToRandom <= 0}
-                            className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            Pass to Random ({hostPlayer.lifelines.passToRandom})
-                          </button>
+
+                    {/* Only the current player (host on their turn) sees options and controls */}
+                    {isHostTurn && viewerIsHost ? (
+                      <>
+                        {hostPlayer && (
+                          <div className="mb-6">
+                            <div className="flex flex-wrap gap-3 mb-3">
+                              <button
+                                onClick={handleFiftyFifty}
+                                disabled={hostPlayer.lifelines.fiftyFifty <= 0}
+                                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                50/50 ({hostPlayer.lifelines.fiftyFifty})
+                              </button>
+                              <button
+                                onClick={handlePassToRandom}
+                                disabled={hostPlayer.lifelines.passToRandom <= 0}
+                                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                Pass to Random ({hostPlayer.lifelines.passToRandom})
+                              </button>
+                            </div>
+                            <div className="flex flex-wrap gap-3">
+                              <button
+                                onClick={handleSwapQuestion}
+                                disabled={hostPlayer.powerUps.swap_question <= 0}
+                                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                🔄 Swap Question ({hostPlayer.powerUps.swap_question})
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-2">
+                          {gameState.currentQuestion.options.map((opt, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => submitAnswer(idx)}
+                              className="bg-white/10 hover:bg-white/20 text-white py-2 px-3 rounded-lg text-left"
+                            >
+                              <span className="text-yellow-400 mr-2">{String.fromCharCode(65 + idx)}.</span>
+                              {opt}
+                            </button>
+                          ))}
                         </div>
-                        <div className="flex flex-wrap gap-3">
-                          <button
-                            onClick={handleSwapQuestion}
-                            disabled={hostPlayer.powerUps.swap_question <= 0}
-                            className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            🔄 Swap Question ({hostPlayer.powerUps.swap_question})
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {isHostTurn ? (
-                      <div className="grid grid-cols-2 gap-2">
-                        {gameState.currentQuestion.options.map((opt, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => submitAnswer(idx)}
-                            className="bg-white/10 hover:bg-white/20 text-white py-2 px-3 rounded-lg text-left"
-                          >
-                            <span className="text-yellow-400 mr-2">{String.fromCharCode(65 + idx)}.</span>
-                            {opt}
-                          </button>
-                        ))}
-                      </div>
+                      </>
                     ) : (
-                      <div className="text-center py-4">
-                        <p className="text-white/60">Waiting for {currentPlayer?.name} to answer...</p>
+                      <div className="text-center py-2 text-white/60">
+                        Waiting for {currentPlayer?.name} to answer...
                       </div>
                     )}
                   </div>

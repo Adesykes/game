@@ -432,42 +432,46 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
               </div>
             )}
 
-            {gameState.gamePhase === 'question' && currentQuestion && (
+            {gameState.gamePhase === 'question' && currentQuestion && isMyTurn && (
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-white">{currentQuestion.category}</h3>
-                  {isMyTurn && (
-                    <div className="flex items-center text-yellow-400">
-                      <Clock className="w-5 h-5 mr-1" />
-                      <span className="font-bold">{timeLeft}s</span>
-                    </div>
-                  )}
+                  <div className="flex items-center text-yellow-400">
+                    <Clock className="w-5 h-5 mr-1" />
+                    <span className="font-bold">{timeLeft}s</span>
+                  </div>
                 </div>
                 <p className="text-white text-lg mb-6">{currentQuestion.question}</p>
-                {isMyTurn ? (
-                  <div className="space-y-3" data-test="answer-options">
-                    {currentQuestion.options.map((option, index) => (
-                      <button
-                        key={index}
-                        onClick={() => submitAnswer(index)}
-                        disabled={selectedAnswer !== null}
-                        className={`w-full p-4 rounded-xl font-bold transition-all ${
-                          selectedAnswer === index 
-                            ? 'bg-blue-600 text-white' 
-                            : 'bg-white/10 hover:bg-white/20 text-white'
-                        } ${selectedAnswer !== null ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
-                      >
-                        <span className="mr-3 text-yellow-400">{String.fromCharCode(65 + index)}.</span>
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center" data-test="waiting-question-only">
-                    <p className="text-white/70 text-sm mb-1">{currentPlayer?.name} is answering...</p>
-                    <p className="text-white/40 text-xs">Answer choices hidden until turn ends</p>
-                  </div>
-                )}
+                <div className="space-y-3" data-test="answer-options">
+                  {currentQuestion.options.map((option, index) => (
+                    <button
+                      key={index}
+                      onClick={() => submitAnswer(index)}
+                      disabled={selectedAnswer !== null}
+                      className={`w-full p-4 rounded-xl font-bold transition-all ${
+                        selectedAnswer === index 
+                          ? 'bg-blue-600 text-white' 
+                          : 'bg-white/10 hover:bg-white/20 text-white'
+                      } ${selectedAnswer !== null ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      <span className="mr-3 text-yellow-400">{String.fromCharCode(65 + index)}.</span>
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {gameState.gamePhase === 'question' && currentQuestion && !isMyTurn && (
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4" data-test="waiting-question-only">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-bold text-white">{currentQuestion.category}</h3>
+                </div>
+                <p className="text-white text-base mb-3">{currentQuestion.question}</p>
+                <div className="text-center">
+                  <p className="text-white/70 text-sm mb-1">{currentPlayer?.name} is answering...</p>
+                  <p className="text-white/40 text-xs">Answer choices hidden until turn ends</p>
+                </div>
               </div>
             )}
             

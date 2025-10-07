@@ -1010,8 +1010,11 @@ io.on('connection', (socket) => {
       const prev = charadeTimeouts.get(roomCode);
       if (prev) clearTimeout(prev);
       const handle = setTimeout(() => {
-        if (!gameState.charadeSolved) {
-          handleForfeitFailure(room, roomCode, currentPlayer, 'charade');
+        // Get the CURRENT room and state at timeout execution time
+        const currentRoom = rooms.get(roomCode);
+        if (!currentRoom) return;
+        if (!currentRoom.gameState.charadeSolved) {
+          handleForfeitFailure(currentRoom, roomCode, currentRoom.gameState.players[currentRoom.gameState.currentPlayerIndex], 'charade');
         }
       }, CHARADE_DURATION_MS);
       charadeTimeouts.set(roomCode, handle);
@@ -1030,8 +1033,11 @@ io.on('connection', (socket) => {
       const prev = pictionaryTimeouts.get(roomCode);
       if (prev) clearTimeout(prev);
       const handle = setTimeout(() => {
-        if (!gameState.pictionarySolved) {
-          handleForfeitFailure(room, roomCode, currentPlayer, 'pictionary');
+        // Get the CURRENT room and state at timeout execution time
+        const currentRoom = rooms.get(roomCode);
+        if (!currentRoom) return;
+        if (!currentRoom.gameState.pictionarySolved) {
+          handleForfeitFailure(currentRoom, roomCode, currentRoom.gameState.players[currentRoom.gameState.currentPlayerIndex], 'pictionary');
         }
       }, PICTIONARY_DURATION_MS);
       pictionaryTimeouts.set(roomCode, handle);
@@ -1282,7 +1288,7 @@ function handleForfeitFailure(room, roomCode, currentPlayer, forfeitType) {
   
   // Then advance the turn to the next player
   console.log(`[${forfeitType}] Advancing turn after ${forfeitType} timeout`);
-  nextTurn(room, roomCode);
+  nextTurn(room, roomCode, gameState);
 }
 
 // ---- Karaoke Feature (auto + manual) ----
