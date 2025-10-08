@@ -65,7 +65,7 @@ const QuestionOverlay: React.FC<QuestionOverlayProps> = ({ question, isMyTurn, o
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-      <div className="bg-gray-800 p-6 md:p-8 rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-gray-800 p-6 md:p-8 rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto relative" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold text-white">{question.category}</h2>
           {isMyTurn && (
@@ -76,7 +76,7 @@ const QuestionOverlay: React.FC<QuestionOverlayProps> = ({ question, isMyTurn, o
           )}
         </div>
         <p className="text-lg mb-6 text-white">{question.question}</p>
-        
+
   {/* Lifelines and Power-ups - only visible to current player */}
   {isMyTurn && (
           <div className="mb-6">
@@ -107,7 +107,7 @@ const QuestionOverlay: React.FC<QuestionOverlayProps> = ({ question, isMyTurn, o
             </div>
           </div>
         )}
-        
+
         {isMyTurn ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {question.options.map((option, index) => (

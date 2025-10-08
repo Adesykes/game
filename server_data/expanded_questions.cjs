@@ -1,5 +1,5 @@
-// Expanded question set including additional categories
-// Generated on 03/09/2025
+// Expanded question set including additional categories and expanded small categories
+// Generated on 08/10/2025
 
 const expandedQuestions = [
   {
@@ -13937,6 +13937,7546 @@ const expandedQuestions = [
     ],
     "correctAnswer": 0,
     "difficulty": "hard"
+  },
+  {
+    "id": "10060",
+    "category": "Music",
+    "question": "Which note is the highest on a standard piano?",
+    "options": [
+      "C8",
+      "A7",
+      "C7",
+      "F7"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10061",
+    "category": "Music",
+    "question": "What is the standard tuning for a guitar's sixth string?",
+    "options": [
+      "E",
+      "A",
+      "D",
+      "G"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10062",
+    "category": "Music",
+    "question": "Which composer wrote 'The Well-Tempered Clavier'?",
+    "options": [
+      "Bach",
+      "Handel",
+      "Telemann",
+      "Vivaldi"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10063",
+    "category": "Music",
+    "question": "What is the name for a group of musicians playing together?",
+    "options": [
+      "Ensemble",
+      "Solo",
+      "Duet",
+      "Trio"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10064",
+    "category": "Music",
+    "question": "Which composer was deaf when he wrote his Ninth Symphony?",
+    "options": [
+      "Beethoven",
+      "Mozart",
+      "Bach",
+      "Haydn"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10065",
+    "category": "Music",
+    "question": "Which opera was composed by Alban Berg?",
+    "options": [
+      "Wozzeck",
+      "Lulu",
+      "Moses und Aron",
+      "Theater Camp"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10066",
+    "category": "Music",
+    "question": "What instrument is played by blowing air through a reed?",
+    "options": [
+      "Clarinet",
+      "Trumpet",
+      "Violin",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10067",
+    "category": "Music",
+    "question": "What is the standard tuning for a guitar's sixth string?",
+    "options": [
+      "E",
+      "A",
+      "D",
+      "G"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10068",
+    "category": "Music",
+    "question": "What is the term for a composition for eight instruments?",
+    "options": [
+      "Octet",
+      "Septet",
+      "Nonet",
+      "Ensemble"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10069",
+    "category": "Music",
+    "question": "What instrument is played by blowing air through a reed?",
+    "options": [
+      "Clarinet",
+      "Trumpet",
+      "Violin",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10070",
+    "category": "Music",
+    "question": "Which composer was deaf when he wrote his Ninth Symphony?",
+    "options": [
+      "Beethoven",
+      "Mozart",
+      "Bach",
+      "Haydn"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10071",
+    "category": "Music",
+    "question": "Which opera was composed by Alban Berg?",
+    "options": [
+      "Wozzeck",
+      "Lulu",
+      "Moses und Aron",
+      "Theater Camp"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10072",
+    "category": "Music",
+    "question": "Which of these is a percussion instrument?",
+    "options": [
+      "Drums",
+      "Guitar",
+      "Flute",
+      "Violin"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10073",
+    "category": "Music",
+    "question": "Which music term means 'getting louder'?",
+    "options": [
+      "Crescendo",
+      "Decrescendo",
+      "Forte",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10074",
+    "category": "Music",
+    "question": "Which composer wrote 'The Well-Tempered Clavier'?",
+    "options": [
+      "Bach",
+      "Handel",
+      "Telemann",
+      "Vivaldi"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10075",
+    "category": "Music",
+    "question": "What is the name for a group of musicians playing together?",
+    "options": [
+      "Ensemble",
+      "Solo",
+      "Duet",
+      "Trio"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10076",
+    "category": "Music",
+    "question": "What is a 'cadenza' in classical music?",
+    "options": [
+      "Solo passage",
+      "Chorus part",
+      "Opening theme",
+      "Closing chord"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10077",
+    "category": "Music",
+    "question": "Which composer wrote 'The Well-Tempered Clavier'?",
+    "options": [
+      "Bach",
+      "Handel",
+      "Telemann",
+      "Vivaldi"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10078",
+    "category": "Music",
+    "question": "Which of these is a percussion instrument?",
+    "options": [
+      "Drums",
+      "Guitar",
+      "Flute",
+      "Violin"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10079",
+    "category": "Music",
+    "question": "Which composer was deaf when he wrote his Ninth Symphony?",
+    "options": [
+      "Beethoven",
+      "Mozart",
+      "Bach",
+      "Haydn"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10080",
+    "category": "Music",
+    "question": "Which composer wrote 'The Well-Tempered Clavier'?",
+    "options": [
+      "Bach",
+      "Handel",
+      "Telemann",
+      "Vivaldi"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10081",
+    "category": "Music",
+    "question": "Which of these is a percussion instrument?",
+    "options": [
+      "Drums",
+      "Guitar",
+      "Flute",
+      "Violin"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10082",
+    "category": "Music",
+    "question": "Which instrument family does the saxophone belong to?",
+    "options": [
+      "Woodwind",
+      "Brass",
+      "Strings",
+      "Percussion"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10083",
+    "category": "Music",
+    "question": "What is the standard pitch for concert A?",
+    "options": [
+      "440 Hz",
+      "432 Hz",
+      "446 Hz",
+      "415 Hz"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10084",
+    "category": "Music",
+    "question": "What instrument is played by blowing air through a reed?",
+    "options": [
+      "Clarinet",
+      "Trumpet",
+      "Violin",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10085",
+    "category": "Music",
+    "question": "What is a 'cadenza' in classical music?",
+    "options": [
+      "Solo passage",
+      "Chorus part",
+      "Opening theme",
+      "Closing chord"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10086",
+    "category": "Music",
+    "question": "What is the term for a composition for eight instruments?",
+    "options": [
+      "Octet",
+      "Septet",
+      "Nonet",
+      "Ensemble"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10087",
+    "category": "Music",
+    "question": "What instrument is played by blowing air through a reed?",
+    "options": [
+      "Clarinet",
+      "Trumpet",
+      "Violin",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10088",
+    "category": "Music",
+    "question": "What is a 'cadenza' in classical music?",
+    "options": [
+      "Solo passage",
+      "Chorus part",
+      "Opening theme",
+      "Closing chord"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10089",
+    "category": "Music",
+    "question": "What is the term for a composition for eight instruments?",
+    "options": [
+      "Octet",
+      "Septet",
+      "Nonet",
+      "Ensemble"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10090",
+    "category": "Music",
+    "question": "What instrument is played by blowing air through a reed?",
+    "options": [
+      "Clarinet",
+      "Trumpet",
+      "Violin",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10091",
+    "category": "Music",
+    "question": "Which instrument family does the saxophone belong to?",
+    "options": [
+      "Woodwind",
+      "Brass",
+      "Strings",
+      "Percussion"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10092",
+    "category": "Music",
+    "question": "Which composer wrote 'The Well-Tempered Clavier'?",
+    "options": [
+      "Bach",
+      "Handel",
+      "Telemann",
+      "Vivaldi"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10093",
+    "category": "Music",
+    "question": "Which of these is a percussion instrument?",
+    "options": [
+      "Drums",
+      "Guitar",
+      "Flute",
+      "Violin"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10094",
+    "category": "Music",
+    "question": "Which instrument family does the saxophone belong to?",
+    "options": [
+      "Woodwind",
+      "Brass",
+      "Strings",
+      "Percussion"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10095",
+    "category": "Music",
+    "question": "Which composer wrote 'The Well-Tempered Clavier'?",
+    "options": [
+      "Bach",
+      "Handel",
+      "Telemann",
+      "Vivaldi"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10096",
+    "category": "Music",
+    "question": "What is the name for a group of musicians playing together?",
+    "options": [
+      "Ensemble",
+      "Solo",
+      "Duet",
+      "Trio"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10097",
+    "category": "Music",
+    "question": "Which music term means 'getting louder'?",
+    "options": [
+      "Crescendo",
+      "Decrescendo",
+      "Forte",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10098",
+    "category": "Music",
+    "question": "What is 'Klangfarbenmelodie' in music?",
+    "options": [
+      "Tone color melody",
+      "Rhythm pattern",
+      "Harmony progression",
+      "Tempo change"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10099",
+    "category": "Music",
+    "question": "What is the name for a group of musicians playing together?",
+    "options": [
+      "Ensemble",
+      "Solo",
+      "Duet",
+      "Trio"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10100",
+    "category": "Music",
+    "question": "What is the standard tuning for a guitar's sixth string?",
+    "options": [
+      "E",
+      "A",
+      "D",
+      "G"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10101",
+    "category": "Music",
+    "question": "What is the standard pitch for concert A?",
+    "options": [
+      "440 Hz",
+      "432 Hz",
+      "446 Hz",
+      "415 Hz"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10102",
+    "category": "Music",
+    "question": "What is the name for a group of musicians playing together?",
+    "options": [
+      "Ensemble",
+      "Solo",
+      "Duet",
+      "Trio"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10103",
+    "category": "Music",
+    "question": "Which music term means 'getting louder'?",
+    "options": [
+      "Crescendo",
+      "Decrescendo",
+      "Forte",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10104",
+    "category": "Music",
+    "question": "What is the term for a composition for eight instruments?",
+    "options": [
+      "Octet",
+      "Septet",
+      "Nonet",
+      "Ensemble"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10105",
+    "category": "Music",
+    "question": "Which of these is a percussion instrument?",
+    "options": [
+      "Drums",
+      "Guitar",
+      "Flute",
+      "Violin"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10106",
+    "category": "Music",
+    "question": "What is a 'cadenza' in classical music?",
+    "options": [
+      "Solo passage",
+      "Chorus part",
+      "Opening theme",
+      "Closing chord"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10107",
+    "category": "Music",
+    "question": "Which opera was composed by Alban Berg?",
+    "options": [
+      "Wozzeck",
+      "Lulu",
+      "Moses und Aron",
+      "Theater Camp"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10108",
+    "category": "Music",
+    "question": "Which of these is a percussion instrument?",
+    "options": [
+      "Drums",
+      "Guitar",
+      "Flute",
+      "Violin"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10109",
+    "category": "Music",
+    "question": "What is the standard tuning for a guitar's sixth string?",
+    "options": [
+      "E",
+      "A",
+      "D",
+      "G"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10110",
+    "category": "Music",
+    "question": "Which opera was composed by Alban Berg?",
+    "options": [
+      "Wozzeck",
+      "Lulu",
+      "Moses und Aron",
+      "Theater Camp"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10111",
+    "category": "Music",
+    "question": "What instrument is played by blowing air through a reed?",
+    "options": [
+      "Clarinet",
+      "Trumpet",
+      "Violin",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10112",
+    "category": "Music",
+    "question": "Which music term means 'getting louder'?",
+    "options": [
+      "Crescendo",
+      "Decrescendo",
+      "Forte",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10113",
+    "category": "Music",
+    "question": "Which composer wrote 'The Well-Tempered Clavier'?",
+    "options": [
+      "Bach",
+      "Handel",
+      "Telemann",
+      "Vivaldi"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10114",
+    "category": "Music",
+    "question": "What instrument is played by blowing air through a reed?",
+    "options": [
+      "Clarinet",
+      "Trumpet",
+      "Violin",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10115",
+    "category": "Music",
+    "question": "Which music term means 'getting louder'?",
+    "options": [
+      "Crescendo",
+      "Decrescendo",
+      "Forte",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10116",
+    "category": "Music",
+    "question": "Which composer wrote 'The Well-Tempered Clavier'?",
+    "options": [
+      "Bach",
+      "Handel",
+      "Telemann",
+      "Vivaldi"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10117",
+    "category": "Music",
+    "question": "What instrument is played by blowing air through a reed?",
+    "options": [
+      "Clarinet",
+      "Trumpet",
+      "Violin",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10118",
+    "category": "Music",
+    "question": "Which music term means 'getting louder'?",
+    "options": [
+      "Crescendo",
+      "Decrescendo",
+      "Forte",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10119",
+    "category": "Music",
+    "question": "What is the standard pitch for concert A?",
+    "options": [
+      "440 Hz",
+      "432 Hz",
+      "446 Hz",
+      "415 Hz"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10120",
+    "category": "Music",
+    "question": "Which of these is a percussion instrument?",
+    "options": [
+      "Drums",
+      "Guitar",
+      "Flute",
+      "Violin"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10121",
+    "category": "Music",
+    "question": "Which composer was deaf when he wrote his Ninth Symphony?",
+    "options": [
+      "Beethoven",
+      "Mozart",
+      "Bach",
+      "Haydn"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10122",
+    "category": "Music",
+    "question": "What is the term for a composition for eight instruments?",
+    "options": [
+      "Octet",
+      "Septet",
+      "Nonet",
+      "Ensemble"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10123",
+    "category": "Music",
+    "question": "Which note is the highest on a standard piano?",
+    "options": [
+      "C8",
+      "A7",
+      "C7",
+      "F7"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10124",
+    "category": "Music",
+    "question": "Which composer was deaf when he wrote his Ninth Symphony?",
+    "options": [
+      "Beethoven",
+      "Mozart",
+      "Bach",
+      "Haydn"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10125",
+    "category": "Music",
+    "question": "What is 'Klangfarbenmelodie' in music?",
+    "options": [
+      "Tone color melody",
+      "Rhythm pattern",
+      "Harmony progression",
+      "Tempo change"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10126",
+    "category": "Music",
+    "question": "What instrument is played by blowing air through a reed?",
+    "options": [
+      "Clarinet",
+      "Trumpet",
+      "Violin",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10127",
+    "category": "Music",
+    "question": "Which composer was deaf when he wrote his Ninth Symphony?",
+    "options": [
+      "Beethoven",
+      "Mozart",
+      "Bach",
+      "Haydn"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10128",
+    "category": "Music",
+    "question": "What is the standard pitch for concert A?",
+    "options": [
+      "440 Hz",
+      "432 Hz",
+      "446 Hz",
+      "415 Hz"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10129",
+    "category": "Music",
+    "question": "What does 'piano' mean in Italian?",
+    "options": [
+      "Soft",
+      "Loud",
+      "Fast",
+      "Slow"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10130",
+    "category": "Music",
+    "question": "Which instrument family does the saxophone belong to?",
+    "options": [
+      "Woodwind",
+      "Brass",
+      "Strings",
+      "Percussion"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10131",
+    "category": "Music",
+    "question": "What is the standard pitch for concert A?",
+    "options": [
+      "440 Hz",
+      "432 Hz",
+      "446 Hz",
+      "415 Hz"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10132",
+    "category": "Music",
+    "question": "What instrument is played by blowing air through a reed?",
+    "options": [
+      "Clarinet",
+      "Trumpet",
+      "Violin",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10133",
+    "category": "Music",
+    "question": "What is a 'cadenza' in classical music?",
+    "options": [
+      "Solo passage",
+      "Chorus part",
+      "Opening theme",
+      "Closing chord"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10134",
+    "category": "Music",
+    "question": "Which opera was composed by Alban Berg?",
+    "options": [
+      "Wozzeck",
+      "Lulu",
+      "Moses und Aron",
+      "Theater Camp"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10135",
+    "category": "Music",
+    "question": "What is the name for a group of musicians playing together?",
+    "options": [
+      "Ensemble",
+      "Solo",
+      "Duet",
+      "Trio"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10136",
+    "category": "Music",
+    "question": "Which music term means 'getting louder'?",
+    "options": [
+      "Crescendo",
+      "Decrescendo",
+      "Forte",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10137",
+    "category": "Music",
+    "question": "Which composer wrote 'The Well-Tempered Clavier'?",
+    "options": [
+      "Bach",
+      "Handel",
+      "Telemann",
+      "Vivaldi"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10138",
+    "category": "Music",
+    "question": "What is the name for a group of musicians playing together?",
+    "options": [
+      "Ensemble",
+      "Solo",
+      "Duet",
+      "Trio"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10139",
+    "category": "Music",
+    "question": "Which instrument family does the saxophone belong to?",
+    "options": [
+      "Woodwind",
+      "Brass",
+      "Strings",
+      "Percussion"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10140",
+    "category": "Music",
+    "question": "What is the term for a composition for eight instruments?",
+    "options": [
+      "Octet",
+      "Septet",
+      "Nonet",
+      "Ensemble"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10141",
+    "category": "Music",
+    "question": "What is the name for a group of musicians playing together?",
+    "options": [
+      "Ensemble",
+      "Solo",
+      "Duet",
+      "Trio"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10142",
+    "category": "Music",
+    "question": "Which composer was deaf when he wrote his Ninth Symphony?",
+    "options": [
+      "Beethoven",
+      "Mozart",
+      "Bach",
+      "Haydn"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10143",
+    "category": "Music",
+    "question": "What is 'Klangfarbenmelodie' in music?",
+    "options": [
+      "Tone color melody",
+      "Rhythm pattern",
+      "Harmony progression",
+      "Tempo change"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10144",
+    "category": "Music",
+    "question": "Which note is the highest on a standard piano?",
+    "options": [
+      "C8",
+      "A7",
+      "C7",
+      "F7"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10145",
+    "category": "Music",
+    "question": "What is the standard tuning for a guitar's sixth string?",
+    "options": [
+      "E",
+      "A",
+      "D",
+      "G"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10146",
+    "category": "Music",
+    "question": "What is the standard pitch for concert A?",
+    "options": [
+      "440 Hz",
+      "432 Hz",
+      "446 Hz",
+      "415 Hz"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10147",
+    "category": "Music",
+    "question": "What does 'piano' mean in Italian?",
+    "options": [
+      "Soft",
+      "Loud",
+      "Fast",
+      "Slow"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10148",
+    "category": "Music",
+    "question": "Which instrument family does the saxophone belong to?",
+    "options": [
+      "Woodwind",
+      "Brass",
+      "Strings",
+      "Percussion"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10149",
+    "category": "Music",
+    "question": "What is the standard pitch for concert A?",
+    "options": [
+      "440 Hz",
+      "432 Hz",
+      "446 Hz",
+      "415 Hz"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10150",
+    "category": "Music",
+    "question": "Which note is the highest on a standard piano?",
+    "options": [
+      "C8",
+      "A7",
+      "C7",
+      "F7"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10151",
+    "category": "Music",
+    "question": "Which instrument family does the saxophone belong to?",
+    "options": [
+      "Woodwind",
+      "Brass",
+      "Strings",
+      "Percussion"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10152",
+    "category": "Music",
+    "question": "What is 'Klangfarbenmelodie' in music?",
+    "options": [
+      "Tone color melody",
+      "Rhythm pattern",
+      "Harmony progression",
+      "Tempo change"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10153",
+    "category": "Music",
+    "question": "What is the name for a group of musicians playing together?",
+    "options": [
+      "Ensemble",
+      "Solo",
+      "Duet",
+      "Trio"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10154",
+    "category": "Music",
+    "question": "What is the standard tuning for a guitar's sixth string?",
+    "options": [
+      "E",
+      "A",
+      "D",
+      "G"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10155",
+    "category": "Music",
+    "question": "What is the standard pitch for concert A?",
+    "options": [
+      "440 Hz",
+      "432 Hz",
+      "446 Hz",
+      "415 Hz"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10156",
+    "category": "Music",
+    "question": "What is the name for a group of musicians playing together?",
+    "options": [
+      "Ensemble",
+      "Solo",
+      "Duet",
+      "Trio"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10157",
+    "category": "Music",
+    "question": "What is the standard tuning for a guitar's sixth string?",
+    "options": [
+      "E",
+      "A",
+      "D",
+      "G"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10158",
+    "category": "Music",
+    "question": "What is the term for a composition for eight instruments?",
+    "options": [
+      "Octet",
+      "Septet",
+      "Nonet",
+      "Ensemble"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10159",
+    "category": "Music",
+    "question": "Which of these is a percussion instrument?",
+    "options": [
+      "Drums",
+      "Guitar",
+      "Flute",
+      "Violin"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10160",
+    "category": "Music",
+    "question": "What is a 'cadenza' in classical music?",
+    "options": [
+      "Solo passage",
+      "Chorus part",
+      "Opening theme",
+      "Closing chord"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10161",
+    "category": "Music",
+    "question": "Which opera was composed by Alban Berg?",
+    "options": [
+      "Wozzeck",
+      "Lulu",
+      "Moses und Aron",
+      "Theater Camp"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10162",
+    "category": "Music",
+    "question": "Which of these is a percussion instrument?",
+    "options": [
+      "Drums",
+      "Guitar",
+      "Flute",
+      "Violin"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10163",
+    "category": "Music",
+    "question": "Which composer was deaf when he wrote his Ninth Symphony?",
+    "options": [
+      "Beethoven",
+      "Mozart",
+      "Bach",
+      "Haydn"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10164",
+    "category": "Music",
+    "question": "What is the standard pitch for concert A?",
+    "options": [
+      "440 Hz",
+      "432 Hz",
+      "446 Hz",
+      "415 Hz"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10165",
+    "category": "Music",
+    "question": "Which of these is a percussion instrument?",
+    "options": [
+      "Drums",
+      "Guitar",
+      "Flute",
+      "Violin"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10166",
+    "category": "Music",
+    "question": "What is the standard tuning for a guitar's sixth string?",
+    "options": [
+      "E",
+      "A",
+      "D",
+      "G"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10167",
+    "category": "Music",
+    "question": "Which composer wrote 'The Well-Tempered Clavier'?",
+    "options": [
+      "Bach",
+      "Handel",
+      "Telemann",
+      "Vivaldi"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10168",
+    "category": "Music",
+    "question": "What is the name for a group of musicians playing together?",
+    "options": [
+      "Ensemble",
+      "Solo",
+      "Duet",
+      "Trio"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10169",
+    "category": "Music",
+    "question": "What is a 'cadenza' in classical music?",
+    "options": [
+      "Solo passage",
+      "Chorus part",
+      "Opening theme",
+      "Closing chord"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10170",
+    "category": "Music",
+    "question": "Which composer wrote 'The Well-Tempered Clavier'?",
+    "options": [
+      "Bach",
+      "Handel",
+      "Telemann",
+      "Vivaldi"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10171",
+    "category": "Music",
+    "question": "What does 'piano' mean in Italian?",
+    "options": [
+      "Soft",
+      "Loud",
+      "Fast",
+      "Slow"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10172",
+    "category": "Music",
+    "question": "Which music term means 'getting louder'?",
+    "options": [
+      "Crescendo",
+      "Decrescendo",
+      "Forte",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10173",
+    "category": "Music",
+    "question": "Which opera was composed by Alban Berg?",
+    "options": [
+      "Wozzeck",
+      "Lulu",
+      "Moses und Aron",
+      "Theater Camp"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10174",
+    "category": "Music",
+    "question": "Which note is the highest on a standard piano?",
+    "options": [
+      "C8",
+      "A7",
+      "C7",
+      "F7"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10175",
+    "category": "Music",
+    "question": "Which composer was deaf when he wrote his Ninth Symphony?",
+    "options": [
+      "Beethoven",
+      "Mozart",
+      "Bach",
+      "Haydn"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10176",
+    "category": "Music",
+    "question": "Which composer wrote 'The Well-Tempered Clavier'?",
+    "options": [
+      "Bach",
+      "Handel",
+      "Telemann",
+      "Vivaldi"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10177",
+    "category": "Music",
+    "question": "What does 'piano' mean in Italian?",
+    "options": [
+      "Soft",
+      "Loud",
+      "Fast",
+      "Slow"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10178",
+    "category": "Music",
+    "question": "What is the standard tuning for a guitar's sixth string?",
+    "options": [
+      "E",
+      "A",
+      "D",
+      "G"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10179",
+    "category": "Music",
+    "question": "What is the term for a composition for eight instruments?",
+    "options": [
+      "Octet",
+      "Septet",
+      "Nonet",
+      "Ensemble"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10180",
+    "category": "Music",
+    "question": "What does 'piano' mean in Italian?",
+    "options": [
+      "Soft",
+      "Loud",
+      "Fast",
+      "Slow"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10181",
+    "category": "Music",
+    "question": "Which music term means 'getting louder'?",
+    "options": [
+      "Crescendo",
+      "Decrescendo",
+      "Forte",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10182",
+    "category": "Music",
+    "question": "What is 'Klangfarbenmelodie' in music?",
+    "options": [
+      "Tone color melody",
+      "Rhythm pattern",
+      "Harmony progression",
+      "Tempo change"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10183",
+    "category": "Music",
+    "question": "What instrument is played by blowing air through a reed?",
+    "options": [
+      "Clarinet",
+      "Trumpet",
+      "Violin",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10184",
+    "category": "Music",
+    "question": "Which instrument family does the saxophone belong to?",
+    "options": [
+      "Woodwind",
+      "Brass",
+      "Strings",
+      "Percussion"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10185",
+    "category": "Music",
+    "question": "Which opera was composed by Alban Berg?",
+    "options": [
+      "Wozzeck",
+      "Lulu",
+      "Moses und Aron",
+      "Theater Camp"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10186",
+    "category": "Music",
+    "question": "What instrument is played by blowing air through a reed?",
+    "options": [
+      "Clarinet",
+      "Trumpet",
+      "Violin",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10187",
+    "category": "Music",
+    "question": "Which music term means 'getting louder'?",
+    "options": [
+      "Crescendo",
+      "Decrescendo",
+      "Forte",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10188",
+    "category": "Music",
+    "question": "What is the term for a composition for eight instruments?",
+    "options": [
+      "Octet",
+      "Septet",
+      "Nonet",
+      "Ensemble"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10189",
+    "category": "Music",
+    "question": "What is the name for a group of musicians playing together?",
+    "options": [
+      "Ensemble",
+      "Solo",
+      "Duet",
+      "Trio"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10190",
+    "category": "Music",
+    "question": "What is the standard tuning for a guitar's sixth string?",
+    "options": [
+      "E",
+      "A",
+      "D",
+      "G"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10191",
+    "category": "Music",
+    "question": "What is 'Klangfarbenmelodie' in music?",
+    "options": [
+      "Tone color melody",
+      "Rhythm pattern",
+      "Harmony progression",
+      "Tempo change"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10192",
+    "category": "Music",
+    "question": "What instrument is played by blowing air through a reed?",
+    "options": [
+      "Clarinet",
+      "Trumpet",
+      "Violin",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10193",
+    "category": "Music",
+    "question": "Which composer was deaf when he wrote his Ninth Symphony?",
+    "options": [
+      "Beethoven",
+      "Mozart",
+      "Bach",
+      "Haydn"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10194",
+    "category": "Music",
+    "question": "What is 'Klangfarbenmelodie' in music?",
+    "options": [
+      "Tone color melody",
+      "Rhythm pattern",
+      "Harmony progression",
+      "Tempo change"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10195",
+    "category": "Music",
+    "question": "What is the name for a group of musicians playing together?",
+    "options": [
+      "Ensemble",
+      "Solo",
+      "Duet",
+      "Trio"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10196",
+    "category": "Music",
+    "question": "Which composer was deaf when he wrote his Ninth Symphony?",
+    "options": [
+      "Beethoven",
+      "Mozart",
+      "Bach",
+      "Haydn"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10197",
+    "category": "Music",
+    "question": "What is 'Klangfarbenmelodie' in music?",
+    "options": [
+      "Tone color melody",
+      "Rhythm pattern",
+      "Harmony progression",
+      "Tempo change"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10198",
+    "category": "Music",
+    "question": "Which of these is a percussion instrument?",
+    "options": [
+      "Drums",
+      "Guitar",
+      "Flute",
+      "Violin"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10199",
+    "category": "Music",
+    "question": "What is a 'cadenza' in classical music?",
+    "options": [
+      "Solo passage",
+      "Chorus part",
+      "Opening theme",
+      "Closing chord"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10200",
+    "category": "Music",
+    "question": "What is the term for a composition for eight instruments?",
+    "options": [
+      "Octet",
+      "Septet",
+      "Nonet",
+      "Ensemble"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10201",
+    "category": "Music",
+    "question": "Which note is the highest on a standard piano?",
+    "options": [
+      "C8",
+      "A7",
+      "C7",
+      "F7"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10202",
+    "category": "Music",
+    "question": "Which music term means 'getting louder'?",
+    "options": [
+      "Crescendo",
+      "Decrescendo",
+      "Forte",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10203",
+    "category": "Music",
+    "question": "What is the standard pitch for concert A?",
+    "options": [
+      "440 Hz",
+      "432 Hz",
+      "446 Hz",
+      "415 Hz"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10204",
+    "category": "Music",
+    "question": "What instrument is played by blowing air through a reed?",
+    "options": [
+      "Clarinet",
+      "Trumpet",
+      "Violin",
+      "Piano"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10205",
+    "category": "Food",
+    "question": "What is the primary ingredient in guacamole?",
+    "options": [
+      "Avocado",
+      "Tomato",
+      "Onion",
+      "Lime"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10206",
+    "category": "Food",
+    "question": "What is the main protein in wheat?",
+    "options": [
+      "Gluten",
+      "Casein",
+      "Lactose",
+      "Fructose"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10207",
+    "category": "Food",
+    "question": "What is the ideal temperature for proofing yeast dough?",
+    "options": [
+      "75-80°F",
+      "90-95°F",
+      "60-65°F",
+      "100-105°F"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10208",
+    "category": "Food",
+    "question": "Which dairy product is used to make butter?",
+    "options": [
+      "Cream",
+      "Milk",
+      "Cheese",
+      "Yogurt"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10209",
+    "category": "Food",
+    "question": "What is the chemical name for table salt?",
+    "options": [
+      "Sodium chloride",
+      "Potassium chloride",
+      "Calcium chloride",
+      "Magnesium chloride"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10210",
+    "category": "Food",
+    "question": "What is the scientific name for baker's yeast?",
+    "options": [
+      "Saccharomyces cerevisiae",
+      "Candida albicans",
+      "Aspergillus niger",
+      "Penicillium chrysogenum"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10211",
+    "category": "Food",
+    "question": "Which grain is used to make traditional Italian pasta?",
+    "options": [
+      "Wheat",
+      "Rice",
+      "Corn",
+      "Barley"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10212",
+    "category": "Food",
+    "question": "Which cooking method uses dry heat?",
+    "options": [
+      "Baking",
+      "Boiling",
+      "Steaming",
+      "Poaching"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10213",
+    "category": "Food",
+    "question": "Which enzyme breaks down starch into sugar?",
+    "options": [
+      "Amylase",
+      "Protease",
+      "Lipase",
+      "Cellulase"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10214",
+    "category": "Food",
+    "question": "Which grain is used to make traditional Italian pasta?",
+    "options": [
+      "Wheat",
+      "Rice",
+      "Corn",
+      "Barley"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10215",
+    "category": "Food",
+    "question": "Which cooking method uses dry heat?",
+    "options": [
+      "Baking",
+      "Boiling",
+      "Steaming",
+      "Poaching"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10216",
+    "category": "Food",
+    "question": "Which amino acid is responsible for the umami taste?",
+    "options": [
+      "Glutamate",
+      "Aspartate",
+      "Serine",
+      "Threonine"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10217",
+    "category": "Food",
+    "question": "Which grain is used to make traditional Italian pasta?",
+    "options": [
+      "Wheat",
+      "Rice",
+      "Corn",
+      "Barley"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10218",
+    "category": "Food",
+    "question": "What is the main protein in wheat?",
+    "options": [
+      "Gluten",
+      "Casein",
+      "Lactose",
+      "Fructose"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10219",
+    "category": "Food",
+    "question": "What is the scientific name for baker's yeast?",
+    "options": [
+      "Saccharomyces cerevisiae",
+      "Candida albicans",
+      "Aspergillus niger",
+      "Penicillium chrysogenum"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10220",
+    "category": "Food",
+    "question": "Which dairy product is used to make butter?",
+    "options": [
+      "Cream",
+      "Milk",
+      "Cheese",
+      "Yogurt"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10221",
+    "category": "Food",
+    "question": "Which vitamin is found in citrus fruits?",
+    "options": [
+      "Vitamin C",
+      "Vitamin A",
+      "Vitamin D",
+      "Vitamin E"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10222",
+    "category": "Food",
+    "question": "Which enzyme breaks down starch into sugar?",
+    "options": [
+      "Amylase",
+      "Protease",
+      "Lipase",
+      "Cellulase"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10223",
+    "category": "Food",
+    "question": "Which dairy product is used to make butter?",
+    "options": [
+      "Cream",
+      "Milk",
+      "Cheese",
+      "Yogurt"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10224",
+    "category": "Food",
+    "question": "What is the process of making tea called?",
+    "options": [
+      "Infusion",
+      "Decoction",
+      "Percolation",
+      "Extraction"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10225",
+    "category": "Food",
+    "question": "What is the ideal temperature for proofing yeast dough?",
+    "options": [
+      "75-80°F",
+      "90-95°F",
+      "60-65°F",
+      "100-105°F"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10226",
+    "category": "Food",
+    "question": "What is the main flavor of a lemon?",
+    "options": [
+      "Sour",
+      "Sweet",
+      "Bitter",
+      "Salty"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10227",
+    "category": "Food",
+    "question": "What is the main protein in wheat?",
+    "options": [
+      "Gluten",
+      "Casein",
+      "Lactose",
+      "Fructose"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10228",
+    "category": "Food",
+    "question": "What is the pH level of a typical lemon?",
+    "options": [
+      "2.0-2.5",
+      "4.0-4.5",
+      "6.0-6.5",
+      "8.0-8.5"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10229",
+    "category": "Food",
+    "question": "What color is a traditional Granny Smith apple?",
+    "options": [
+      "Green",
+      "Red",
+      "Yellow",
+      "Orange"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10230",
+    "category": "Food",
+    "question": "What is the chemical name for table salt?",
+    "options": [
+      "Sodium chloride",
+      "Potassium chloride",
+      "Calcium chloride",
+      "Magnesium chloride"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10231",
+    "category": "Food",
+    "question": "What is the pH level of a typical lemon?",
+    "options": [
+      "2.0-2.5",
+      "4.0-4.5",
+      "6.0-6.5",
+      "8.0-8.5"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10232",
+    "category": "Food",
+    "question": "Which grain is used to make traditional Italian pasta?",
+    "options": [
+      "Wheat",
+      "Rice",
+      "Corn",
+      "Barley"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10233",
+    "category": "Food",
+    "question": "What is the main protein in wheat?",
+    "options": [
+      "Gluten",
+      "Casein",
+      "Lactose",
+      "Fructose"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10234",
+    "category": "Food",
+    "question": "Which amino acid is responsible for the umami taste?",
+    "options": [
+      "Glutamate",
+      "Aspartate",
+      "Serine",
+      "Threonine"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10235",
+    "category": "Food",
+    "question": "What is the primary ingredient in guacamole?",
+    "options": [
+      "Avocado",
+      "Tomato",
+      "Onion",
+      "Lime"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10236",
+    "category": "Food",
+    "question": "Which cooking method uses dry heat?",
+    "options": [
+      "Baking",
+      "Boiling",
+      "Steaming",
+      "Poaching"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10237",
+    "category": "Food",
+    "question": "What is the pH level of a typical lemon?",
+    "options": [
+      "2.0-2.5",
+      "4.0-4.5",
+      "6.0-6.5",
+      "8.0-8.5"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10238",
+    "category": "Food",
+    "question": "Which dairy product is used to make butter?",
+    "options": [
+      "Cream",
+      "Milk",
+      "Cheese",
+      "Yogurt"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10239",
+    "category": "Food",
+    "question": "What is the process of making tea called?",
+    "options": [
+      "Infusion",
+      "Decoction",
+      "Percolation",
+      "Extraction"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10240",
+    "category": "Food",
+    "question": "What is the ideal temperature for proofing yeast dough?",
+    "options": [
+      "75-80°F",
+      "90-95°F",
+      "60-65°F",
+      "100-105°F"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10241",
+    "category": "Food",
+    "question": "What is the main flavor of a lemon?",
+    "options": [
+      "Sour",
+      "Sweet",
+      "Bitter",
+      "Salty"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10242",
+    "category": "Food",
+    "question": "What is the chemical name for table salt?",
+    "options": [
+      "Sodium chloride",
+      "Potassium chloride",
+      "Calcium chloride",
+      "Magnesium chloride"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10243",
+    "category": "Food",
+    "question": "Which enzyme breaks down starch into sugar?",
+    "options": [
+      "Amylase",
+      "Protease",
+      "Lipase",
+      "Cellulase"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10244",
+    "category": "Food",
+    "question": "Which grain is used to make traditional Italian pasta?",
+    "options": [
+      "Wheat",
+      "Rice",
+      "Corn",
+      "Barley"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10245",
+    "category": "Food",
+    "question": "Which cooking method uses dry heat?",
+    "options": [
+      "Baking",
+      "Boiling",
+      "Steaming",
+      "Poaching"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10246",
+    "category": "Food",
+    "question": "Which amino acid is responsible for the umami taste?",
+    "options": [
+      "Glutamate",
+      "Aspartate",
+      "Serine",
+      "Threonine"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10247",
+    "category": "Food",
+    "question": "What is the main flavor of a lemon?",
+    "options": [
+      "Sour",
+      "Sweet",
+      "Bitter",
+      "Salty"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10248",
+    "category": "Food",
+    "question": "Which vitamin is found in citrus fruits?",
+    "options": [
+      "Vitamin C",
+      "Vitamin A",
+      "Vitamin D",
+      "Vitamin E"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10249",
+    "category": "Food",
+    "question": "Which enzyme breaks down starch into sugar?",
+    "options": [
+      "Amylase",
+      "Protease",
+      "Lipase",
+      "Cellulase"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10250",
+    "category": "Food",
+    "question": "What is the primary ingredient in guacamole?",
+    "options": [
+      "Avocado",
+      "Tomato",
+      "Onion",
+      "Lime"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10251",
+    "category": "Food",
+    "question": "Which vitamin is found in citrus fruits?",
+    "options": [
+      "Vitamin C",
+      "Vitamin A",
+      "Vitamin D",
+      "Vitamin E"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10252",
+    "category": "Food",
+    "question": "What is the scientific name for baker's yeast?",
+    "options": [
+      "Saccharomyces cerevisiae",
+      "Candida albicans",
+      "Aspergillus niger",
+      "Penicillium chrysogenum"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10253",
+    "category": "Food",
+    "question": "What color is a traditional Granny Smith apple?",
+    "options": [
+      "Green",
+      "Red",
+      "Yellow",
+      "Orange"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10254",
+    "category": "Food",
+    "question": "Which cooking method uses dry heat?",
+    "options": [
+      "Baking",
+      "Boiling",
+      "Steaming",
+      "Poaching"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10255",
+    "category": "Food",
+    "question": "What is the ideal temperature for proofing yeast dough?",
+    "options": [
+      "75-80°F",
+      "90-95°F",
+      "60-65°F",
+      "100-105°F"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10256",
+    "category": "Food",
+    "question": "Which dairy product is used to make butter?",
+    "options": [
+      "Cream",
+      "Milk",
+      "Cheese",
+      "Yogurt"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10257",
+    "category": "Food",
+    "question": "Which cooking method uses dry heat?",
+    "options": [
+      "Baking",
+      "Boiling",
+      "Steaming",
+      "Poaching"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10258",
+    "category": "Food",
+    "question": "What is the ideal temperature for proofing yeast dough?",
+    "options": [
+      "75-80°F",
+      "90-95°F",
+      "60-65°F",
+      "100-105°F"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10259",
+    "category": "Food",
+    "question": "What color is a traditional Granny Smith apple?",
+    "options": [
+      "Green",
+      "Red",
+      "Yellow",
+      "Orange"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10260",
+    "category": "Food",
+    "question": "Which vitamin is found in citrus fruits?",
+    "options": [
+      "Vitamin C",
+      "Vitamin A",
+      "Vitamin D",
+      "Vitamin E"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10261",
+    "category": "Food",
+    "question": "Which amino acid is responsible for the umami taste?",
+    "options": [
+      "Glutamate",
+      "Aspartate",
+      "Serine",
+      "Threonine"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10262",
+    "category": "Food",
+    "question": "What is the primary ingredient in guacamole?",
+    "options": [
+      "Avocado",
+      "Tomato",
+      "Onion",
+      "Lime"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10263",
+    "category": "Food",
+    "question": "What is the main protein in wheat?",
+    "options": [
+      "Gluten",
+      "Casein",
+      "Lactose",
+      "Fructose"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10264",
+    "category": "Food",
+    "question": "What is the ideal temperature for proofing yeast dough?",
+    "options": [
+      "75-80°F",
+      "90-95°F",
+      "60-65°F",
+      "100-105°F"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10265",
+    "category": "Food",
+    "question": "Which dairy product is used to make butter?",
+    "options": [
+      "Cream",
+      "Milk",
+      "Cheese",
+      "Yogurt"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10266",
+    "category": "Food",
+    "question": "What is the process of making tea called?",
+    "options": [
+      "Infusion",
+      "Decoction",
+      "Percolation",
+      "Extraction"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10267",
+    "category": "Food",
+    "question": "What is the ideal temperature for proofing yeast dough?",
+    "options": [
+      "75-80°F",
+      "90-95°F",
+      "60-65°F",
+      "100-105°F"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10268",
+    "category": "Food",
+    "question": "What is the primary ingredient in guacamole?",
+    "options": [
+      "Avocado",
+      "Tomato",
+      "Onion",
+      "Lime"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10269",
+    "category": "Food",
+    "question": "What is the chemical name for table salt?",
+    "options": [
+      "Sodium chloride",
+      "Potassium chloride",
+      "Calcium chloride",
+      "Magnesium chloride"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10270",
+    "category": "Food",
+    "question": "What is the ideal temperature for proofing yeast dough?",
+    "options": [
+      "75-80°F",
+      "90-95°F",
+      "60-65°F",
+      "100-105°F"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10271",
+    "category": "Food",
+    "question": "What is the primary ingredient in guacamole?",
+    "options": [
+      "Avocado",
+      "Tomato",
+      "Onion",
+      "Lime"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10272",
+    "category": "Food",
+    "question": "What is the main protein in wheat?",
+    "options": [
+      "Gluten",
+      "Casein",
+      "Lactose",
+      "Fructose"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10273",
+    "category": "Food",
+    "question": "What is the scientific name for baker's yeast?",
+    "options": [
+      "Saccharomyces cerevisiae",
+      "Candida albicans",
+      "Aspergillus niger",
+      "Penicillium chrysogenum"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10274",
+    "category": "Food",
+    "question": "What is the main flavor of a lemon?",
+    "options": [
+      "Sour",
+      "Sweet",
+      "Bitter",
+      "Salty"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10275",
+    "category": "Food",
+    "question": "Which vitamin is found in citrus fruits?",
+    "options": [
+      "Vitamin C",
+      "Vitamin A",
+      "Vitamin D",
+      "Vitamin E"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10276",
+    "category": "Food",
+    "question": "Which enzyme breaks down starch into sugar?",
+    "options": [
+      "Amylase",
+      "Protease",
+      "Lipase",
+      "Cellulase"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10277",
+    "category": "Food",
+    "question": "Which grain is used to make traditional Italian pasta?",
+    "options": [
+      "Wheat",
+      "Rice",
+      "Corn",
+      "Barley"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10278",
+    "category": "Food",
+    "question": "Which vitamin is found in citrus fruits?",
+    "options": [
+      "Vitamin C",
+      "Vitamin A",
+      "Vitamin D",
+      "Vitamin E"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10279",
+    "category": "Food",
+    "question": "What is the scientific name for baker's yeast?",
+    "options": [
+      "Saccharomyces cerevisiae",
+      "Candida albicans",
+      "Aspergillus niger",
+      "Penicillium chrysogenum"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10280",
+    "category": "Food",
+    "question": "Which dairy product is used to make butter?",
+    "options": [
+      "Cream",
+      "Milk",
+      "Cheese",
+      "Yogurt"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10281",
+    "category": "Food",
+    "question": "What is the process of making tea called?",
+    "options": [
+      "Infusion",
+      "Decoction",
+      "Percolation",
+      "Extraction"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10282",
+    "category": "Food",
+    "question": "Which enzyme breaks down starch into sugar?",
+    "options": [
+      "Amylase",
+      "Protease",
+      "Lipase",
+      "Cellulase"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10283",
+    "category": "Food",
+    "question": "What color is a traditional Granny Smith apple?",
+    "options": [
+      "Green",
+      "Red",
+      "Yellow",
+      "Orange"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10284",
+    "category": "Food",
+    "question": "Which vitamin is found in citrus fruits?",
+    "options": [
+      "Vitamin C",
+      "Vitamin A",
+      "Vitamin D",
+      "Vitamin E"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10285",
+    "category": "Food",
+    "question": "Which amino acid is responsible for the umami taste?",
+    "options": [
+      "Glutamate",
+      "Aspartate",
+      "Serine",
+      "Threonine"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10286",
+    "category": "Food",
+    "question": "What is the main flavor of a lemon?",
+    "options": [
+      "Sour",
+      "Sweet",
+      "Bitter",
+      "Salty"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10287",
+    "category": "Food",
+    "question": "What is the process of making tea called?",
+    "options": [
+      "Infusion",
+      "Decoction",
+      "Percolation",
+      "Extraction"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10288",
+    "category": "Food",
+    "question": "What is the pH level of a typical lemon?",
+    "options": [
+      "2.0-2.5",
+      "4.0-4.5",
+      "6.0-6.5",
+      "8.0-8.5"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10289",
+    "category": "Food",
+    "question": "Which grain is used to make traditional Italian pasta?",
+    "options": [
+      "Wheat",
+      "Rice",
+      "Corn",
+      "Barley"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10290",
+    "category": "Food",
+    "question": "Which cooking method uses dry heat?",
+    "options": [
+      "Baking",
+      "Boiling",
+      "Steaming",
+      "Poaching"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10291",
+    "category": "Food",
+    "question": "Which amino acid is responsible for the umami taste?",
+    "options": [
+      "Glutamate",
+      "Aspartate",
+      "Serine",
+      "Threonine"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10292",
+    "category": "Food",
+    "question": "Which dairy product is used to make butter?",
+    "options": [
+      "Cream",
+      "Milk",
+      "Cheese",
+      "Yogurt"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10293",
+    "category": "Food",
+    "question": "Which vitamin is found in citrus fruits?",
+    "options": [
+      "Vitamin C",
+      "Vitamin A",
+      "Vitamin D",
+      "Vitamin E"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10294",
+    "category": "Food",
+    "question": "What is the ideal temperature for proofing yeast dough?",
+    "options": [
+      "75-80°F",
+      "90-95°F",
+      "60-65°F",
+      "100-105°F"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10295",
+    "category": "Food",
+    "question": "What color is a traditional Granny Smith apple?",
+    "options": [
+      "Green",
+      "Red",
+      "Yellow",
+      "Orange"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10296",
+    "category": "Food",
+    "question": "What is the chemical name for table salt?",
+    "options": [
+      "Sodium chloride",
+      "Potassium chloride",
+      "Calcium chloride",
+      "Magnesium chloride"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10297",
+    "category": "Food",
+    "question": "What is the ideal temperature for proofing yeast dough?",
+    "options": [
+      "75-80°F",
+      "90-95°F",
+      "60-65°F",
+      "100-105°F"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10298",
+    "category": "Food",
+    "question": "Which grain is used to make traditional Italian pasta?",
+    "options": [
+      "Wheat",
+      "Rice",
+      "Corn",
+      "Barley"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10299",
+    "category": "Food",
+    "question": "Which cooking method uses dry heat?",
+    "options": [
+      "Baking",
+      "Boiling",
+      "Steaming",
+      "Poaching"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10300",
+    "category": "Food",
+    "question": "What is the pH level of a typical lemon?",
+    "options": [
+      "2.0-2.5",
+      "4.0-4.5",
+      "6.0-6.5",
+      "8.0-8.5"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10301",
+    "category": "Food",
+    "question": "What color is a traditional Granny Smith apple?",
+    "options": [
+      "Green",
+      "Red",
+      "Yellow",
+      "Orange"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10302",
+    "category": "Food",
+    "question": "Which vitamin is found in citrus fruits?",
+    "options": [
+      "Vitamin C",
+      "Vitamin A",
+      "Vitamin D",
+      "Vitamin E"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10303",
+    "category": "Food",
+    "question": "Which enzyme breaks down starch into sugar?",
+    "options": [
+      "Amylase",
+      "Protease",
+      "Lipase",
+      "Cellulase"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10304",
+    "category": "Food",
+    "question": "Which grain is used to make traditional Italian pasta?",
+    "options": [
+      "Wheat",
+      "Rice",
+      "Corn",
+      "Barley"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10305",
+    "category": "Food",
+    "question": "What is the main protein in wheat?",
+    "options": [
+      "Gluten",
+      "Casein",
+      "Lactose",
+      "Fructose"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10306",
+    "category": "Food",
+    "question": "What is the pH level of a typical lemon?",
+    "options": [
+      "2.0-2.5",
+      "4.0-4.5",
+      "6.0-6.5",
+      "8.0-8.5"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10307",
+    "category": "Food",
+    "question": "What color is a traditional Granny Smith apple?",
+    "options": [
+      "Green",
+      "Red",
+      "Yellow",
+      "Orange"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10308",
+    "category": "Food",
+    "question": "Which cooking method uses dry heat?",
+    "options": [
+      "Baking",
+      "Boiling",
+      "Steaming",
+      "Poaching"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10309",
+    "category": "Food",
+    "question": "Which enzyme breaks down starch into sugar?",
+    "options": [
+      "Amylase",
+      "Protease",
+      "Lipase",
+      "Cellulase"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10310",
+    "category": "Food",
+    "question": "What color is a traditional Granny Smith apple?",
+    "options": [
+      "Green",
+      "Red",
+      "Yellow",
+      "Orange"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10311",
+    "category": "Food",
+    "question": "What is the main protein in wheat?",
+    "options": [
+      "Gluten",
+      "Casein",
+      "Lactose",
+      "Fructose"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10312",
+    "category": "Food",
+    "question": "What is the ideal temperature for proofing yeast dough?",
+    "options": [
+      "75-80°F",
+      "90-95°F",
+      "60-65°F",
+      "100-105°F"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10313",
+    "category": "Food",
+    "question": "Which grain is used to make traditional Italian pasta?",
+    "options": [
+      "Wheat",
+      "Rice",
+      "Corn",
+      "Barley"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10314",
+    "category": "Food",
+    "question": "Which vitamin is found in citrus fruits?",
+    "options": [
+      "Vitamin C",
+      "Vitamin A",
+      "Vitamin D",
+      "Vitamin E"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10315",
+    "category": "Food",
+    "question": "What is the pH level of a typical lemon?",
+    "options": [
+      "2.0-2.5",
+      "4.0-4.5",
+      "6.0-6.5",
+      "8.0-8.5"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10316",
+    "category": "Food",
+    "question": "What is the main flavor of a lemon?",
+    "options": [
+      "Sour",
+      "Sweet",
+      "Bitter",
+      "Salty"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10317",
+    "category": "Food",
+    "question": "Which vitamin is found in citrus fruits?",
+    "options": [
+      "Vitamin C",
+      "Vitamin A",
+      "Vitamin D",
+      "Vitamin E"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10318",
+    "category": "Food",
+    "question": "Which enzyme breaks down starch into sugar?",
+    "options": [
+      "Amylase",
+      "Protease",
+      "Lipase",
+      "Cellulase"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10319",
+    "category": "Food",
+    "question": "What is the main flavor of a lemon?",
+    "options": [
+      "Sour",
+      "Sweet",
+      "Bitter",
+      "Salty"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10320",
+    "category": "Food",
+    "question": "Which vitamin is found in citrus fruits?",
+    "options": [
+      "Vitamin C",
+      "Vitamin A",
+      "Vitamin D",
+      "Vitamin E"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10321",
+    "category": "Food",
+    "question": "What is the pH level of a typical lemon?",
+    "options": [
+      "2.0-2.5",
+      "4.0-4.5",
+      "6.0-6.5",
+      "8.0-8.5"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10322",
+    "category": "Food",
+    "question": "What is the main flavor of a lemon?",
+    "options": [
+      "Sour",
+      "Sweet",
+      "Bitter",
+      "Salty"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10323",
+    "category": "Food",
+    "question": "Which vitamin is found in citrus fruits?",
+    "options": [
+      "Vitamin C",
+      "Vitamin A",
+      "Vitamin D",
+      "Vitamin E"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10324",
+    "category": "Food",
+    "question": "What is the scientific name for baker's yeast?",
+    "options": [
+      "Saccharomyces cerevisiae",
+      "Candida albicans",
+      "Aspergillus niger",
+      "Penicillium chrysogenum"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10325",
+    "category": "Food",
+    "question": "What color is a traditional Granny Smith apple?",
+    "options": [
+      "Green",
+      "Red",
+      "Yellow",
+      "Orange"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10326",
+    "category": "Food",
+    "question": "What is the chemical name for table salt?",
+    "options": [
+      "Sodium chloride",
+      "Potassium chloride",
+      "Calcium chloride",
+      "Magnesium chloride"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10327",
+    "category": "Food",
+    "question": "What is the ideal temperature for proofing yeast dough?",
+    "options": [
+      "75-80°F",
+      "90-95°F",
+      "60-65°F",
+      "100-105°F"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10328",
+    "category": "Food",
+    "question": "What is the primary ingredient in guacamole?",
+    "options": [
+      "Avocado",
+      "Tomato",
+      "Onion",
+      "Lime"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10329",
+    "category": "Food",
+    "question": "Which vitamin is found in citrus fruits?",
+    "options": [
+      "Vitamin C",
+      "Vitamin A",
+      "Vitamin D",
+      "Vitamin E"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10330",
+    "category": "Food",
+    "question": "Which amino acid is responsible for the umami taste?",
+    "options": [
+      "Glutamate",
+      "Aspartate",
+      "Serine",
+      "Threonine"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10331",
+    "category": "Food",
+    "question": "What is the main flavor of a lemon?",
+    "options": [
+      "Sour",
+      "Sweet",
+      "Bitter",
+      "Salty"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10332",
+    "category": "Food",
+    "question": "What is the main protein in wheat?",
+    "options": [
+      "Gluten",
+      "Casein",
+      "Lactose",
+      "Fructose"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10333",
+    "category": "Food",
+    "question": "Which enzyme breaks down starch into sugar?",
+    "options": [
+      "Amylase",
+      "Protease",
+      "Lipase",
+      "Cellulase"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10334",
+    "category": "Food",
+    "question": "Which grain is used to make traditional Italian pasta?",
+    "options": [
+      "Wheat",
+      "Rice",
+      "Corn",
+      "Barley"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10335",
+    "category": "Food",
+    "question": "What is the chemical name for table salt?",
+    "options": [
+      "Sodium chloride",
+      "Potassium chloride",
+      "Calcium chloride",
+      "Magnesium chloride"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10336",
+    "category": "Food",
+    "question": "What is the scientific name for baker's yeast?",
+    "options": [
+      "Saccharomyces cerevisiae",
+      "Candida albicans",
+      "Aspergillus niger",
+      "Penicillium chrysogenum"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10337",
+    "category": "Food",
+    "question": "What color is a traditional Granny Smith apple?",
+    "options": [
+      "Green",
+      "Red",
+      "Yellow",
+      "Orange"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10338",
+    "category": "Food",
+    "question": "What is the process of making tea called?",
+    "options": [
+      "Infusion",
+      "Decoction",
+      "Percolation",
+      "Extraction"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10339",
+    "category": "Food",
+    "question": "Which amino acid is responsible for the umami taste?",
+    "options": [
+      "Glutamate",
+      "Aspartate",
+      "Serine",
+      "Threonine"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10340",
+    "category": "Food",
+    "question": "Which grain is used to make traditional Italian pasta?",
+    "options": [
+      "Wheat",
+      "Rice",
+      "Corn",
+      "Barley"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10341",
+    "category": "Food",
+    "question": "What is the chemical name for table salt?",
+    "options": [
+      "Sodium chloride",
+      "Potassium chloride",
+      "Calcium chloride",
+      "Magnesium chloride"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10342",
+    "category": "Food",
+    "question": "Which enzyme breaks down starch into sugar?",
+    "options": [
+      "Amylase",
+      "Protease",
+      "Lipase",
+      "Cellulase"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10343",
+    "category": "Food",
+    "question": "Which dairy product is used to make butter?",
+    "options": [
+      "Cream",
+      "Milk",
+      "Cheese",
+      "Yogurt"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10344",
+    "category": "Food",
+    "question": "What is the process of making tea called?",
+    "options": [
+      "Infusion",
+      "Decoction",
+      "Percolation",
+      "Extraction"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10345",
+    "category": "Food",
+    "question": "Which amino acid is responsible for the umami taste?",
+    "options": [
+      "Glutamate",
+      "Aspartate",
+      "Serine",
+      "Threonine"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10346",
+    "category": "Food",
+    "question": "Which dairy product is used to make butter?",
+    "options": [
+      "Cream",
+      "Milk",
+      "Cheese",
+      "Yogurt"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10347",
+    "category": "Food",
+    "question": "What is the chemical name for table salt?",
+    "options": [
+      "Sodium chloride",
+      "Potassium chloride",
+      "Calcium chloride",
+      "Magnesium chloride"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10348",
+    "category": "Food",
+    "question": "Which enzyme breaks down starch into sugar?",
+    "options": [
+      "Amylase",
+      "Protease",
+      "Lipase",
+      "Cellulase"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10349",
+    "category": "Food",
+    "question": "What is the primary ingredient in guacamole?",
+    "options": [
+      "Avocado",
+      "Tomato",
+      "Onion",
+      "Lime"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10350",
+    "category": "Literature",
+    "question": "What is the first letter of the Greek alphabet?",
+    "options": [
+      "Alpha",
+      "Beta",
+      "Gamma",
+      "Delta"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10351",
+    "category": "Literature",
+    "question": "What is the term for a word that imitates a sound?",
+    "options": [
+      "Onomatopoeia",
+      "Alliteration",
+      "Assonance",
+      "Consonance"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10352",
+    "category": "Literature",
+    "question": "What is the study of meaning in language called?",
+    "options": [
+      "Semantics",
+      "Syntax",
+      "Phonology",
+      "Morphology"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10353",
+    "category": "Literature",
+    "question": "Which word means 'the study of words'?",
+    "options": [
+      "Linguistics",
+      "Biology",
+      "Chemistry",
+      "Physics"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10354",
+    "category": "Literature",
+    "question": "What is the term for a word that imitates a sound?",
+    "options": [
+      "Onomatopoeia",
+      "Alliteration",
+      "Assonance",
+      "Consonance"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10355",
+    "category": "Literature",
+    "question": "Which term describes the repetition of vowel sounds?",
+    "options": [
+      "Assonance",
+      "Alliteration",
+      "Consonance",
+      "Rhyme"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10356",
+    "category": "Literature",
+    "question": "What is a synonym for 'happy'?",
+    "options": [
+      "Joyful",
+      "Sad",
+      "Angry",
+      "Tired"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10357",
+    "category": "Literature",
+    "question": "Which figure of speech gives human qualities to non-humans?",
+    "options": [
+      "Personification",
+      "Metaphor",
+      "Simile",
+      "Hyperbole"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10358",
+    "category": "Literature",
+    "question": "What is the study of meaning in language called?",
+    "options": [
+      "Semantics",
+      "Syntax",
+      "Phonology",
+      "Morphology"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10359",
+    "category": "Literature",
+    "question": "What is the first letter of the Greek alphabet?",
+    "options": [
+      "Alpha",
+      "Beta",
+      "Gamma",
+      "Delta"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10360",
+    "category": "Literature",
+    "question": "What is the term for a word that imitates a sound?",
+    "options": [
+      "Onomatopoeia",
+      "Alliteration",
+      "Assonance",
+      "Consonance"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10361",
+    "category": "Literature",
+    "question": "What is the term for a poem without regular rhyme or meter?",
+    "options": [
+      "Free verse",
+      "Blank verse",
+      "Sonnet",
+      "Haiku"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10362",
+    "category": "Literature",
+    "question": "Which word means 'the study of words'?",
+    "options": [
+      "Linguistics",
+      "Biology",
+      "Chemistry",
+      "Physics"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10363",
+    "category": "Literature",
+    "question": "What is the term for a word that imitates a sound?",
+    "options": [
+      "Onomatopoeia",
+      "Alliteration",
+      "Assonance",
+      "Consonance"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10364",
+    "category": "Literature",
+    "question": "What is the study of meaning in language called?",
+    "options": [
+      "Semantics",
+      "Syntax",
+      "Phonology",
+      "Morphology"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10365",
+    "category": "Literature",
+    "question": "What is a synonym for 'happy'?",
+    "options": [
+      "Joyful",
+      "Sad",
+      "Angry",
+      "Tired"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10366",
+    "category": "Literature",
+    "question": "Which perspective uses 'I' or 'we'?",
+    "options": [
+      "First person",
+      "Second person",
+      "Third person",
+      "Omniscient"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10367",
+    "category": "Literature",
+    "question": "Which term describes the repetition of vowel sounds?",
+    "options": [
+      "Assonance",
+      "Alliteration",
+      "Consonance",
+      "Rhyme"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10368",
+    "category": "Literature",
+    "question": "What is a synonym for 'happy'?",
+    "options": [
+      "Joyful",
+      "Sad",
+      "Angry",
+      "Tired"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10369",
+    "category": "Literature",
+    "question": "Which perspective uses 'I' or 'we'?",
+    "options": [
+      "First person",
+      "Second person",
+      "Third person",
+      "Omniscient"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10370",
+    "category": "Literature",
+    "question": "What is the term for a poem without regular rhyme or meter?",
+    "options": [
+      "Free verse",
+      "Blank verse",
+      "Sonnet",
+      "Haiku"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10371",
+    "category": "Literature",
+    "question": "What is the past tense of 'run'?",
+    "options": [
+      "Ran",
+      "Running",
+      "Runs",
+      "Runned"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10372",
+    "category": "Literature",
+    "question": "Which perspective uses 'I' or 'we'?",
+    "options": [
+      "First person",
+      "Second person",
+      "Third person",
+      "Omniscient"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10373",
+    "category": "Literature",
+    "question": "Which term describes the repetition of vowel sounds?",
+    "options": [
+      "Assonance",
+      "Alliteration",
+      "Consonance",
+      "Rhyme"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10374",
+    "category": "Literature",
+    "question": "What is the first letter of the Greek alphabet?",
+    "options": [
+      "Alpha",
+      "Beta",
+      "Gamma",
+      "Delta"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10375",
+    "category": "Literature",
+    "question": "What is the climax of a story?",
+    "options": [
+      "Highest point of tension",
+      "Introduction",
+      "Resolution",
+      "Falling action"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10376",
+    "category": "Literature",
+    "question": "What is the term for a poem without regular rhyme or meter?",
+    "options": [
+      "Free verse",
+      "Blank verse",
+      "Sonnet",
+      "Haiku"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10377",
+    "category": "Literature",
+    "question": "Which punctuation mark ends a question?",
+    "options": [
+      "Question mark",
+      "Exclamation point",
+      "Period",
+      "Comma"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10378",
+    "category": "Literature",
+    "question": "What is the term for a word that imitates a sound?",
+    "options": [
+      "Onomatopoeia",
+      "Alliteration",
+      "Assonance",
+      "Consonance"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10379",
+    "category": "Literature",
+    "question": "What is 'aporia' in literary criticism?",
+    "options": [
+      "Expression of doubt",
+      "Rhetorical question",
+      "Paradox",
+      "Irony"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10380",
+    "category": "Literature",
+    "question": "What is the past tense of 'run'?",
+    "options": [
+      "Ran",
+      "Running",
+      "Runs",
+      "Runned"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10381",
+    "category": "Literature",
+    "question": "What literary device is 'the road less traveled'?",
+    "options": [
+      "Metaphor",
+      "Simile",
+      "Personification",
+      "Alliteration"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10382",
+    "category": "Literature",
+    "question": "Which literary theory focuses on the reader's response?",
+    "options": [
+      "Reader-response",
+      "Formalism",
+      "Structuralism",
+      "Marxism"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10383",
+    "category": "Literature",
+    "question": "Which punctuation mark ends a question?",
+    "options": [
+      "Question mark",
+      "Exclamation point",
+      "Period",
+      "Comma"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10384",
+    "category": "Literature",
+    "question": "Which perspective uses 'I' or 'we'?",
+    "options": [
+      "First person",
+      "Second person",
+      "Third person",
+      "Omniscient"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10385",
+    "category": "Literature",
+    "question": "What is the study of meaning in language called?",
+    "options": [
+      "Semantics",
+      "Syntax",
+      "Phonology",
+      "Morphology"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10386",
+    "category": "Literature",
+    "question": "What is the past tense of 'run'?",
+    "options": [
+      "Ran",
+      "Running",
+      "Runs",
+      "Runned"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10387",
+    "category": "Literature",
+    "question": "What is the term for a word that imitates a sound?",
+    "options": [
+      "Onomatopoeia",
+      "Alliteration",
+      "Assonance",
+      "Consonance"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10388",
+    "category": "Literature",
+    "question": "What is the study of meaning in language called?",
+    "options": [
+      "Semantics",
+      "Syntax",
+      "Phonology",
+      "Morphology"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10389",
+    "category": "Literature",
+    "question": "What is a synonym for 'happy'?",
+    "options": [
+      "Joyful",
+      "Sad",
+      "Angry",
+      "Tired"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10390",
+    "category": "Literature",
+    "question": "What literary device is 'the road less traveled'?",
+    "options": [
+      "Metaphor",
+      "Simile",
+      "Personification",
+      "Alliteration"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10391",
+    "category": "Literature",
+    "question": "What is the study of meaning in language called?",
+    "options": [
+      "Semantics",
+      "Syntax",
+      "Phonology",
+      "Morphology"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10392",
+    "category": "Literature",
+    "question": "Which punctuation mark ends a question?",
+    "options": [
+      "Question mark",
+      "Exclamation point",
+      "Period",
+      "Comma"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10393",
+    "category": "Literature",
+    "question": "What is the climax of a story?",
+    "options": [
+      "Highest point of tension",
+      "Introduction",
+      "Resolution",
+      "Falling action"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10394",
+    "category": "Literature",
+    "question": "Which literary theory focuses on the reader's response?",
+    "options": [
+      "Reader-response",
+      "Formalism",
+      "Structuralism",
+      "Marxism"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10395",
+    "category": "Literature",
+    "question": "What is the past tense of 'run'?",
+    "options": [
+      "Ran",
+      "Running",
+      "Runs",
+      "Runned"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10396",
+    "category": "Literature",
+    "question": "Which perspective uses 'I' or 'we'?",
+    "options": [
+      "First person",
+      "Second person",
+      "Third person",
+      "Omniscient"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10397",
+    "category": "Literature",
+    "question": "Which term describes the repetition of vowel sounds?",
+    "options": [
+      "Assonance",
+      "Alliteration",
+      "Consonance",
+      "Rhyme"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10398",
+    "category": "Literature",
+    "question": "Which punctuation mark ends a question?",
+    "options": [
+      "Question mark",
+      "Exclamation point",
+      "Period",
+      "Comma"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10399",
+    "category": "Literature",
+    "question": "What literary device is 'the road less traveled'?",
+    "options": [
+      "Metaphor",
+      "Simile",
+      "Personification",
+      "Alliteration"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10400",
+    "category": "Literature",
+    "question": "Which literary theory focuses on the reader's response?",
+    "options": [
+      "Reader-response",
+      "Formalism",
+      "Structuralism",
+      "Marxism"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10401",
+    "category": "Literature",
+    "question": "Which word means 'the study of words'?",
+    "options": [
+      "Linguistics",
+      "Biology",
+      "Chemistry",
+      "Physics"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10402",
+    "category": "Literature",
+    "question": "What literary device is 'the road less traveled'?",
+    "options": [
+      "Metaphor",
+      "Simile",
+      "Personification",
+      "Alliteration"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10403",
+    "category": "Literature",
+    "question": "What is the term for a poem without regular rhyme or meter?",
+    "options": [
+      "Free verse",
+      "Blank verse",
+      "Sonnet",
+      "Haiku"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10404",
+    "category": "Literature",
+    "question": "Which punctuation mark ends a question?",
+    "options": [
+      "Question mark",
+      "Exclamation point",
+      "Period",
+      "Comma"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10405",
+    "category": "Literature",
+    "question": "What is the climax of a story?",
+    "options": [
+      "Highest point of tension",
+      "Introduction",
+      "Resolution",
+      "Falling action"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10406",
+    "category": "Literature",
+    "question": "What is 'aporia' in literary criticism?",
+    "options": [
+      "Expression of doubt",
+      "Rhetorical question",
+      "Paradox",
+      "Irony"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10407",
+    "category": "Literature",
+    "question": "What is the past tense of 'run'?",
+    "options": [
+      "Ran",
+      "Running",
+      "Runs",
+      "Runned"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10408",
+    "category": "Literature",
+    "question": "Which perspective uses 'I' or 'we'?",
+    "options": [
+      "First person",
+      "Second person",
+      "Third person",
+      "Omniscient"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10409",
+    "category": "Literature",
+    "question": "Which term describes the repetition of vowel sounds?",
+    "options": [
+      "Assonance",
+      "Alliteration",
+      "Consonance",
+      "Rhyme"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10410",
+    "category": "Literature",
+    "question": "What is the first letter of the Greek alphabet?",
+    "options": [
+      "Alpha",
+      "Beta",
+      "Gamma",
+      "Delta"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10411",
+    "category": "Literature",
+    "question": "What is the climax of a story?",
+    "options": [
+      "Highest point of tension",
+      "Introduction",
+      "Resolution",
+      "Falling action"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10412",
+    "category": "Literature",
+    "question": "Which term describes the repetition of vowel sounds?",
+    "options": [
+      "Assonance",
+      "Alliteration",
+      "Consonance",
+      "Rhyme"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10413",
+    "category": "Literature",
+    "question": "What is the first letter of the Greek alphabet?",
+    "options": [
+      "Alpha",
+      "Beta",
+      "Gamma",
+      "Delta"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10414",
+    "category": "Literature",
+    "question": "Which perspective uses 'I' or 'we'?",
+    "options": [
+      "First person",
+      "Second person",
+      "Third person",
+      "Omniscient"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10415",
+    "category": "Literature",
+    "question": "What is 'aporia' in literary criticism?",
+    "options": [
+      "Expression of doubt",
+      "Rhetorical question",
+      "Paradox",
+      "Irony"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10416",
+    "category": "Literature",
+    "question": "What is the first letter of the Greek alphabet?",
+    "options": [
+      "Alpha",
+      "Beta",
+      "Gamma",
+      "Delta"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10417",
+    "category": "Literature",
+    "question": "Which perspective uses 'I' or 'we'?",
+    "options": [
+      "First person",
+      "Second person",
+      "Third person",
+      "Omniscient"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10418",
+    "category": "Literature",
+    "question": "Which term describes the repetition of vowel sounds?",
+    "options": [
+      "Assonance",
+      "Alliteration",
+      "Consonance",
+      "Rhyme"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10419",
+    "category": "Literature",
+    "question": "What is the past tense of 'run'?",
+    "options": [
+      "Ran",
+      "Running",
+      "Runs",
+      "Runned"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10420",
+    "category": "Literature",
+    "question": "What is the term for a word that imitates a sound?",
+    "options": [
+      "Onomatopoeia",
+      "Alliteration",
+      "Assonance",
+      "Consonance"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10421",
+    "category": "Literature",
+    "question": "What is 'aporia' in literary criticism?",
+    "options": [
+      "Expression of doubt",
+      "Rhetorical question",
+      "Paradox",
+      "Irony"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10422",
+    "category": "Literature",
+    "question": "What is the first letter of the Greek alphabet?",
+    "options": [
+      "Alpha",
+      "Beta",
+      "Gamma",
+      "Delta"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10423",
+    "category": "Literature",
+    "question": "What literary device is 'the road less traveled'?",
+    "options": [
+      "Metaphor",
+      "Simile",
+      "Personification",
+      "Alliteration"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10424",
+    "category": "Literature",
+    "question": "What is the study of meaning in language called?",
+    "options": [
+      "Semantics",
+      "Syntax",
+      "Phonology",
+      "Morphology"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10425",
+    "category": "Literature",
+    "question": "What is the first letter of the Greek alphabet?",
+    "options": [
+      "Alpha",
+      "Beta",
+      "Gamma",
+      "Delta"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10426",
+    "category": "Literature",
+    "question": "What is the climax of a story?",
+    "options": [
+      "Highest point of tension",
+      "Introduction",
+      "Resolution",
+      "Falling action"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10427",
+    "category": "Literature",
+    "question": "Which term describes the repetition of vowel sounds?",
+    "options": [
+      "Assonance",
+      "Alliteration",
+      "Consonance",
+      "Rhyme"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10428",
+    "category": "Literature",
+    "question": "What is the past tense of 'run'?",
+    "options": [
+      "Ran",
+      "Running",
+      "Runs",
+      "Runned"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10429",
+    "category": "Literature",
+    "question": "What is the climax of a story?",
+    "options": [
+      "Highest point of tension",
+      "Introduction",
+      "Resolution",
+      "Falling action"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10430",
+    "category": "Literature",
+    "question": "What is the term for a poem without regular rhyme or meter?",
+    "options": [
+      "Free verse",
+      "Blank verse",
+      "Sonnet",
+      "Haiku"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10431",
+    "category": "Literature",
+    "question": "Which punctuation mark ends a question?",
+    "options": [
+      "Question mark",
+      "Exclamation point",
+      "Period",
+      "Comma"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10432",
+    "category": "Literature",
+    "question": "What is the climax of a story?",
+    "options": [
+      "Highest point of tension",
+      "Introduction",
+      "Resolution",
+      "Falling action"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10433",
+    "category": "Literature",
+    "question": "What is the term for a poem without regular rhyme or meter?",
+    "options": [
+      "Free verse",
+      "Blank verse",
+      "Sonnet",
+      "Haiku"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10434",
+    "category": "Literature",
+    "question": "What is the past tense of 'run'?",
+    "options": [
+      "Ran",
+      "Running",
+      "Runs",
+      "Runned"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10435",
+    "category": "Literature",
+    "question": "What is the climax of a story?",
+    "options": [
+      "Highest point of tension",
+      "Introduction",
+      "Resolution",
+      "Falling action"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10436",
+    "category": "Literature",
+    "question": "What is 'aporia' in literary criticism?",
+    "options": [
+      "Expression of doubt",
+      "Rhetorical question",
+      "Paradox",
+      "Irony"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10437",
+    "category": "Literature",
+    "question": "What is the past tense of 'run'?",
+    "options": [
+      "Ran",
+      "Running",
+      "Runs",
+      "Runned"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10438",
+    "category": "Literature",
+    "question": "What is the climax of a story?",
+    "options": [
+      "Highest point of tension",
+      "Introduction",
+      "Resolution",
+      "Falling action"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10439",
+    "category": "Literature",
+    "question": "Which literary theory focuses on the reader's response?",
+    "options": [
+      "Reader-response",
+      "Formalism",
+      "Structuralism",
+      "Marxism"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10440",
+    "category": "Literature",
+    "question": "What is a synonym for 'happy'?",
+    "options": [
+      "Joyful",
+      "Sad",
+      "Angry",
+      "Tired"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10441",
+    "category": "Literature",
+    "question": "What literary device is 'the road less traveled'?",
+    "options": [
+      "Metaphor",
+      "Simile",
+      "Personification",
+      "Alliteration"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10442",
+    "category": "Literature",
+    "question": "What is 'aporia' in literary criticism?",
+    "options": [
+      "Expression of doubt",
+      "Rhetorical question",
+      "Paradox",
+      "Irony"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10443",
+    "category": "Literature",
+    "question": "What is a synonym for 'happy'?",
+    "options": [
+      "Joyful",
+      "Sad",
+      "Angry",
+      "Tired"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10444",
+    "category": "Literature",
+    "question": "Which figure of speech gives human qualities to non-humans?",
+    "options": [
+      "Personification",
+      "Metaphor",
+      "Simile",
+      "Hyperbole"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10445",
+    "category": "Literature",
+    "question": "What is 'aporia' in literary criticism?",
+    "options": [
+      "Expression of doubt",
+      "Rhetorical question",
+      "Paradox",
+      "Irony"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10446",
+    "category": "Literature",
+    "question": "What is a synonym for 'happy'?",
+    "options": [
+      "Joyful",
+      "Sad",
+      "Angry",
+      "Tired"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10447",
+    "category": "Literature",
+    "question": "What is the term for a word that imitates a sound?",
+    "options": [
+      "Onomatopoeia",
+      "Alliteration",
+      "Assonance",
+      "Consonance"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10448",
+    "category": "Literature",
+    "question": "What is the term for a poem without regular rhyme or meter?",
+    "options": [
+      "Free verse",
+      "Blank verse",
+      "Sonnet",
+      "Haiku"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10449",
+    "category": "Literature",
+    "question": "Which word means 'the study of words'?",
+    "options": [
+      "Linguistics",
+      "Biology",
+      "Chemistry",
+      "Physics"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10450",
+    "category": "Literature",
+    "question": "Which perspective uses 'I' or 'we'?",
+    "options": [
+      "First person",
+      "Second person",
+      "Third person",
+      "Omniscient"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10451",
+    "category": "Literature",
+    "question": "Which term describes the repetition of vowel sounds?",
+    "options": [
+      "Assonance",
+      "Alliteration",
+      "Consonance",
+      "Rhyme"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10452",
+    "category": "Literature",
+    "question": "What is the first letter of the Greek alphabet?",
+    "options": [
+      "Alpha",
+      "Beta",
+      "Gamma",
+      "Delta"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10453",
+    "category": "Literature",
+    "question": "What is the climax of a story?",
+    "options": [
+      "Highest point of tension",
+      "Introduction",
+      "Resolution",
+      "Falling action"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10454",
+    "category": "Literature",
+    "question": "What is the study of meaning in language called?",
+    "options": [
+      "Semantics",
+      "Syntax",
+      "Phonology",
+      "Morphology"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10455",
+    "category": "Literature",
+    "question": "What is a synonym for 'happy'?",
+    "options": [
+      "Joyful",
+      "Sad",
+      "Angry",
+      "Tired"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10456",
+    "category": "Literature",
+    "question": "What literary device is 'the road less traveled'?",
+    "options": [
+      "Metaphor",
+      "Simile",
+      "Personification",
+      "Alliteration"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10457",
+    "category": "Literature",
+    "question": "What is the study of meaning in language called?",
+    "options": [
+      "Semantics",
+      "Syntax",
+      "Phonology",
+      "Morphology"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10458",
+    "category": "Literature",
+    "question": "Which punctuation mark ends a question?",
+    "options": [
+      "Question mark",
+      "Exclamation point",
+      "Period",
+      "Comma"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10459",
+    "category": "Literature",
+    "question": "What literary device is 'the road less traveled'?",
+    "options": [
+      "Metaphor",
+      "Simile",
+      "Personification",
+      "Alliteration"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10460",
+    "category": "Literature",
+    "question": "Which term describes the repetition of vowel sounds?",
+    "options": [
+      "Assonance",
+      "Alliteration",
+      "Consonance",
+      "Rhyme"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10461",
+    "category": "Literature",
+    "question": "Which word means 'the study of words'?",
+    "options": [
+      "Linguistics",
+      "Biology",
+      "Chemistry",
+      "Physics"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10462",
+    "category": "Literature",
+    "question": "What literary device is 'the road less traveled'?",
+    "options": [
+      "Metaphor",
+      "Simile",
+      "Personification",
+      "Alliteration"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10463",
+    "category": "Literature",
+    "question": "Which term describes the repetition of vowel sounds?",
+    "options": [
+      "Assonance",
+      "Alliteration",
+      "Consonance",
+      "Rhyme"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10464",
+    "category": "Literature",
+    "question": "What is the past tense of 'run'?",
+    "options": [
+      "Ran",
+      "Running",
+      "Runs",
+      "Runned"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10465",
+    "category": "Literature",
+    "question": "What literary device is 'the road less traveled'?",
+    "options": [
+      "Metaphor",
+      "Simile",
+      "Personification",
+      "Alliteration"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10466",
+    "category": "Literature",
+    "question": "Which literary theory focuses on the reader's response?",
+    "options": [
+      "Reader-response",
+      "Formalism",
+      "Structuralism",
+      "Marxism"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10467",
+    "category": "Literature",
+    "question": "What is the past tense of 'run'?",
+    "options": [
+      "Ran",
+      "Running",
+      "Runs",
+      "Runned"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10468",
+    "category": "Literature",
+    "question": "What literary device is 'the road less traveled'?",
+    "options": [
+      "Metaphor",
+      "Simile",
+      "Personification",
+      "Alliteration"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10469",
+    "category": "Literature",
+    "question": "What is 'aporia' in literary criticism?",
+    "options": [
+      "Expression of doubt",
+      "Rhetorical question",
+      "Paradox",
+      "Irony"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10470",
+    "category": "Literature",
+    "question": "What is the first letter of the Greek alphabet?",
+    "options": [
+      "Alpha",
+      "Beta",
+      "Gamma",
+      "Delta"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10471",
+    "category": "Literature",
+    "question": "What is the climax of a story?",
+    "options": [
+      "Highest point of tension",
+      "Introduction",
+      "Resolution",
+      "Falling action"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10472",
+    "category": "Literature",
+    "question": "What is the study of meaning in language called?",
+    "options": [
+      "Semantics",
+      "Syntax",
+      "Phonology",
+      "Morphology"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10473",
+    "category": "Literature",
+    "question": "What is the first letter of the Greek alphabet?",
+    "options": [
+      "Alpha",
+      "Beta",
+      "Gamma",
+      "Delta"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10474",
+    "category": "Literature",
+    "question": "What literary device is 'the road less traveled'?",
+    "options": [
+      "Metaphor",
+      "Simile",
+      "Personification",
+      "Alliteration"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10475",
+    "category": "Literature",
+    "question": "What is 'aporia' in literary criticism?",
+    "options": [
+      "Expression of doubt",
+      "Rhetorical question",
+      "Paradox",
+      "Irony"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10476",
+    "category": "Literature",
+    "question": "Which word means 'the study of words'?",
+    "options": [
+      "Linguistics",
+      "Biology",
+      "Chemistry",
+      "Physics"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10477",
+    "category": "Literature",
+    "question": "What literary device is 'the road less traveled'?",
+    "options": [
+      "Metaphor",
+      "Simile",
+      "Personification",
+      "Alliteration"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10478",
+    "category": "Literature",
+    "question": "Which literary theory focuses on the reader's response?",
+    "options": [
+      "Reader-response",
+      "Formalism",
+      "Structuralism",
+      "Marxism"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10479",
+    "category": "Literature",
+    "question": "Which word means 'the study of words'?",
+    "options": [
+      "Linguistics",
+      "Biology",
+      "Chemistry",
+      "Physics"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10480",
+    "category": "Literature",
+    "question": "Which perspective uses 'I' or 'we'?",
+    "options": [
+      "First person",
+      "Second person",
+      "Third person",
+      "Omniscient"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10481",
+    "category": "Literature",
+    "question": "Which literary theory focuses on the reader's response?",
+    "options": [
+      "Reader-response",
+      "Formalism",
+      "Structuralism",
+      "Marxism"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10482",
+    "category": "Literature",
+    "question": "What is a synonym for 'happy'?",
+    "options": [
+      "Joyful",
+      "Sad",
+      "Angry",
+      "Tired"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10483",
+    "category": "Literature",
+    "question": "Which figure of speech gives human qualities to non-humans?",
+    "options": [
+      "Personification",
+      "Metaphor",
+      "Simile",
+      "Hyperbole"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10484",
+    "category": "Literature",
+    "question": "What is the study of meaning in language called?",
+    "options": [
+      "Semantics",
+      "Syntax",
+      "Phonology",
+      "Morphology"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10485",
+    "category": "Literature",
+    "question": "What is the past tense of 'run'?",
+    "options": [
+      "Ran",
+      "Running",
+      "Runs",
+      "Runned"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10486",
+    "category": "Literature",
+    "question": "What is the term for a word that imitates a sound?",
+    "options": [
+      "Onomatopoeia",
+      "Alliteration",
+      "Assonance",
+      "Consonance"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10487",
+    "category": "Literature",
+    "question": "What is the term for a poem without regular rhyme or meter?",
+    "options": [
+      "Free verse",
+      "Blank verse",
+      "Sonnet",
+      "Haiku"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10488",
+    "category": "Literature",
+    "question": "What is the past tense of 'run'?",
+    "options": [
+      "Ran",
+      "Running",
+      "Runs",
+      "Runned"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10489",
+    "category": "Literature",
+    "question": "Which figure of speech gives human qualities to non-humans?",
+    "options": [
+      "Personification",
+      "Metaphor",
+      "Simile",
+      "Hyperbole"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10490",
+    "category": "Literature",
+    "question": "What is the study of meaning in language called?",
+    "options": [
+      "Semantics",
+      "Syntax",
+      "Phonology",
+      "Morphology"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10491",
+    "category": "Literature",
+    "question": "Which word means 'the study of words'?",
+    "options": [
+      "Linguistics",
+      "Biology",
+      "Chemistry",
+      "Physics"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10492",
+    "category": "Literature",
+    "question": "What literary device is 'the road less traveled'?",
+    "options": [
+      "Metaphor",
+      "Simile",
+      "Personification",
+      "Alliteration"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10493",
+    "category": "Literature",
+    "question": "What is 'aporia' in literary criticism?",
+    "options": [
+      "Expression of doubt",
+      "Rhetorical question",
+      "Paradox",
+      "Irony"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10494",
+    "category": "Literature",
+    "question": "Which word means 'the study of words'?",
+    "options": [
+      "Linguistics",
+      "Biology",
+      "Chemistry",
+      "Physics"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10495",
+    "category": "Animals",
+    "question": "Which animal lives in the ocean?",
+    "options": [
+      "Whale",
+      "Elephant",
+      "Lion",
+      "Tiger"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10496",
+    "category": "Animals",
+    "question": "What do pandas eat?",
+    "options": [
+      "Bamboo",
+      "Meat",
+      "Fish",
+      "Fruit"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10497",
+    "category": "Animals",
+    "question": "What is the fastest land animal?",
+    "options": [
+      "Cheetah",
+      "Lion",
+      "Leopard",
+      "Tiger"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10498",
+    "category": "Animals",
+    "question": "Which animal is known as the 'King of the Jungle'?",
+    "options": [
+      "Lion",
+      "Tiger",
+      "Elephant",
+      "Giraffe"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10499",
+    "category": "Animals",
+    "question": "What do pandas eat?",
+    "options": [
+      "Bamboo",
+      "Meat",
+      "Fish",
+      "Fruit"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10500",
+    "category": "Animals",
+    "question": "What is the only mammal that can fly?",
+    "options": [
+      "Bat",
+      "Flying squirrel",
+      "Sugar glider",
+      "Colugo"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10501",
+    "category": "Animals",
+    "question": "What is a baby kangaroo called?",
+    "options": [
+      "Joey",
+      "Cub",
+      "Pup",
+      "Kid"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10502",
+    "category": "Animals",
+    "question": "What do pandas eat?",
+    "options": [
+      "Bamboo",
+      "Meat",
+      "Fish",
+      "Fruit"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10503",
+    "category": "Animals",
+    "question": "Which animal can regenerate its limbs?",
+    "options": [
+      "Starfish",
+      "Lizard",
+      "Frog",
+      "Turtle"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10504",
+    "category": "Animals",
+    "question": "What is a baby kangaroo called?",
+    "options": [
+      "Joey",
+      "Cub",
+      "Pup",
+      "Kid"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10505",
+    "category": "Animals",
+    "question": "What is a group of lions called?",
+    "options": [
+      "Pride",
+      "Herd",
+      "Pack",
+      "Flock"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10506",
+    "category": "Animals",
+    "question": "Which animal has the longest lifespan?",
+    "options": [
+      "Giant tortoise",
+      "Elephant",
+      "Whale",
+      "Human"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10507",
+    "category": "Animals",
+    "question": "Which animal lives in the ocean?",
+    "options": [
+      "Whale",
+      "Elephant",
+      "Lion",
+      "Tiger"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10508",
+    "category": "Animals",
+    "question": "What is a group of lions called?",
+    "options": [
+      "Pride",
+      "Herd",
+      "Pack",
+      "Flock"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10509",
+    "category": "Animals",
+    "question": "What is the scientific name for the tiger?",
+    "options": [
+      "Panthera tigris",
+      "Panthera leo",
+      "Felis catus",
+      "Canis lupus"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10510",
+    "category": "Animals",
+    "question": "Which animal has a long neck?",
+    "options": [
+      "Giraffe",
+      "Elephant",
+      "Lion",
+      "Zebra"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10511",
+    "category": "Animals",
+    "question": "What do pandas eat?",
+    "options": [
+      "Bamboo",
+      "Meat",
+      "Fish",
+      "Fruit"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10512",
+    "category": "Animals",
+    "question": "What is the only mammal that can fly?",
+    "options": [
+      "Bat",
+      "Flying squirrel",
+      "Sugar glider",
+      "Colugo"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10513",
+    "category": "Animals",
+    "question": "What do bees produce?",
+    "options": [
+      "Honey",
+      "Milk",
+      "Eggs",
+      "Wool"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10514",
+    "category": "Animals",
+    "question": "What is the largest mammal?",
+    "options": [
+      "Blue whale",
+      "Elephant",
+      "Giraffe",
+      "Hippopotamus"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10515",
+    "category": "Animals",
+    "question": "What is the fastest land animal?",
+    "options": [
+      "Cheetah",
+      "Lion",
+      "Leopard",
+      "Tiger"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10516",
+    "category": "Animals",
+    "question": "What is a baby kangaroo called?",
+    "options": [
+      "Joey",
+      "Cub",
+      "Pup",
+      "Kid"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10517",
+    "category": "Animals",
+    "question": "Which animal has stripes?",
+    "options": [
+      "Zebra",
+      "Lion",
+      "Elephant",
+      "Giraffe"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10518",
+    "category": "Animals",
+    "question": "Which animal has the longest lifespan?",
+    "options": [
+      "Giant tortoise",
+      "Elephant",
+      "Whale",
+      "Human"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10519",
+    "category": "Animals",
+    "question": "Which animal has a long neck?",
+    "options": [
+      "Giraffe",
+      "Elephant",
+      "Lion",
+      "Zebra"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10520",
+    "category": "Animals",
+    "question": "What is a group of lions called?",
+    "options": [
+      "Pride",
+      "Herd",
+      "Pack",
+      "Flock"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10521",
+    "category": "Animals",
+    "question": "Which animal can regenerate its limbs?",
+    "options": [
+      "Starfish",
+      "Lizard",
+      "Frog",
+      "Turtle"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10522",
+    "category": "Animals",
+    "question": "Which animal is known as the 'King of the Jungle'?",
+    "options": [
+      "Lion",
+      "Tiger",
+      "Elephant",
+      "Giraffe"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10523",
+    "category": "Animals",
+    "question": "Which animal has stripes?",
+    "options": [
+      "Zebra",
+      "Lion",
+      "Elephant",
+      "Giraffe"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10524",
+    "category": "Animals",
+    "question": "What is the scientific name for the tiger?",
+    "options": [
+      "Panthera tigris",
+      "Panthera leo",
+      "Felis catus",
+      "Canis lupus"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10525",
+    "category": "Animals",
+    "question": "What is a baby kangaroo called?",
+    "options": [
+      "Joey",
+      "Cub",
+      "Pup",
+      "Kid"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10526",
+    "category": "Animals",
+    "question": "What is a group of lions called?",
+    "options": [
+      "Pride",
+      "Herd",
+      "Pack",
+      "Flock"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10527",
+    "category": "Animals",
+    "question": "What is the only mammal that can fly?",
+    "options": [
+      "Bat",
+      "Flying squirrel",
+      "Sugar glider",
+      "Colugo"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10528",
+    "category": "Animals",
+    "question": "What do bees produce?",
+    "options": [
+      "Honey",
+      "Milk",
+      "Eggs",
+      "Wool"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10529",
+    "category": "Animals",
+    "question": "What is a group of lions called?",
+    "options": [
+      "Pride",
+      "Herd",
+      "Pack",
+      "Flock"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10530",
+    "category": "Animals",
+    "question": "What is the fastest land animal?",
+    "options": [
+      "Cheetah",
+      "Lion",
+      "Leopard",
+      "Tiger"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10531",
+    "category": "Animals",
+    "question": "Which animal has a long neck?",
+    "options": [
+      "Giraffe",
+      "Elephant",
+      "Lion",
+      "Zebra"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10532",
+    "category": "Animals",
+    "question": "What is a group of lions called?",
+    "options": [
+      "Pride",
+      "Herd",
+      "Pack",
+      "Flock"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10533",
+    "category": "Animals",
+    "question": "What is the scientific name for the tiger?",
+    "options": [
+      "Panthera tigris",
+      "Panthera leo",
+      "Felis catus",
+      "Canis lupus"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10534",
+    "category": "Animals",
+    "question": "Which animal is known as the 'King of the Jungle'?",
+    "options": [
+      "Lion",
+      "Tiger",
+      "Elephant",
+      "Giraffe"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10535",
+    "category": "Animals",
+    "question": "Which animal can fly without wings?",
+    "options": [
+      "Bat",
+      "Bird",
+      "Butterfly",
+      "Bee"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10536",
+    "category": "Animals",
+    "question": "Which animal can regenerate its limbs?",
+    "options": [
+      "Starfish",
+      "Lizard",
+      "Frog",
+      "Turtle"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10537",
+    "category": "Animals",
+    "question": "Which animal is known as the 'King of the Jungle'?",
+    "options": [
+      "Lion",
+      "Tiger",
+      "Elephant",
+      "Giraffe"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10538",
+    "category": "Animals",
+    "question": "Which animal can fly without wings?",
+    "options": [
+      "Bat",
+      "Bird",
+      "Butterfly",
+      "Bee"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10539",
+    "category": "Animals",
+    "question": "What is the only mammal that can fly?",
+    "options": [
+      "Bat",
+      "Flying squirrel",
+      "Sugar glider",
+      "Colugo"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10540",
+    "category": "Animals",
+    "question": "Which animal has a long neck?",
+    "options": [
+      "Giraffe",
+      "Elephant",
+      "Lion",
+      "Zebra"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10541",
+    "category": "Animals",
+    "question": "What is the largest mammal?",
+    "options": [
+      "Blue whale",
+      "Elephant",
+      "Giraffe",
+      "Hippopotamus"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10542",
+    "category": "Animals",
+    "question": "What is the only mammal that can fly?",
+    "options": [
+      "Bat",
+      "Flying squirrel",
+      "Sugar glider",
+      "Colugo"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10543",
+    "category": "Animals",
+    "question": "Which animal has a long neck?",
+    "options": [
+      "Giraffe",
+      "Elephant",
+      "Lion",
+      "Zebra"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10544",
+    "category": "Animals",
+    "question": "Which animal can fly without wings?",
+    "options": [
+      "Bat",
+      "Bird",
+      "Butterfly",
+      "Bee"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10545",
+    "category": "Animals",
+    "question": "Which animal can regenerate its limbs?",
+    "options": [
+      "Starfish",
+      "Lizard",
+      "Frog",
+      "Turtle"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10546",
+    "category": "Animals",
+    "question": "What do bees produce?",
+    "options": [
+      "Honey",
+      "Milk",
+      "Eggs",
+      "Wool"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10547",
+    "category": "Animals",
+    "question": "Which animal can fly without wings?",
+    "options": [
+      "Bat",
+      "Bird",
+      "Butterfly",
+      "Bee"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10548",
+    "category": "Animals",
+    "question": "Which animal can regenerate its limbs?",
+    "options": [
+      "Starfish",
+      "Lizard",
+      "Frog",
+      "Turtle"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10549",
+    "category": "Animals",
+    "question": "Which animal is known as the 'King of the Jungle'?",
+    "options": [
+      "Lion",
+      "Tiger",
+      "Elephant",
+      "Giraffe"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10550",
+    "category": "Animals",
+    "question": "What do pandas eat?",
+    "options": [
+      "Bamboo",
+      "Meat",
+      "Fish",
+      "Fruit"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10551",
+    "category": "Animals",
+    "question": "Which animal has the longest lifespan?",
+    "options": [
+      "Giant tortoise",
+      "Elephant",
+      "Whale",
+      "Human"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10552",
+    "category": "Animals",
+    "question": "Which animal is known as the 'King of the Jungle'?",
+    "options": [
+      "Lion",
+      "Tiger",
+      "Elephant",
+      "Giraffe"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10553",
+    "category": "Animals",
+    "question": "What is a group of lions called?",
+    "options": [
+      "Pride",
+      "Herd",
+      "Pack",
+      "Flock"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10554",
+    "category": "Animals",
+    "question": "Which animal can regenerate its limbs?",
+    "options": [
+      "Starfish",
+      "Lizard",
+      "Frog",
+      "Turtle"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10555",
+    "category": "Animals",
+    "question": "Which animal lives in the ocean?",
+    "options": [
+      "Whale",
+      "Elephant",
+      "Lion",
+      "Tiger"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10556",
+    "category": "Animals",
+    "question": "Which animal has stripes?",
+    "options": [
+      "Zebra",
+      "Lion",
+      "Elephant",
+      "Giraffe"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10557",
+    "category": "Animals",
+    "question": "Which animal has the longest lifespan?",
+    "options": [
+      "Giant tortoise",
+      "Elephant",
+      "Whale",
+      "Human"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10558",
+    "category": "Animals",
+    "question": "Which animal lives in the ocean?",
+    "options": [
+      "Whale",
+      "Elephant",
+      "Lion",
+      "Tiger"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10559",
+    "category": "Animals",
+    "question": "Which animal can fly without wings?",
+    "options": [
+      "Bat",
+      "Bird",
+      "Butterfly",
+      "Bee"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10560",
+    "category": "Animals",
+    "question": "What is the fastest land animal?",
+    "options": [
+      "Cheetah",
+      "Lion",
+      "Leopard",
+      "Tiger"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10561",
+    "category": "Animals",
+    "question": "Which animal is known as the 'King of the Jungle'?",
+    "options": [
+      "Lion",
+      "Tiger",
+      "Elephant",
+      "Giraffe"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10562",
+    "category": "Animals",
+    "question": "What do pandas eat?",
+    "options": [
+      "Bamboo",
+      "Meat",
+      "Fish",
+      "Fruit"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10563",
+    "category": "Animals",
+    "question": "What is the scientific name for the tiger?",
+    "options": [
+      "Panthera tigris",
+      "Panthera leo",
+      "Felis catus",
+      "Canis lupus"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10564",
+    "category": "Animals",
+    "question": "Which animal is known as the 'King of the Jungle'?",
+    "options": [
+      "Lion",
+      "Tiger",
+      "Elephant",
+      "Giraffe"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10565",
+    "category": "Animals",
+    "question": "Which animal can fly without wings?",
+    "options": [
+      "Bat",
+      "Bird",
+      "Butterfly",
+      "Bee"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10566",
+    "category": "Animals",
+    "question": "Which animal can regenerate its limbs?",
+    "options": [
+      "Starfish",
+      "Lizard",
+      "Frog",
+      "Turtle"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10567",
+    "category": "Animals",
+    "question": "Which animal has a long neck?",
+    "options": [
+      "Giraffe",
+      "Elephant",
+      "Lion",
+      "Zebra"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10568",
+    "category": "Animals",
+    "question": "What is the largest mammal?",
+    "options": [
+      "Blue whale",
+      "Elephant",
+      "Giraffe",
+      "Hippopotamus"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10569",
+    "category": "Animals",
+    "question": "Which animal can regenerate its limbs?",
+    "options": [
+      "Starfish",
+      "Lizard",
+      "Frog",
+      "Turtle"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10570",
+    "category": "Animals",
+    "question": "Which animal lives in the ocean?",
+    "options": [
+      "Whale",
+      "Elephant",
+      "Lion",
+      "Tiger"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10571",
+    "category": "Animals",
+    "question": "What is a group of lions called?",
+    "options": [
+      "Pride",
+      "Herd",
+      "Pack",
+      "Flock"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10572",
+    "category": "Animals",
+    "question": "What is the fastest land animal?",
+    "options": [
+      "Cheetah",
+      "Lion",
+      "Leopard",
+      "Tiger"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10573",
+    "category": "Animals",
+    "question": "What is a baby kangaroo called?",
+    "options": [
+      "Joey",
+      "Cub",
+      "Pup",
+      "Kid"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10574",
+    "category": "Animals",
+    "question": "Which animal has stripes?",
+    "options": [
+      "Zebra",
+      "Lion",
+      "Elephant",
+      "Giraffe"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10575",
+    "category": "Animals",
+    "question": "Which animal has the longest lifespan?",
+    "options": [
+      "Giant tortoise",
+      "Elephant",
+      "Whale",
+      "Human"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10576",
+    "category": "Animals",
+    "question": "Which animal is known as the 'King of the Jungle'?",
+    "options": [
+      "Lion",
+      "Tiger",
+      "Elephant",
+      "Giraffe"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10577",
+    "category": "Animals",
+    "question": "What is the largest mammal?",
+    "options": [
+      "Blue whale",
+      "Elephant",
+      "Giraffe",
+      "Hippopotamus"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10578",
+    "category": "Animals",
+    "question": "What is the only mammal that can fly?",
+    "options": [
+      "Bat",
+      "Flying squirrel",
+      "Sugar glider",
+      "Colugo"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10579",
+    "category": "Animals",
+    "question": "Which animal is known as the 'King of the Jungle'?",
+    "options": [
+      "Lion",
+      "Tiger",
+      "Elephant",
+      "Giraffe"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10580",
+    "category": "Animals",
+    "question": "Which animal can fly without wings?",
+    "options": [
+      "Bat",
+      "Bird",
+      "Butterfly",
+      "Bee"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10581",
+    "category": "Animals",
+    "question": "Which animal can regenerate its limbs?",
+    "options": [
+      "Starfish",
+      "Lizard",
+      "Frog",
+      "Turtle"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10582",
+    "category": "Animals",
+    "question": "What do bees produce?",
+    "options": [
+      "Honey",
+      "Milk",
+      "Eggs",
+      "Wool"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10583",
+    "category": "Animals",
+    "question": "What is a group of lions called?",
+    "options": [
+      "Pride",
+      "Herd",
+      "Pack",
+      "Flock"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10584",
+    "category": "Animals",
+    "question": "Which animal can regenerate its limbs?",
+    "options": [
+      "Starfish",
+      "Lizard",
+      "Frog",
+      "Turtle"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10585",
+    "category": "Animals",
+    "question": "What do bees produce?",
+    "options": [
+      "Honey",
+      "Milk",
+      "Eggs",
+      "Wool"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10586",
+    "category": "Animals",
+    "question": "What do pandas eat?",
+    "options": [
+      "Bamboo",
+      "Meat",
+      "Fish",
+      "Fruit"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10587",
+    "category": "Animals",
+    "question": "What is the fastest land animal?",
+    "options": [
+      "Cheetah",
+      "Lion",
+      "Leopard",
+      "Tiger"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10588",
+    "category": "Animals",
+    "question": "What do bees produce?",
+    "options": [
+      "Honey",
+      "Milk",
+      "Eggs",
+      "Wool"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10589",
+    "category": "Animals",
+    "question": "What is the largest mammal?",
+    "options": [
+      "Blue whale",
+      "Elephant",
+      "Giraffe",
+      "Hippopotamus"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10590",
+    "category": "Animals",
+    "question": "What is the scientific name for the tiger?",
+    "options": [
+      "Panthera tigris",
+      "Panthera leo",
+      "Felis catus",
+      "Canis lupus"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10591",
+    "category": "Animals",
+    "question": "What is a baby kangaroo called?",
+    "options": [
+      "Joey",
+      "Cub",
+      "Pup",
+      "Kid"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10592",
+    "category": "Animals",
+    "question": "What do pandas eat?",
+    "options": [
+      "Bamboo",
+      "Meat",
+      "Fish",
+      "Fruit"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10593",
+    "category": "Animals",
+    "question": "Which animal can regenerate its limbs?",
+    "options": [
+      "Starfish",
+      "Lizard",
+      "Frog",
+      "Turtle"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10594",
+    "category": "Animals",
+    "question": "Which animal has a long neck?",
+    "options": [
+      "Giraffe",
+      "Elephant",
+      "Lion",
+      "Zebra"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10595",
+    "category": "Animals",
+    "question": "What is the largest mammal?",
+    "options": [
+      "Blue whale",
+      "Elephant",
+      "Giraffe",
+      "Hippopotamus"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10596",
+    "category": "Animals",
+    "question": "What is the only mammal that can fly?",
+    "options": [
+      "Bat",
+      "Flying squirrel",
+      "Sugar glider",
+      "Colugo"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10597",
+    "category": "Animals",
+    "question": "Which animal has a long neck?",
+    "options": [
+      "Giraffe",
+      "Elephant",
+      "Lion",
+      "Zebra"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10598",
+    "category": "Animals",
+    "question": "Which animal has stripes?",
+    "options": [
+      "Zebra",
+      "Lion",
+      "Elephant",
+      "Giraffe"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10599",
+    "category": "Animals",
+    "question": "What is the scientific name for the tiger?",
+    "options": [
+      "Panthera tigris",
+      "Panthera leo",
+      "Felis catus",
+      "Canis lupus"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10600",
+    "category": "Animals",
+    "question": "Which animal lives in the ocean?",
+    "options": [
+      "Whale",
+      "Elephant",
+      "Lion",
+      "Tiger"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10601",
+    "category": "Animals",
+    "question": "Which animal can fly without wings?",
+    "options": [
+      "Bat",
+      "Bird",
+      "Butterfly",
+      "Bee"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10602",
+    "category": "Animals",
+    "question": "What is the only mammal that can fly?",
+    "options": [
+      "Bat",
+      "Flying squirrel",
+      "Sugar glider",
+      "Colugo"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10603",
+    "category": "Animals",
+    "question": "Which animal lives in the ocean?",
+    "options": [
+      "Whale",
+      "Elephant",
+      "Lion",
+      "Tiger"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10604",
+    "category": "Animals",
+    "question": "What is the largest mammal?",
+    "options": [
+      "Blue whale",
+      "Elephant",
+      "Giraffe",
+      "Hippopotamus"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10605",
+    "category": "Animals",
+    "question": "What is the scientific name for the tiger?",
+    "options": [
+      "Panthera tigris",
+      "Panthera leo",
+      "Felis catus",
+      "Canis lupus"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10606",
+    "category": "Animals",
+    "question": "Which animal is known as the 'King of the Jungle'?",
+    "options": [
+      "Lion",
+      "Tiger",
+      "Elephant",
+      "Giraffe"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10607",
+    "category": "Animals",
+    "question": "Which animal has stripes?",
+    "options": [
+      "Zebra",
+      "Lion",
+      "Elephant",
+      "Giraffe"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10608",
+    "category": "Animals",
+    "question": "What is the only mammal that can fly?",
+    "options": [
+      "Bat",
+      "Flying squirrel",
+      "Sugar glider",
+      "Colugo"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10609",
+    "category": "Animals",
+    "question": "Which animal has a long neck?",
+    "options": [
+      "Giraffe",
+      "Elephant",
+      "Lion",
+      "Zebra"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10610",
+    "category": "Animals",
+    "question": "What is the largest mammal?",
+    "options": [
+      "Blue whale",
+      "Elephant",
+      "Giraffe",
+      "Hippopotamus"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10611",
+    "category": "Animals",
+    "question": "Which animal can regenerate its limbs?",
+    "options": [
+      "Starfish",
+      "Lizard",
+      "Frog",
+      "Turtle"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10612",
+    "category": "Animals",
+    "question": "Which animal is known as the 'King of the Jungle'?",
+    "options": [
+      "Lion",
+      "Tiger",
+      "Elephant",
+      "Giraffe"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10613",
+    "category": "Animals",
+    "question": "Which animal has stripes?",
+    "options": [
+      "Zebra",
+      "Lion",
+      "Elephant",
+      "Giraffe"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10614",
+    "category": "Animals",
+    "question": "Which animal has the longest lifespan?",
+    "options": [
+      "Giant tortoise",
+      "Elephant",
+      "Whale",
+      "Human"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10615",
+    "category": "Animals",
+    "question": "Which animal has a long neck?",
+    "options": [
+      "Giraffe",
+      "Elephant",
+      "Lion",
+      "Zebra"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10616",
+    "category": "Animals",
+    "question": "Which animal has stripes?",
+    "options": [
+      "Zebra",
+      "Lion",
+      "Elephant",
+      "Giraffe"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10617",
+    "category": "Animals",
+    "question": "Which animal has the longest lifespan?",
+    "options": [
+      "Giant tortoise",
+      "Elephant",
+      "Whale",
+      "Human"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10618",
+    "category": "Animals",
+    "question": "What is a baby kangaroo called?",
+    "options": [
+      "Joey",
+      "Cub",
+      "Pup",
+      "Kid"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10619",
+    "category": "Animals",
+    "question": "What is the largest mammal?",
+    "options": [
+      "Blue whale",
+      "Elephant",
+      "Giraffe",
+      "Hippopotamus"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10620",
+    "category": "Animals",
+    "question": "Which animal can regenerate its limbs?",
+    "options": [
+      "Starfish",
+      "Lizard",
+      "Frog",
+      "Turtle"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10621",
+    "category": "Animals",
+    "question": "Which animal has a long neck?",
+    "options": [
+      "Giraffe",
+      "Elephant",
+      "Lion",
+      "Zebra"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10622",
+    "category": "Animals",
+    "question": "Which animal can fly without wings?",
+    "options": [
+      "Bat",
+      "Bird",
+      "Butterfly",
+      "Bee"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10623",
+    "category": "Animals",
+    "question": "What is the scientific name for the tiger?",
+    "options": [
+      "Panthera tigris",
+      "Panthera leo",
+      "Felis catus",
+      "Canis lupus"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10624",
+    "category": "Animals",
+    "question": "Which animal has a long neck?",
+    "options": [
+      "Giraffe",
+      "Elephant",
+      "Lion",
+      "Zebra"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10625",
+    "category": "Animals",
+    "question": "What is a group of lions called?",
+    "options": [
+      "Pride",
+      "Herd",
+      "Pack",
+      "Flock"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10626",
+    "category": "Animals",
+    "question": "Which animal has the longest lifespan?",
+    "options": [
+      "Giant tortoise",
+      "Elephant",
+      "Whale",
+      "Human"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10627",
+    "category": "Animals",
+    "question": "What is a baby kangaroo called?",
+    "options": [
+      "Joey",
+      "Cub",
+      "Pup",
+      "Kid"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10628",
+    "category": "Animals",
+    "question": "What do pandas eat?",
+    "options": [
+      "Bamboo",
+      "Meat",
+      "Fish",
+      "Fruit"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10629",
+    "category": "Animals",
+    "question": "What is the fastest land animal?",
+    "options": [
+      "Cheetah",
+      "Lion",
+      "Leopard",
+      "Tiger"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10630",
+    "category": "Animals",
+    "question": "Which animal is known as the 'King of the Jungle'?",
+    "options": [
+      "Lion",
+      "Tiger",
+      "Elephant",
+      "Giraffe"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10631",
+    "category": "Animals",
+    "question": "What is a group of lions called?",
+    "options": [
+      "Pride",
+      "Herd",
+      "Pack",
+      "Flock"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10632",
+    "category": "Animals",
+    "question": "Which animal can regenerate its limbs?",
+    "options": [
+      "Starfish",
+      "Lizard",
+      "Frog",
+      "Turtle"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10633",
+    "category": "Animals",
+    "question": "Which animal has a long neck?",
+    "options": [
+      "Giraffe",
+      "Elephant",
+      "Lion",
+      "Zebra"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10634",
+    "category": "Animals",
+    "question": "What is the largest mammal?",
+    "options": [
+      "Blue whale",
+      "Elephant",
+      "Giraffe",
+      "Hippopotamus"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10635",
+    "category": "Animals",
+    "question": "What is the scientific name for the tiger?",
+    "options": [
+      "Panthera tigris",
+      "Panthera leo",
+      "Felis catus",
+      "Canis lupus"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10636",
+    "category": "Animals",
+    "question": "What do bees produce?",
+    "options": [
+      "Honey",
+      "Milk",
+      "Eggs",
+      "Wool"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
+  },
+  {
+    "id": "10637",
+    "category": "Animals",
+    "question": "What is the largest mammal?",
+    "options": [
+      "Blue whale",
+      "Elephant",
+      "Giraffe",
+      "Hippopotamus"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "medium"
+  },
+  {
+    "id": "10638",
+    "category": "Animals",
+    "question": "What is the fastest land animal?",
+    "options": [
+      "Cheetah",
+      "Lion",
+      "Leopard",
+      "Tiger"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "hard"
+  },
+  {
+    "id": "10639",
+    "category": "Animals",
+    "question": "Which animal is known as the 'King of the Jungle'?",
+    "options": [
+      "Lion",
+      "Tiger",
+      "Elephant",
+      "Giraffe"
+    ],
+    "correctAnswer": 0,
+    "difficulty": "easy"
   }
 ];
 

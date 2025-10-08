@@ -92,10 +92,12 @@ function initRoomRandomPools(room) {
   // Per-category pools
   room._categoryPools = {};
   room._categoryIndices = {};
+  room._recentlyUsed = {}; // Track recently used questions per category
   for (const q of allQuestions) {
     const key = q.category.toLowerCase();
     if (!room._categoryPools[key]) room._categoryPools[key] = [];
     room._categoryPools[key].push(q.id);
+    if (!room._recentlyUsed[key]) room._recentlyUsed[key] = [];
   }
   for (const key of Object.keys(room._categoryPools)) {
     room._categoryPools[key] = shuffleArray(room._categoryPools[key]);
@@ -122,19 +124,26 @@ function drawQuestionFromPools(room, category) {
       else if (accuracy < 0.7) targetDifficulty = 'medium';
       else targetDifficulty = 'hard';
     }
-    // Gather candidate IDs cycling from pool
-    // We'll look ahead a small window (e.g., next 8) to find best difficulty match before falling back
+    // Gather candidate IDs cycling from pool, avoiding recently used questions
     const windowSize = 8;
     let collected = [];
     let localIdx = room._categoryIndices[key];
-    for (let i = 0; i < windowSize; i++) {
+    const recentlyUsed = room._recentlyUsed[key] || [];
+    for (let i = 0; i < windowSize && collected.length < windowSize; i++) {
       if (localIdx >= room._categoryPools[key].length) {
         room._categoryPools[key] = shuffleArray(room._categoryPools[key]);
         room._categoryIndices[key] = 0;
         localIdx = 0;
       }
-      collected.push(room._categoryPools[key][localIdx]);
+      const questionId = room._categoryPools[key][localIdx];
+      if (!recentlyUsed.includes(questionId)) {
+        collected.push(questionId);
+      }
       localIdx++;
+    }
+    // If no non-recently used questions found, use the next available
+    if (collected.length === 0) {
+      collected = [room._categoryPools[key][room._categoryIndices[key]]];
     }
     // Choose best match by difficulty
     let chosenId = collected[0];
@@ -143,18 +152,29 @@ function drawQuestionFromPools(room, category) {
         .map(id => allQuestions.find(q => q.id === id))
         .filter(Boolean);
       const exact = byDiff.find(q => q.difficulty === targetDifficulty);
-      if (exact) chosenId = exact.id;
-      else {
+      if (exact) {
+        chosenId = exact.id;
+      } else {
         // fallback priority order near target
         const priority = targetDifficulty === 'easy' ? ['easy','medium','hard'] : targetDifficulty === 'medium' ? ['medium','easy','hard'] : ['hard','medium','easy'];
         for (const diff of priority) {
           const alt = byDiff.find(q => q.difficulty === diff);
-          if (alt) { chosenId = alt.id; break; }
+          if (alt) {
+            chosenId = alt.id;
+            break;
+          }
         }
       }
     }
-    // Advance main index only by one (consumption model) even if we looked ahead
-    room._categoryIndices[key] = room._categoryIndices[key] + 1;
+    // Advance main index by at least 1, but preferably more to reduce repeats
+    // For small categories (< 50 questions), advance by 2-3 to consume faster
+    // For large categories, advance by 1-2
+    const poolSize = room._categoryPools[key].length;
+    const advanceAmount = poolSize < 50 ? Math.min(3, Math.floor(poolSize / 5)) : Math.min(2, Math.floor(poolSize / 50)) || 1;
+    room._categoryIndices[key] = room._categoryIndices[key] + advanceAmount;
+    // Update recently used (keep last 5 per category)
+    recentlyUsed.push(chosenId);
+    if (recentlyUsed.length > 5) recentlyUsed.shift();
     return allQuestions.find(q => q.id === chosenId);
   }
   // fallback global
@@ -1672,6 +1692,8 @@ function endLightning(room, roomCode, reason = 'timeout') {
   }
   io.to(roomCode).emit('lightning-ended', { gameState: gs, reason });
   io.to(roomCode).emit('game-state-update', { gameState: gs, message: 'Lightning ended' });
+  // Stop dramatic music
+  io.to(roomCode).emit('dramatic-music-stop');
 }
 
 function triggerLightning(room, roomCode) {
@@ -1683,12 +1705,19 @@ function triggerLightning(room, roomCode) {
   gs.lightningWinnerId = null;
   gs.lightningEndAt = Date.now() + 8000; // 8 seconds
   gs.gamePhase = 'lightning_round';
-  io.to(roomCode).emit('lightning-start', { gameState: gs, question: q, deadline: gs.lightningEndAt });
+  // Emit countdown event with 5-second delay before starting
+  const countdownEndAt = Date.now() + 5000; // 5 seconds from now
+  io.to(roomCode).emit('lightning-countdown', { countdownEndAt });
+  // Start dramatic music immediately
+  io.to(roomCode).emit('dramatic-music-start');
+  setTimeout(() => {
+    io.to(roomCode).emit('lightning-start', { gameState: gs, question: q, deadline: gs.lightningEndAt });
+  }, 5000);
   const handle = setTimeout(() => {
     if (gs.gamePhase === 'lightning_round') {
       endLightning(room, roomCode, 'timeout');
     }
-  }, 8000);
+  }, 13000); // 5s countdown + 8s round = 13s total
   lightningTimeouts.set(roomCode, handle);
 }
 

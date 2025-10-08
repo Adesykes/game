@@ -14,6 +14,7 @@ interface HostDashboardProps {
   charadeDeadline?: number | null;
   pictionaryDeadline?: number | null;
   playerId: string;
+  lightningCountdownEndAt?: number | null;
 }
 
 const HostDashboard: React.FC<HostDashboardProps> = ({
@@ -23,6 +24,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
   charadeDeadline,
   pictionaryDeadline,
   playerId,
+  lightningCountdownEndAt,
 }) => {
   const [showQR, setShowQR] = useState(true);
   const [guessInput, setGuessInput] = useState('');
@@ -31,6 +33,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
   const [questionTimeLeft, setQuestionTimeLeft] = useState(30);
   const { isFullScreen, toggleFullScreen } = useFullScreen();
   const [showKaraokeSettings, setShowKaraokeSettings] = useState(false);
+  const [lightningCountdown, setLightningCountdown] = useState<number | null>(null);
   const [karaokeProbability, setKaraokeProbability] = useState<number>(gameState.karaokeSettings?.probability ?? 0.4);
   const [karaokeDuration, setKaraokeDuration] = useState<number>(gameState.karaokeSettings?.durationSec ?? 45);
   const [karaokeCooldown, setKaraokeCooldown] = useState<number>(gameState.karaokeSettings?.cooldownSec ?? 180);
@@ -234,6 +237,24 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
     };
   }, [socket, hostPlayer?.id]);
 
+  // Lightning countdown timer
+  useEffect(() => {
+    if (lightningCountdownEndAt) {
+      const interval = setInterval(() => {
+        const now = Date.now();
+        const remaining = Math.ceil((lightningCountdownEndAt - now) / 1000);
+        if (remaining > 0) {
+          setLightningCountdown(remaining);
+        } else {
+          setLightningCountdown(null);
+        }
+      }, 100);
+      return () => clearInterval(interval);
+    } else {
+      setLightningCountdown(null);
+    }
+  }, [lightningCountdownEndAt]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-4">
       {/* Lightning teaser banner */}
@@ -241,6 +262,14 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
         <div className="max-w-6xl mx-auto mb-3">
           <div className="bg-yellow-500/15 border border-yellow-400/30 rounded-lg px-3 py-2 text-center">
             <span className="text-yellow-200 text-sm font-semibold">⚡ Lightning round in {((10 - ((gameState.turnsPlayed % 10) || 0)) % 10) || 10} turns</span>
+          </div>
+        </div>
+      )}
+      {/* Lightning countdown banner */}
+      {lightningCountdown !== null && lightningCountdown > 0 && (
+        <div className="max-w-6xl mx-auto mb-3">
+          <div className="bg-red-500/20 border border-red-400/40 rounded-lg px-3 py-2 text-center animate-pulse">
+            <span className="text-red-200 text-lg font-bold">⚡ Lightning Round Starting in {lightningCountdown}...</span>
           </div>
         </div>
       )}

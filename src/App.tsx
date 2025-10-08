@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from 'react';
 // Adjust relative path if mp3 folder moves to /public or /src/assets
 // @ts-ignore - module declaration added in vite-env.d.ts
 import lobbyTrack from '../mp3/soulsweeper-252499.mp3';
+// @ts-ignore - module declaration added in vite-env.d.ts
+import dramaticTrack from '../mp3/dramatic-orchestral-cinematic-epic-background-music-313429.mp3';
 import { useSocket } from './hooks/useSocket';
 import { useGameEvents } from './hooks/useGameEvents';
 import { useFullScreen } from './hooks/useFullScreen';
@@ -15,6 +17,7 @@ import ReadyScreen from './components/ReadyScreen';
 import PlayerInterface from './components/NewPlayerInterface';
 import KaraokeBreak from './components/KaraokeBreak';
 import QuestionOverlay from './components/QuestionOverlay';
+import ResultBanner from './components/ResultBanner';
 import { GameState } from './types/game';
 
 type AppMode = 'welcome' | 'create' | 'join' | 'host' | 'player';
@@ -26,9 +29,11 @@ function App() {
   const [roomCode, setRoomCode] = useState('');
   const [playerId, setPlayerId] = useState('');
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const { currentQuestion, answerResult, charadeDeadline, pictionaryDeadline, questionDeadline } = useGameEvents(socket, setGameState);
+  const { currentQuestion, answerResult, charadeDeadline, pictionaryDeadline, questionDeadline, lightningCountdownEndAt, forfeitResult, forfeitFailureResult, guessResult } = useGameEvents(socket, setGameState);
   // Global background music only during waiting / ready phases (all clients)
   const bgAudioRef = useRef<HTMLAudioElement | null>(null);
+  // Dramatic music for lightning rounds
+  const dramaticAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Create element once
   useEffect(() => {
@@ -38,6 +43,13 @@ function App() {
       el.volume = 0.25;
       el.preload = 'auto';
       bgAudioRef.current = el;
+    }
+    if (!dramaticAudioRef.current) {
+      const el = new Audio(dramaticTrack);
+      el.loop = true;
+      el.volume = 0.4; // Slightly louder for dramatic effect
+      el.preload = 'auto';
+      dramaticAudioRef.current = el;
     }
   }, []);
 
@@ -65,6 +77,49 @@ function App() {
     };
     socket.on('lobby-music-stop', handler);
     return () => { socket.off('lobby-music-stop', handler); };
+  }, [socket]);
+
+  // Dramatic music start/stop for lightning rounds
+  useEffect(() => {
+    if (!socket) return;
+    const startHandler = () => {
+      const audio = dramaticAudioRef.current;
+      if (!audio) return;
+      // Stop lobby music if playing
+      const lobbyAudio = bgAudioRef.current;
+      if (lobbyAudio && !lobbyAudio.paused) {
+        lobbyAudio.pause();
+        lobbyAudio.currentTime = 0;
+      }
+      // Play dramatic music
+      audio.currentTime = 0;
+      audio.play().catch(e => console.warn('Failed to play dramatic music:', e));
+    };
+    const stopHandler = () => {
+      const audio = dramaticAudioRef.current;
+      if (!audio) return;
+      // Fade out over 600ms
+      const fadeSteps = 12;
+      const startVol = audio.volume;
+      let step = 0;
+      const interval = setInterval(() => {
+        step++;
+        const v = startVol * (1 - step / fadeSteps);
+        audio.volume = Math.max(0, v);
+        if (step >= fadeSteps) {
+          clearInterval(interval);
+          audio.pause();
+          audio.currentTime = 0;
+          audio.volume = startVol; // reset for next time
+        }
+      }, 50);
+    };
+    socket.on('dramatic-music-start', startHandler);
+    socket.on('dramatic-music-stop', stopHandler);
+    return () => {
+      socket.off('dramatic-music-start', startHandler);
+      socket.off('dramatic-music-stop', stopHandler);
+    };
   }, [socket]);
 
   const shouldPlay = (
@@ -222,6 +277,7 @@ function App() {
                 charadeDeadline={charadeDeadline}
                 pictionaryDeadline={pictionaryDeadline}
                 playerId={gameState.players.find(p=>p.isHost)?.id || ''}
+                lightningCountdownEndAt={lightningCountdownEndAt}
               />
               <KaraokeBreak gameState={gameState} socket={socket as Socket} playerId={gameState.players.find(p=>p.isHost)?.id || ''} roomCode={roomCode} />
             </>
@@ -234,6 +290,7 @@ function App() {
               charadeDeadline={charadeDeadline}
               pictionaryDeadline={pictionaryDeadline}
               playerId={gameState.players.find(p=>p.isHost)?.id || ''}
+              lightningCountdownEndAt={lightningCountdownEndAt}
             />
           )
         );
@@ -251,6 +308,7 @@ function App() {
                 playerId={playerId}
                 charadeDeadline={charadeDeadline}
                 pictionaryDeadline={pictionaryDeadline}
+                lightningCountdownEndAt={lightningCountdownEndAt}
               />
               <KaraokeBreak gameState={gameState} socket={socket as Socket} playerId={playerId} roomCode={roomCode} />
             </>
@@ -263,6 +321,7 @@ function App() {
               playerId={playerId}
               charadeDeadline={charadeDeadline}
               pictionaryDeadline={pictionaryDeadline}
+              lightningCountdownEndAt={lightningCountdownEndAt}
             />
           )
         );
@@ -297,6 +356,34 @@ function App() {
           lifelines={gameState.players.find(p => p.id === playerId)?.lifelines || { fiftyFifty: 0, passToRandom: 0 }}
           powerUps={gameState.players.find(p => p.id === playerId)?.powerUps || { swap_question: 0, steal_category: 0 }}
           deadlineMs={questionDeadline || null}
+        />
+      )}
+      {mode === 'player' && gameState && (
+        <ResultBanner
+          gameState={gameState}
+          currentQuestion={currentQuestion}
+          answerResult={answerResult}
+          forfeitResult={forfeitResult}
+          forfeitFailureResult={forfeitFailureResult}
+          guessResult={guessResult}
+          playerId={playerId}
+          onClose={() => {
+            // Could add additional cleanup logic here if needed
+          }}
+        />
+      )}
+      {mode === 'host' && gameState && (
+        <ResultBanner
+          gameState={gameState}
+          currentQuestion={currentQuestion}
+          answerResult={answerResult}
+          forfeitResult={forfeitResult}
+          forfeitFailureResult={forfeitFailureResult}
+          guessResult={guessResult}
+          playerId={gameState.players.find(p=>p.isHost)?.id || ''}
+          onClose={() => {
+            // Could add additional cleanup logic here if needed
+          }}
         />
       )}
     </div>

@@ -90,6 +90,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ onDrawingUpdate, w
     // Only prevent default for touch events to avoid scrolling
     if ('touches' in e) {
       e.preventDefault();
+      e.stopPropagation();
     }
     console.log('Drawing started', 'touches' in e ? '(touch)' : '(mouse)');
     setIsDrawing(true);
@@ -103,6 +104,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ onDrawingUpdate, w
     // Only prevent default for touch events to avoid scrolling
     if ('touches' in e) {
       e.preventDefault();
+      e.stopPropagation();
     }
 
     const canvas = canvasRef.current;
@@ -120,9 +122,9 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ onDrawingUpdate, w
 
     setLastPos(currentPos);
 
-    // Throttle drawing updates to every 50ms
+    // Throttle drawing updates to every 200ms to reduce network load
     const now = Date.now();
-    if (now - lastUpdateRef.current > 50) {
+    if (now - lastUpdateRef.current > 200) {
       lastUpdateRef.current = now;
       const drawingData = canvas.toDataURL();
       console.log('Sending drawing update');
@@ -166,7 +168,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ onDrawingUpdate, w
         width={width}
         height={height}
         className="border border-white/30 rounded-lg cursor-crosshair bg-black"
-        style={{ touchAction: 'none' }}
+        style={{ touchAction: 'none', WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
         onMouseDown={(e) => { console.log('Mouse down event'); startDrawing(e); }}
         onMouseMove={(e) => { console.log('Mouse move event'); draw(e); }}
         onMouseUp={(e) => { console.log('Mouse up event'); stopDrawing(e); }}

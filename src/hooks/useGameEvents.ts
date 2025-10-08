@@ -12,6 +12,10 @@ export const useGameEvents = (
   const [charadeDeadline, setCharadeDeadline] = useState<number | null>(null);
   const [pictionaryDeadline, setPictionaryDeadline] = useState<number | null>(null);
   const [questionDeadline, setQuestionDeadline] = useState<number | null>(null);
+  const [lightningCountdownEndAt, setLightningCountdownEndAt] = useState<number | null>(null);
+  const [forfeitResult, setForfeitResult] = useState<{ playerId: string; success: boolean; forfeitType: string } | null>(null);
+  const [forfeitFailureResult, setForfeitFailureResult] = useState<{ playerId: string; forfeitType: string } | null>(null);
+  const [guessResult, setGuessResult] = useState<{ solverId: string; forfeitType: string; solution: string } | null>(null);
 
   // Sound functions (hook must be top-level)
   const { playCorrect, playWrong, playReady, playStart } = useSound();
@@ -117,36 +121,78 @@ export const useGameEvents = (
       console.log('[client] charade-started received! gamePhase:', gameState.gamePhase, 'deadline:', deadline);
   setGameState(cloneState(gameState));
       setCharadeDeadline(typeof deadline === 'number' ? deadline : null);
+      // Clear any previous answer result when starting forfeit
+      setAnswerResult(null);
     };
 
     const onCharadeSolved = ({ gameState, solverId }: { gameState: GameState, solverId: string }) => {
       console.log('[client] charade-solved by:', solverId);
   setGameState(cloneState(gameState));
       setCharadeDeadline(null);
+      
+      // Set guess result for banner display
+      setGuessResult({
+        solverId,
+        forfeitType: 'charade',
+        solution: gameState.charadeSolution || 'Unknown'
+      });
+      
+      // Clear guess result after 3 seconds
+      setTimeout(() => setGuessResult(null), 3000);
     };
 
     const onCharadeFailed = ({ gameState, playerId }: { gameState: GameState, playerId: string }) => {
       console.log('[client] charade-failed by:', playerId, 'new gamePhase:', gameState.gamePhase);
-  setGameState(cloneState(gameState));
+      setGameState(cloneState(gameState));
       setCharadeDeadline(null);
+
+      // Set forfeit failure result for banner display
+      setForfeitFailureResult({
+        playerId,
+        forfeitType: 'charade'
+      });
+
+      // Clear failure result after 4 seconds
+      setTimeout(() => setForfeitFailureResult(null), 4000);
     };
 
     const onPictionaryStarted = ({ gameState, deadline }: { gameState: GameState, deadline?: number }) => {
       console.log('[client] pictionary-started deadline:', deadline);
   setGameState(cloneState(gameState));
       setPictionaryDeadline(typeof deadline === 'number' ? deadline : null);
+      // Clear any previous answer result when starting forfeit
+      setAnswerResult(null);
     };
 
     const onPictionarySolved = ({ gameState, solverId }: { gameState: GameState, solverId: string }) => {
       console.log('[client] pictionary-solved by:', solverId);
   setGameState(cloneState(gameState));
       setPictionaryDeadline(null);
+      
+      // Set guess result for banner display
+      setGuessResult({
+        solverId,
+        forfeitType: 'pictionary',
+        solution: gameState.pictionarySolution || 'Unknown'
+      });
+      
+      // Clear guess result after 3 seconds
+      setTimeout(() => setGuessResult(null), 3000);
     };
 
     const onPictionaryFailed = ({ gameState, playerId }: { gameState: GameState, playerId: string }) => {
       console.log('[client] pictionary-failed by:', playerId, 'new gamePhase:', gameState.gamePhase);
-  setGameState(cloneState(gameState));
+      setGameState(cloneState(gameState));
       setPictionaryDeadline(null);
+
+      // Set forfeit failure result for banner display
+      setForfeitFailureResult({
+        playerId,
+        forfeitType: 'pictionary'
+      });
+
+      // Clear failure result after 4 seconds
+      setTimeout(() => setForfeitFailureResult(null), 4000);
     };
 
     const onDrawingUpdate = ({ gameState }: { gameState: GameState }) => {
@@ -161,9 +207,22 @@ export const useGameEvents = (
 
     const onForfeitCompleted = ({ gameState, forfeitType }: { gameState: GameState, forfeitType: string }) => {
       console.log(`[client] forfeit-completed of type: ${forfeitType}, new gamePhase: ${gameState.gamePhase}`);
-  setGameState(cloneState(gameState));
+      setGameState(cloneState(gameState));
       setCharadeDeadline(null);
       setPictionaryDeadline(null);
+
+      // Set forfeit result for banner display
+      const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+      if (currentPlayer) {
+        setForfeitResult({
+          playerId: currentPlayer.id,
+          success: true, // Forfeits are always "completed" successfully
+          forfeitType
+        });
+
+        // Clear forfeit result after 3 seconds
+        setTimeout(() => setForfeitResult(null), 3000);
+      }
     };
 
     const onCategoryLocked = ({
@@ -184,11 +243,17 @@ export const useGameEvents = (
     };
 
     // Lightning round events (minimal wiring)
+    const onLightningCountdown = ({ countdownEndAt }: { countdownEndAt: number }) => {
+      console.log('[client] lightning-countdown:', countdownEndAt);
+      setLightningCountdownEndAt(countdownEndAt);
+    };
+
     const onLightningStart = ({ gameState, question, deadline }: { gameState: GameState; question: Question; deadline: number }) => {
       console.log('[client] lightning-start');
       setGameState(cloneState(gameState));
       setCurrentQuestion(question);
       setQuestionDeadline(deadline);
+      setLightningCountdownEndAt(null); // Clear countdown when lightning starts
     };
 
     const onLightningWinner = ({ gameState, winnerId }: { gameState: GameState; winnerId: string }) => {
@@ -269,6 +334,7 @@ export const useGameEvents = (
     socket.on('lifeline-pass-to-random-used', onLifelinePassToRandomUsed);
     socket.on('question-swapped', onQuestionSwapped);
     socket.on('powerup-steal-category-result', onPowerupStealCategoryResult);
+  socket.on('lightning-countdown', onLightningCountdown);
   socket.on('lightning-start', onLightningStart);
   socket.on('lightning-winner', onLightningWinner);
   socket.on('lightning-ended', onLightningEnded);
@@ -296,6 +362,7 @@ export const useGameEvents = (
       socket.off('lifeline-pass-to-random-used', onLifelinePassToRandomUsed);
       socket.off('question-swapped', onQuestionSwapped);
       socket.off('powerup-steal-category-result', onPowerupStealCategoryResult);
+  socket.off('lightning-countdown', onLightningCountdown);
   socket.off('lightning-start', onLightningStart);
   socket.off('lightning-winner', onLightningWinner);
   socket.off('lightning-ended', onLightningEnded);
@@ -303,5 +370,5 @@ export const useGameEvents = (
     };
   }, [socket, setGameState, currentQuestion, playCorrect, playWrong, playReady, playStart]);
 
-  return { currentQuestion, answerResult, charadeDeadline, pictionaryDeadline, questionDeadline };
+  return { currentQuestion, answerResult, charadeDeadline, pictionaryDeadline, questionDeadline, lightningCountdownEndAt, forfeitResult, forfeitFailureResult, guessResult };
 };
