@@ -111,18 +111,38 @@ function initRoomRandomPools(room) {
 function drawQuestionFromPools(room, category) {
   const key = category.toLowerCase();
   if (room._categoryPools && room._categoryPools[key]) {
-    // Adaptive difficulty weighting: compute player performance
+    // Enhanced adaptive difficulty weighting with streaks and mastery
     const gs = room.gameState;
     const currentPlayer = gs?.players?.[gs.currentPlayerIndex];
     let targetDifficulty = null;
+    let difficultyBonus = 0;
+    
     if (currentPlayer) {
+      // Base accuracy calculation
       const total = currentPlayer.totalAnswers || 0;
       const correct = currentPlayer.correctAnswers || 0;
-      const accuracy = total > 0 ? correct / total : 0.5;
-      // Map accuracy to difficulty aim
-      if (accuracy < 0.45) targetDifficulty = 'easy';
-      else if (accuracy < 0.7) targetDifficulty = 'medium';
-      else targetDifficulty = 'hard';
+      const overallAccuracy = total > 0 ? correct / total : 0.5;
+      
+      // Streak bonus: players on hot streaks get harder questions
+      const currentStreak = currentPlayer.currentStreak || 0;
+      if (currentStreak >= 3) difficultyBonus += 1; // 3+ streak = harder questions
+      if (currentStreak >= 5) difficultyBonus += 1; // 5+ streak = even harder
+      
+      // Category mastery bonus: experts in this category get harder questions
+      const categoryMastery = currentPlayer.categoryMastery?.[category] || 'novice';
+      const masteryBonus = categoryMastery === 'expert' ? 2 : categoryMastery === 'intermediate' ? 1 : 0;
+      difficultyBonus += masteryBonus;
+      
+      // Calculate target difficulty with bonuses
+      let baseDifficulty;
+      if (overallAccuracy < 0.4) baseDifficulty = 0; // easy
+      else if (overallAccuracy < 0.65) baseDifficulty = 1; // medium  
+      else baseDifficulty = 2; // hard
+      
+      const finalDifficulty = Math.min(2, Math.max(0, baseDifficulty + difficultyBonus));
+      targetDifficulty = ['easy', 'medium', 'hard'][finalDifficulty];
+      
+      console.log(`[drawQuestion] Player ${currentPlayer.name}: accuracy=${(overallAccuracy*100).toFixed(1)}%, streak=${currentStreak}, mastery=${categoryMastery}, target=${targetDifficulty}`);
     }
     // Gather candidate IDs cycling from pool, avoiding recently used questions
     const windowSize = 8;
@@ -251,8 +271,11 @@ const createPlayer = (name, isHost = false) => {
   needsCharadeForLife: false, // Track if player got question wrong and needs to lose life on charade failure
   correctAnswers: 0,
   totalAnswers: 0,
+  currentStreak: 0,
+  bestStreak: 0,
   difficultyAccuracy: { easy: { correct: 0, total: 0 }, medium: { correct: 0, total: 0 }, hard: { correct: 0, total: 0 } },
   categoryAccuracy: {},
+  categoryMastery: {},
   // Give each player an initial set of power-ups. Steal starts at 1 so feature can be exercised.
   powerUps: { swap_question: 1, steal_category: 1 },
   lifelines: { fiftyFifty: 2, passToRandom: 2 }
@@ -801,10 +824,63 @@ io.on('connection', (socket) => {
     const qCat = room.gameState.currentQuestion.category;
     if (!currentPlayer.categoryAccuracy[qCat]) currentPlayer.categoryAccuracy[qCat] = { correct: 0, total: 0 };
     currentPlayer.categoryAccuracy[qCat].total += 1;
+    
+    // Update streak tracking
+    if (!currentPlayer.currentStreak) currentPlayer.currentStreak = 0;
+    if (!currentPlayer.bestStreak) currentPlayer.bestStreak = 0;
+    
     if (isCorrect) {
       currentPlayer.correctAnswers = (currentPlayer.correctAnswers || 0) + 1;
       currentPlayer.difficultyAccuracy[questionDifficulty].correct += 1;
       currentPlayer.categoryAccuracy[qCat].correct += 1;
+      
+      // Update streak
+      currentPlayer.currentStreak += 1;
+      if (currentPlayer.currentStreak > currentPlayer.bestStreak) {
+        currentPlayer.bestStreak = currentPlayer.currentStreak;
+      }
+      
+      // Streak bonuses: reward players for hot streaks
+      if (currentPlayer.currentStreak === 3) {
+        // 3 in a row: gain a lifeline
+        if (!currentPlayer.lifelines) currentPlayer.lifelines = { fiftyFifty: 0, passToRandom: 0 };
+        currentPlayer.lifelines.fiftyFifty += 1;
+        console.log(`[streak-bonus] ${currentPlayer.name} reached 3-streak! Gained 50/50 lifeline`);
+      } else if (currentPlayer.currentStreak === 5) {
+        // 5 in a row: gain a power-up
+        if (!currentPlayer.powerUps) currentPlayer.powerUps = { swap_question: 0, steal_category: 0 };
+        currentPlayer.powerUps.swap_question += 1;
+        console.log(`[streak-bonus] ${currentPlayer.name} reached 5-streak! Gained swap question power-up`);
+      } else if (currentPlayer.currentStreak >= 7 && currentPlayer.currentStreak % 2 === 1) {
+        // Every 2 streaks after 7: gain random bonus
+        const bonuses = ['fiftyFifty', 'passToRandom', 'swap_question'];
+        const randomBonus = bonuses[Math.floor(Math.random() * bonuses.length)];
+        if (randomBonus === 'fiftyFifty' || randomBonus === 'passToRandom') {
+          if (!currentPlayer.lifelines) currentPlayer.lifelines = { fiftyFifty: 0, passToRandom: 0 };
+          currentPlayer.lifelines[randomBonus] += 1;
+        } else {
+          if (!currentPlayer.powerUps) currentPlayer.powerUps = { swap_question: 0, steal_category: 0 };
+          currentPlayer.powerUps[randomBonus] += 1;
+        }
+        console.log(`[streak-bonus] ${currentPlayer.name} reached ${currentPlayer.currentStreak}-streak! Gained random bonus: ${randomBonus}`);
+      }
+    } else {
+      // Reset streak on wrong answer
+      currentPlayer.currentStreak = 0;
+    }
+    
+    // Update category mastery
+    if (!currentPlayer.categoryMastery) currentPlayer.categoryMastery = {};
+    const catStats = currentPlayer.categoryAccuracy[qCat];
+    if (catStats && catStats.total >= 5) { // Need at least 5 questions in category
+      const accuracy = catStats.correct / catStats.total;
+      if (accuracy >= 0.8) {
+        currentPlayer.categoryMastery[qCat] = 'expert';
+      } else if (accuracy >= 0.6) {
+        currentPlayer.categoryMastery[qCat] = 'intermediate';
+      } else {
+        currentPlayer.categoryMastery[qCat] = 'novice';
+      }
     }
 
     if (!isCorrect) {
@@ -1306,16 +1382,56 @@ io.on('connection', (socket) => {
       return;
     }
     const correct = answerIndex === gs.lightningQuestion.correctAnswer;
-    if (!correct) {
-      console.log('[lightning-buzz] Wrong answer; waiting for a correct buzz');
-      return; // only first correct wins
+    
+    if (gs.lightningMode === 'sudden_death') {
+      // In sudden death mode: wrong answers eliminate players immediately
+      if (!correct) {
+        console.log(`[lightning-buzz] SUDDEN DEATH: ${player.name} eliminated for wrong answer!`);
+        player.isEliminated = true;
+        
+        // Check if only one player remains
+        const activePlayers = gs.players.filter(p => !p.isEliminated);
+        if (activePlayers.length === 1) {
+          // Last player standing wins!
+          const winner = activePlayers[0];
+          gs.lightningWinnerId = winner.id;
+          console.log(`[lightning-buzz] SUDDEN DEATH: ${winner.name} is the last player standing!`);
+          io.to(roomCode).emit('lightning-winner', { gameState: gs, winnerId: winner.id });
+          io.to(roomCode).emit('lightning-reward-choice', { winnerId: winner.id, options: ['extra_life', 'lifeline'] });
+          endLightning(room, roomCode, 'winner');
+          return;
+        } else if (activePlayers.length === 0) {
+          // All players eliminated - this shouldn't happen but handle it
+          console.log('[lightning-buzz] SUDDEN DEATH: All players eliminated!');
+          endLightning(room, roomCode, 'all_eliminated');
+          return;
+        } else {
+          // Continue with remaining players
+          io.to(roomCode).emit('lightning-elimination', { gameState: gs, eliminatedPlayerId: playerId });
+          return;
+        }
+      } else {
+        // Correct answer in sudden death - this player wins!
+        gs.lightningWinnerId = playerId;
+        console.log(`[lightning-buzz] SUDDEN DEATH: ${player.name} got it right and wins!`);
+        io.to(roomCode).emit('lightning-winner', { gameState: gs, winnerId: playerId });
+        io.to(roomCode).emit('lightning-reward-choice', { winnerId: playerId, options: ['extra_life', 'lifeline'] });
+        endLightning(room, roomCode, 'winner');
+        return;
+      }
+    } else {
+      // Original normal mode: only first correct wins
+      if (!correct) {
+        console.log('[lightning-buzz] Wrong answer; waiting for a correct buzz');
+        return; // only first correct wins
+      }
+      gs.lightningWinnerId = playerId;
+      io.to(roomCode).emit('lightning-winner', { gameState: gs, winnerId: playerId });
+      // Prompt winner to choose reward
+      io.to(roomCode).emit('lightning-reward-choice', { winnerId: playerId, options: ['extra_life', 'lifeline'] });
+      // Stop the round countdown
+      endLightning(room, roomCode, 'winner');
     }
-    gs.lightningWinnerId = playerId;
-    io.to(roomCode).emit('lightning-winner', { gameState: gs, winnerId: playerId });
-    // Prompt winner to choose reward
-    io.to(roomCode).emit('lightning-reward-choice', { winnerId: playerId, options: ['extra_life', 'lifeline'] });
-    // Stop the round countdown
-    endLightning(room, roomCode, 'winner');
   });
 
   // Lightning reward chosen by winner
@@ -1687,6 +1803,7 @@ function endLightning(room, roomCode, reason = 'timeout') {
   gs.lightningActive = false;
   gs.lightningQuestion = null;
   gs.lightningEndAt = null;
+  gs.lightningMode = null; // Reset lightning mode
   if (gs.gamePhase === 'lightning_round') {
     gs.gamePhase = 'category_selection';
   }
@@ -1703,6 +1820,7 @@ function triggerLightning(room, roomCode) {
   gs.lightningActive = true;
   gs.lightningQuestion = q;
   gs.lightningWinnerId = null;
+  gs.lightningMode = 'sudden_death'; // Enable sudden death mode
   gs.lightningEndAt = Date.now() + 8000; // 8 seconds
   gs.gamePhase = 'lightning_round';
   // Emit countdown event with 5-second delay before starting

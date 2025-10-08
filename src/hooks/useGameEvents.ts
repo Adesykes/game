@@ -261,6 +261,11 @@ export const useGameEvents = (
       setGameState(cloneState(gameState));
     };
 
+    const onLightningElimination = ({ gameState, eliminatedPlayerId }: { gameState: GameState; eliminatedPlayerId: string }) => {
+      console.log('[client] lightning-elimination:', eliminatedPlayerId);
+      setGameState(cloneState(gameState));
+    };
+
     const onLightningEnded = ({ gameState }: { gameState: GameState }) => {
       console.log('[client] lightning-ended');
       setGameState(cloneState(gameState));
@@ -337,6 +342,7 @@ export const useGameEvents = (
   socket.on('lightning-countdown', onLightningCountdown);
   socket.on('lightning-start', onLightningStart);
   socket.on('lightning-winner', onLightningWinner);
+  socket.on('lightning-elimination', onLightningElimination);
   socket.on('lightning-ended', onLightningEnded);
   socket.on('lightning-reward-choice', onLightningRewardChoice);
 
@@ -365,6 +371,7 @@ export const useGameEvents = (
   socket.off('lightning-countdown', onLightningCountdown);
   socket.off('lightning-start', onLightningStart);
   socket.off('lightning-winner', onLightningWinner);
+  socket.off('lightning-elimination', onLightningElimination);
   socket.off('lightning-ended', onLightningEnded);
   socket.off('lightning-reward-choice', onLightningRewardChoice);
     };

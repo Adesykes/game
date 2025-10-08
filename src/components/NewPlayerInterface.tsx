@@ -563,9 +563,31 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
             {gameState.gamePhase === 'lightning_round' && (
               <div className="bg-yellow-600/20 border border-yellow-500/40 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-bold text-yellow-300">⚡ Lightning Round!</h3>
+                  <h3 className="text-lg font-bold text-yellow-300">
+                    ⚡ Lightning Round{gameState.lightningMode === 'sudden_death' ? ' - Sudden Death!' : ''}!
+                  </h3>
                   <div className={`text-sm font-bold ${lightningTimeLeft <= 3 ? 'text-red-300' : 'text-yellow-200'}`}>⏱ {lightningTimeLeft}s</div>
                 </div>
+                {gameState.lightningMode === 'sudden_death' && (
+                  <div className="mb-4 p-3 bg-red-900/30 border border-red-500/40 rounded-lg">
+                    <p className="text-red-200 text-sm font-bold mb-2">💀 SUDDEN DEATH MODE: Wrong answers eliminate players!</p>
+                    <div className="flex flex-wrap gap-2">
+                      {gameState.players.filter(p => !p.isEliminated).map((p) => (
+                        <div key={p.id} className="flex items-center bg-green-600/30 px-2 py-1 rounded text-xs text-green-200">
+                          <span className="mr-1">{p.avatar}</span>
+                          <span className="font-bold">{p.name}</span>
+                        </div>
+                      ))}
+                      {gameState.players.filter(p => p.isEliminated).map((p) => (
+                        <div key={p.id} className="flex items-center bg-red-600/30 px-2 py-1 rounded text-xs text-red-200 line-through">
+                          <span className="mr-1">{p.avatar}</span>
+                          <span className="font-bold">{p.name}</span>
+                          <span className="ml-1">💀</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <p className="text-white text-base mb-4">{gameState.lightningQuestion?.question || currentQuestion?.question}</p>
                 <div className="space-y-2">
                   {(gameState.lightningQuestion?.options || currentQuestion?.options || []).map((opt, idx) => (

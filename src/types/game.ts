@@ -11,6 +11,14 @@ export interface Player {
   lockedCategories: string[]; // Categories locked until player selects 3 different categories
   recentCategories: string[]; // Last 3 categories selected by this player
   isReady?: boolean; // Player has pressed Ready on pre-game screen
+  // Dynamic difficulty scaling fields
+  currentStreak?: number; // Current correct answers in a row
+  bestStreak?: number; // Best streak achieved
+  totalAnswers?: number; // Total questions answered
+  correctAnswers?: number; // Total correct answers
+  difficultyAccuracy?: Record<'easy' | 'medium' | 'hard', { correct: number; total: number }>; // Performance by difficulty
+  categoryAccuracy?: Record<string, { correct: number; total: number }>; // Performance by category
+  categoryMastery?: Record<string, 'novice' | 'intermediate' | 'expert'>; // Mastery level per category
   lifelines: {
     fiftyFifty: number;
     passToRandom: number;
@@ -63,6 +71,7 @@ export interface GameState {
   lightningQuestion?: Question | null;
   lightningEndAt?: number | null;
   lightningWinnerId?: string | null;
+  lightningMode?: 'normal' | 'sudden_death'; // Mode for lightning round
   turnsPlayed?: number; // global turn counter
 }
 

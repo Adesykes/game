@@ -634,9 +634,28 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                 {gameState.gamePhase === 'lightning_round' && (
                   <div className="mt-2 text-left bg-yellow-600/20 p-4 rounded-xl border border-yellow-500/40">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-yellow-300 font-bold">⚡ Lightning Round</span>
+                      <span className="text-yellow-300 font-bold">
+                        ⚡ Lightning Round{gameState.lightningMode === 'sudden_death' ? ' - Sudden Death!' : ''}
+                      </span>
                       <span className={`text-sm font-bold ${lightningTimeLeft <= 3 ? 'text-red-300' : 'text-yellow-200'}`}>⏱ {lightningTimeLeft}s</span>
                     </div>
+                    {gameState.lightningMode === 'sudden_death' && (
+                      <div className="mb-3 p-2 bg-red-900/30 border border-red-500/40 rounded">
+                        <p className="text-red-200 text-xs font-bold mb-1">💀 SUDDEN DEATH: Wrong answers eliminate players!</p>
+                        <div className="flex flex-wrap gap-1">
+                          {gameState.players.filter(p => !p.isEliminated).map((p) => (
+                            <span key={p.id} className="text-xs bg-green-600/30 px-1 py-0.5 rounded text-green-200">
+                              {p.avatar} {p.name}
+                            </span>
+                          ))}
+                          {gameState.players.filter(p => p.isEliminated).map((p) => (
+                            <span key={p.id} className="text-xs bg-red-600/30 px-1 py-0.5 rounded text-red-200 line-through">
+                              {p.avatar} {p.name} 💀
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <p className="text-white text-lg mb-3">{gameState.lightningQuestion?.question}</p>
                     <div className="grid grid-cols-2 gap-2">
                       {(gameState.lightningQuestion?.options || []).map((opt, idx) => (

@@ -29,6 +29,7 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
     playerName?: string;
     correctAnswer?: string;
     message?: string;
+    difficulty?: 'easy' | 'medium' | 'hard';
   } | null>(null);
   
   // Track lightning winners that have already been shown
@@ -51,7 +52,8 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
         isCorrect: answerResult.isCorrect,
         playerName: player?.name || 'Unknown Player',
         correctAnswer: undefined,
-        message: answerResult.isCorrect ? 'Correct!' : 'Incorrect!'
+        message: answerResult.isCorrect ? 'Correct!' : 'Incorrect!',
+        difficulty: currentQuestion?.difficulty
       });
       setIsVisible(true);
 
@@ -252,6 +254,39 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
           <p className="text-lg text-white/80 mb-4">
             {resultData.message}
           </p>
+
+          {/* Streak display for correct answers */}
+          {resultData.isCorrect && resultData.type === 'question' && (() => {
+            const currentPlayer = gameState.players.find(p => p.id === playerId);
+            const currentStreak = currentPlayer?.currentStreak || 0;
+            const bestStreak = currentPlayer?.bestStreak || 0;
+            const categoryMastery = currentPlayer?.categoryMastery?.[currentQuestion?.category || ''];
+            
+            return (
+              <div className="mb-4">
+                {currentStreak >= 2 && (
+                  <p className="text-xl font-bold text-yellow-300 animate-pulse mb-2">
+                    🔥 {currentStreak} IN A ROW! 🔥
+                  </p>
+                )}
+                {currentStreak === bestStreak && currentStreak >= 3 && (
+                  <p className="text-lg text-yellow-200 mb-2">
+                    🏆 NEW BEST STREAK! 🏆
+                  </p>
+                )}
+                {categoryMastery && categoryMastery !== 'novice' && (
+                  <p className="text-lg text-blue-300 mb-2">
+                    ⭐ {categoryMastery.toUpperCase()} in {currentQuestion?.category}! ⭐
+                  </p>
+                )}
+                {resultData.difficulty && (
+                  <p className="text-sm text-gray-300">
+                    Difficulty: {resultData.difficulty.toUpperCase()}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Special message for wrong answers */}
           {!resultData.isCorrect && resultData.type === 'question' && (
