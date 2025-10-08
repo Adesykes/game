@@ -167,5 +167,111 @@ export const useSound = () => {
     });
   }, [play]);
 
-  return useMemo(() => ({ playDice, playCorrect, playWrong, playChance, playReady, playStart }), [playDice, playCorrect, playWrong, playChance, playReady, playStart]);
+  const playStreak = useCallback(() => {
+    play((ctx) => {
+      // Epic streak celebration - rising fanfare
+      const start = ctx.currentTime;
+      const base = 523.25; // C5
+      // Major chord progression
+      [0, 4, 7, 12].forEach((semi, i) => makeTone(ctx, { freq: base * Math.pow(2, semi / 12), type: 'triangle', start: start + i * 0.05, duration: 0.8, gain: 0.08, detune: i * 5 }));
+      // Rapid ascending notes
+      for (let i = 0; i < 8; i++) {
+        makeTone(ctx, { freq: 440 + i * 55, type: 'square', start: start + 0.2 + i * 0.08, duration: 0.15, gain: 0.06 });
+      }
+      // Sparkle effect
+      noiseBurst(ctx, start + 0.1, 0.4, 0.15, 'pink');
+    });
+  }, [play]);
+
+  const playElimination = useCallback(() => {
+    play((ctx) => {
+      // Dramatic elimination sound - descending doom
+      const start = ctx.currentTime;
+      const seq = [220, 196, 165, 147, 131]; // A3 -> G3 -> E3 -> D3 -> C3
+      seq.forEach((f, i) => makeTone(ctx, { freq: f, type: 'sawtooth', start: start + i * 0.15, duration: 0.4, attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.3, gain: 0.08 }));
+      // Low rumble
+      makeTone(ctx, { freq: 80, type: 'sine', start, duration: 0.8, gain: 0.12 });
+      noiseBurst(ctx, start + 0.1, 0.3, 0.1, 'white');
+    });
+  }, [play]);
+
+  const playLightningWin = useCallback(() => {
+    play((ctx) => {
+      // Triumphant lightning victory
+      const start = ctx.currentTime;
+      const base = 659.25; // E5
+      // Heroic fanfare
+      [0, 4, 7, 11].forEach((semi, i) => makeTone(ctx, { freq: base * Math.pow(2, semi / 12), type: 'triangle', start: start + i * 0.08, duration: 0.6, gain: 0.08 }));
+      // Thunder crack
+      noiseBurst(ctx, start + 0.2, 0.2, 0.18, 'white');
+      // Victory flourish
+      [12, 16, 19].forEach((semi, i) => makeTone(ctx, { freq: base * Math.pow(2, semi / 12), type: 'square', start: start + 0.4 + i * 0.1, duration: 0.3, gain: 0.07 }));
+    });
+  }, [play]);
+
+  const playMastery = useCallback(() => {
+    play((ctx) => {
+      // Achievement unlocked sound
+      const start = ctx.currentTime;
+      const base = 523.25; // C5
+      // Magical chime sequence
+      [0, 7, 12, 19, 24].forEach((semi, i) => makeTone(ctx, { freq: base * Math.pow(2, semi / 12), type: 'sine', start: start + i * 0.12, duration: 0.5, gain: 0.06 }));
+      // Sparkle trail
+      for (let i = 0; i < 5; i++) {
+        noiseBurst(ctx, start + 0.1 + i * 0.15, 0.1, 0.08, 'pink');
+      }
+    });
+  }, [play]);
+
+  const playForfeit = useCallback(() => {
+    play((ctx) => {
+      // Playful forfeit sound
+      const start = ctx.currentTime;
+      // Clown horn effect
+      makeTone(ctx, { freq: 523.25, type: 'sawtooth', start, duration: 0.3, gain: 0.08 });
+      makeTone(ctx, { freq: 659.25, type: 'sawtooth', start: start + 0.15, duration: 0.3, gain: 0.08 });
+      // Boing effect
+      makeTone(ctx, { freq: 220, type: 'triangle', start: start + 0.3, duration: 0.4, gain: 0.06 });
+    });
+  }, [play]);
+
+  const playGuess = useCallback(() => {
+    play((ctx) => {
+      // Eureka moment
+      const start = ctx.currentTime;
+      const base = 440; // A4
+      // Ascending revelation
+      [0, 4, 7, 12, 16].forEach((semi, i) => makeTone(ctx, { freq: base * Math.pow(2, semi / 12), type: 'triangle', start: start + i * 0.08, duration: 0.4, gain: 0.07 }));
+      // Light bulb pop
+      noiseBurst(ctx, start + 0.2, 0.15, 0.12, 'white');
+    });
+  }, [play]);
+
+  return useMemo(() => ({ 
+    playDice, 
+    playCorrect, 
+    playWrong, 
+    playChance, 
+    playReady, 
+    playStart,
+    playStreak,
+    playElimination,
+    playLightningWin,
+    playMastery,
+    playForfeit,
+    playGuess
+  }), [
+    playDice, 
+    playCorrect, 
+    playWrong, 
+    playChance, 
+    playReady, 
+    playStart,
+    playStreak,
+    playElimination,
+    playLightningWin,
+    playMastery,
+    playForfeit,
+    playGuess
+  ]);
 };

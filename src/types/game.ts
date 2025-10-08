@@ -72,6 +72,7 @@ export interface GameState {
   lightningEndAt?: number | null;
   lightningWinnerId?: string | null;
   lightningMode?: 'normal' | 'sudden_death'; // Mode for lightning round
+  lightningAnsweredPlayers?: string[]; // Players who have already answered this round
   turnsPlayed?: number; // global turn counter
 }
 

@@ -1011,7 +1011,7 @@ io.on('connection', (socket) => {
     const currentPlayer = gs.players[gs.currentPlayerIndex];
     if (currentPlayer.id !== playerId) return; // only active player
     if (!currentPlayer.powerUps || !currentPlayer.powerUps.swap_question) return;
-    currentPlayer.powerUps.swap_question -= 1;
+    
     // Draw another question from same category using adaptive draw
     let newQ;
     let attempts = 0;
@@ -1019,11 +1019,29 @@ io.on('connection', (socket) => {
       newQ = drawQuestionFromPools(room, gs.currentQuestion.category);
       attempts++;
       if (attempts > 10) {
-        console.log(`[server] swap question: giving up after ${attempts} attempts, using whatever we got`);
+        console.log(`[server] swap question: failed to draw from same category ${gs.currentQuestion.category}, trying any category`);
+        // If we can't find a question in the same category, try any category
+        const allCategories = [...new Set(allQuestions.map(q => q.category))];
+        for (const category of allCategories) {
+          if (category !== gs.currentQuestion.category) {
+            newQ = drawQuestionFromPools(room, category);
+            if (newQ) {
+              console.log(`[server] swap question: found question in category ${category}`);
+              break;
+            }
+          }
+        }
         break;
       }
     } while (newQ && newQ.id === gs.currentQuestion.id);
     
+    // Only proceed if we got a valid new question different from the current one
+    if (!newQ || newQ.id === gs.currentQuestion.id) {
+      console.log(`[server] swap question: failed to draw different question for category ${gs.currentQuestion.category}`);
+      return; // Don't consume powerup if we can't swap
+    }
+    
+    currentPlayer.powerUps.swap_question -= 1;
     gs.currentQuestion = newQ;
     io.to(roomCode).emit('question-swapped', { gameState: gs, question: newQ, playerId });
   });
@@ -1381,37 +1399,31 @@ io.on('connection', (socket) => {
       console.log('[lightning-buzz] Ignored: invalid or eliminated player');
       return;
     }
+    // Initialize answered players array if not exists
+    if (!gs.lightningAnsweredPlayers) {
+      gs.lightningAnsweredPlayers = [];
+    }
+    
+    // Check if player has already answered this round
+    if (gs.lightningAnsweredPlayers.includes(playerId)) {
+      console.log(`[lightning-buzz] ${player.name} already answered this round, ignoring`);
+      return;
+    }
+    
     const correct = answerIndex === gs.lightningQuestion.correctAnswer;
     
+    // Mark player as having answered
+    gs.lightningAnsweredPlayers.push(playerId);
+    
     if (gs.lightningMode === 'sudden_death') {
-      // In sudden death mode: wrong answers eliminate players immediately
+      // In sudden death mode: one answer per player, wrong answers freeze them out (no lives lost)
       if (!correct) {
-        console.log(`[lightning-buzz] SUDDEN DEATH: ${player.name} eliminated for wrong answer!`);
-        player.isEliminated = true;
-        
-        // Check if only one player remains
-        const activePlayers = gs.players.filter(p => !p.isEliminated);
-        if (activePlayers.length === 1) {
-          // Last player standing wins!
-          const winner = activePlayers[0];
-          gs.lightningWinnerId = winner.id;
-          console.log(`[lightning-buzz] SUDDEN DEATH: ${winner.name} is the last player standing!`);
-          io.to(roomCode).emit('lightning-winner', { gameState: gs, winnerId: winner.id });
-          io.to(roomCode).emit('lightning-reward-choice', { winnerId: winner.id, options: ['extra_life', 'lifeline'] });
-          endLightning(room, roomCode, 'winner');
-          return;
-        } else if (activePlayers.length === 0) {
-          // All players eliminated - this shouldn't happen but handle it
-          console.log('[lightning-buzz] SUDDEN DEATH: All players eliminated!');
-          endLightning(room, roomCode, 'all_eliminated');
-          return;
-        } else {
-          // Continue with remaining players
-          io.to(roomCode).emit('lightning-elimination', { gameState: gs, eliminatedPlayerId: playerId });
-          return;
-        }
+        console.log(`[lightning-buzz] SUDDEN DEATH: ${player.name} got wrong answer - frozen out for this round`);
+        // Player is frozen out but not eliminated, no lives lost
+        // Continue waiting for other players or correct answer
+        return;
       } else {
-        // Correct answer in sudden death - this player wins!
+        // Correct answer - this player wins!
         gs.lightningWinnerId = playerId;
         console.log(`[lightning-buzz] SUDDEN DEATH: ${player.name} got it right and wins!`);
         io.to(roomCode).emit('lightning-winner', { gameState: gs, winnerId: playerId });
@@ -1803,6 +1815,7 @@ function endLightning(room, roomCode, reason = 'timeout') {
   gs.lightningActive = false;
   gs.lightningQuestion = null;
   gs.lightningEndAt = null;
+  gs.lightningAnsweredPlayers = []; // Reset answered players
   gs.lightningMode = null; // Reset lightning mode
   if (gs.gamePhase === 'lightning_round') {
     gs.gamePhase = 'category_selection';
@@ -1820,6 +1833,7 @@ function triggerLightning(room, roomCode) {
   gs.lightningActive = true;
   gs.lightningQuestion = q;
   gs.lightningWinnerId = null;
+  gs.lightningAnsweredPlayers = []; // Reset answered players for new round
   gs.lightningMode = 'sudden_death'; // Enable sudden death mode
   gs.lightningEndAt = Date.now() + 8000; // 8 seconds
   gs.gamePhase = 'lightning_round';

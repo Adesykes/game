@@ -1,5 +1,7 @@
 ﻿import React, { useEffect } from 'react';
 import { GameState, Question, AnswerResult } from '../types/game';
+import { useSound } from '../hooks/useSound';
+import ParticleEffect from './ParticleEffect';
 
 interface ResultBannerProps {
   gameState: GameState;
@@ -32,6 +34,13 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
     difficulty?: 'easy' | 'medium' | 'hard';
   } | null>(null);
   
+  // Particle effect state
+  const [particleEffect, setParticleEffect] = React.useState<{
+    type: 'celebration' | 'explosion' | 'sparkle' | 'hearts' | 'skull';
+    duration: number;
+  } | null>(null);
+  const [particleTrigger, setParticleTrigger] = React.useState(false);
+  
   // Track lightning winners that have already been shown
   const lastLightningWinnerRef = React.useRef<string | null>(null);
   
@@ -41,6 +50,9 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
   const forfeitFailureTimerRef = React.useRef<NodeJS.Timeout | null>(null);
   const lightningTimerRef = React.useRef<NodeJS.Timeout | null>(null);
   const guessTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Sound and voice hooks
+  const { playCorrect, playWrong, playStreak, playMastery, playForfeit, playGuess } = useSound();
 
   // Handle question results
   useEffect(() => {
@@ -57,6 +69,31 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
       });
       setIsVisible(true);
 
+      // Enhanced sound feedback
+      if (answerResult.isCorrect) {
+        playCorrect();
+        const currentPlayer = gameState.players.find(p => p.id === playerId);
+        const currentStreak = currentPlayer?.currentStreak || 0;
+        const categoryMastery = currentPlayer?.categoryMastery?.[currentQuestion?.category || ''];
+        
+        if (currentStreak >= 3) {
+          playStreak();
+          setParticleEffect({ type: 'celebration', duration: 3000 });
+          setParticleTrigger(true);
+        } else if (categoryMastery && categoryMastery !== 'novice') {
+          playMastery();
+          setParticleEffect({ type: 'sparkle', duration: 2000 });
+          setParticleTrigger(true);
+        } else {
+          setParticleEffect({ type: 'celebration', duration: 2000 });
+          setParticleTrigger(true);
+        }
+      } else {
+        playWrong();
+        setParticleEffect({ type: 'skull', duration: 2000 });
+        setParticleTrigger(true);
+      }
+
       // Clear any existing question timer
       if (questionTimerRef.current) {
         clearTimeout(questionTimerRef.current);
@@ -69,7 +106,7 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
         questionTimerRef.current = null;
       }, 3000);
     }
-  }, [answerResult, playerId, gameState.players, currentQuestion, onClose]);
+  }, [answerResult, playerId, gameState.players, currentQuestion, onClose, playCorrect, playWrong, playStreak, playMastery]);
 
   // Handle forfeit results
   useEffect(() => {
@@ -86,6 +123,19 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
         message: forfeitTypeMessage
       });
       setIsVisible(true);
+
+      // Enhanced forfeit feedback
+      playForfeit();
+      if (forfeitResult.forfeitType === 'shot') {
+        setParticleEffect({ type: 'explosion', duration: 2000 });
+        setParticleTrigger(true);
+      } else if (forfeitResult.forfeitType === 'charade') {
+        setParticleEffect({ type: 'celebration', duration: 2000 });
+        setParticleTrigger(true);
+      } else if (forfeitResult.forfeitType === 'pictionary') {
+        setParticleEffect({ type: 'sparkle', duration: 2000 });
+        setParticleTrigger(true);
+      }
 
       // Clear any existing forfeit timer
       if (forfeitTimerRef.current) {
@@ -106,7 +156,7 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
         }
       };
     }
-  }, [forfeitResult, playerId, gameState.players, onClose]);
+  }, [forfeitResult, playerId, gameState.players, onClose, playForfeit]);
 
   // Handle forfeit failure results
   useEffect(() => {
@@ -149,6 +199,10 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
       });
       setIsVisible(true);
       
+      // Add particle effect for lightning win
+      setParticleEffect({ type: 'celebration', duration: 4000 });
+      setParticleTrigger(true);
+      
       // Mark this winner as shown
       lastLightningWinnerRef.current = gameState.lightningWinnerId;
 
@@ -179,6 +233,10 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
       });
       setIsVisible(true);
 
+      // Add particle effect for successful guess
+      setParticleEffect({ type: 'sparkle', duration: 2000 });
+      setParticleTrigger(true);
+
       // Clear any existing guess timer
       if (guessTimerRef.current) {
         clearTimeout(guessTimerRef.current);
@@ -193,18 +251,47 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
     }
   }, [guessResult, gameState.players, onClose]);
 
-  // Clear banner when all result states are null
+  // Clear banner when new results come in (to prevent overlapping banners)
   useEffect(() => {
-    const hasAnyResult = answerResult || forfeitResult || forfeitFailureResult || guessResult;
-    if (!hasAnyResult) {
-      setIsVisible(false);
-      setResultData(null);
-      // Reset lightning winner tracking
-      lastLightningWinnerRef.current = null;
-    }
-  }, [answerResult, forfeitResult, forfeitFailureResult, guessResult]);
+    // Only clear for forfeit and guess results (not answer results, which trigger question banners)
+    const hasClearingResult = forfeitResult || forfeitFailureResult || guessResult;
+    if (hasClearingResult && isVisible && resultData) {
+      // Don't clear if the current banner is the same type as the incoming result
+      const shouldClear = 
+        (resultData.type === 'guess' && !guessResult) ||
+        (resultData.type === 'forfeit' && !forfeitResult && !forfeitFailureResult);
+      
+      if (shouldClear) {
+        // Clear any existing banner when forfeit/guess results arrive
+        setIsVisible(false);
+        setResultData(null);
+        setParticleEffect(null);
+        setParticleTrigger(false);
 
-  if (!isVisible || !resultData) return null;
+        // Clear all timers
+        if (questionTimerRef.current) {
+          clearTimeout(questionTimerRef.current);
+          questionTimerRef.current = null;
+        }
+        if (forfeitTimerRef.current) {
+          clearTimeout(forfeitTimerRef.current);
+          forfeitTimerRef.current = null;
+        }
+        if (forfeitFailureTimerRef.current) {
+          clearTimeout(forfeitFailureTimerRef.current);
+          forfeitFailureTimerRef.current = null;
+        }
+        if (lightningTimerRef.current) {
+          clearTimeout(lightningTimerRef.current);
+          lightningTimerRef.current = null;
+        }
+        if (guessTimerRef.current) {
+          clearTimeout(guessTimerRef.current);
+          guessTimerRef.current = null;
+        }
+      }
+    }
+  }, [forfeitResult, forfeitFailureResult, guessResult, isVisible, resultData]);  if (!isVisible || !resultData) return null;
 
   const getBackgroundColor = () => {
     switch (resultData.type) {
@@ -239,6 +326,19 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pointer-events-none">
       <div className={`max-w-md w-full mx-4 rounded-2xl shadow-2xl border-4 border-white/20 transform animate-bounce pointer-events-auto ${getBackgroundColor()}`}>
+        {/* Particle Effect */}
+        {particleEffect && (
+          <ParticleEffect
+            trigger={particleTrigger}
+            type={particleEffect.type}
+            duration={particleEffect.duration}
+            onComplete={() => {
+              setParticleTrigger(false);
+              setParticleEffect(null);
+            }}
+          />
+        )}
+        
         <div className="p-8 text-center">
           {/* Title */}
           <h2 className="text-3xl font-black text-white mb-2 tracking-wider">
