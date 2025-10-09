@@ -223,6 +223,12 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
   // Handle guess results (charade/pictionary solved)
   useEffect(() => {
     if (guessResult) {
+      // Only show guess result banner for the player who was doing the forfeit
+      const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+      if (currentPlayer?.id !== playerId) {
+        return; // Don't show banner for other players
+      }
+
       const solver = gameState.players.find(p => p.id === guessResult.solverId);
       const forfeitTypeMessage = guessResult.forfeitType === 'charade' ? 'guessed the charade!' : 'guessed the pictionary!';
 

@@ -212,21 +212,41 @@ const getRandomForfeit = (player = null) => {
     };
   }
   
-  // Randomly choose between charade and pictionary
-  const isCharade = Math.random() < 0.5;
-  
+  // Randomly choose between charade, pictionary, and tongue twister
+  const forfeitType = Math.random();
+  const isCharade = forfeitType < 0.4; // 40% chance
+  const isTongueTwister = forfeitType >= 0.4 && forfeitType < 0.7; // 30% chance
+
   if (isCharade) {
     const wordToAct = charadesWords[Math.floor(Math.random() * charadesWords.length)];
-    
+
     return {
       id: Date.now().toString(36),
       type: 'charade',
       description: 'Act out this word without speaking! Other players try to guess.',
       wordToAct
     };
+  } else if (isTongueTwister) {
+    // Import tongue twisters dynamically
+    let tongueTwister;
+    try {
+      const tt = require('../src/data/tongueTwisters.ts');
+      tongueTwister = tt.getRandomTongueTwister();
+    } catch (e) {
+      // Fallback tongue twister if import fails
+      tongueTwister = "She sells sea shells by the sea shore";
+    }
+
+    return {
+      id: Date.now().toString(36),
+      type: 'tongue_twister',
+      description: 'Recite this tongue twister correctly 3 times fast!',
+      wordToAct: null,
+      tongueTwister
+    };
   } else {
     const wordToDraw = pictionaryWords[Math.floor(Math.random() * pictionaryWords.length)];
-    
+
     return {
       id: Date.now().toString(36),
       type: 'pictionary',

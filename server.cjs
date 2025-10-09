@@ -918,13 +918,28 @@ io.on('connection', (socket) => {
   });
 
   socket.on('submit-answer', (roomCode, playerId, answerIndex) => {
+    console.log(`[submit-answer] Received answer submission: room=${roomCode}, player=${playerId}, answer=${answerIndex}`);
     const room = rooms.get(roomCode);
-    if (!room || !room.gameState.currentQuestion) return;
-    if (room.gameState.gamePhase === 'karaoke_voting' || room.gameState.gamePhase === 'karaoke_break') return;
+    if (!room) {
+      console.log(`[submit-answer] Room ${roomCode} not found`);
+      return;
+    }
+    if (!room.gameState.currentQuestion) {
+      console.log(`[submit-answer] No current question in room ${roomCode}`);
+      return;
+    }
+    if (room.gameState.gamePhase === 'karaoke_voting' || room.gameState.gamePhase === 'karaoke_break') {
+      console.log(`[submit-answer] Ignoring answer during karaoke phase: ${room.gameState.gamePhase}`);
+      return;
+    }
 
     const currentPlayer = room.gameState.players[room.gameState.currentPlayerIndex];
-    if (currentPlayer.id !== playerId) return;
+    if (currentPlayer.id !== playerId) {
+      console.log(`[submit-answer] Player ID mismatch: expected ${currentPlayer.id}, got ${playerId}`);
+      return;
+    }
 
+    console.log(`[submit-answer] Processing answer ${answerIndex} from player ${playerId} (${currentPlayer.name})`);
     let isCorrect = answerIndex === room.gameState.currentQuestion.correctAnswer;
     const questionDifficulty = room.gameState.currentQuestion.difficulty || 'easy';
 
@@ -1076,6 +1091,41 @@ io.on('connection', (socket) => {
         } else {
           scheduleNextTurn(room, roomCode, 'after auto shot forfeit', 3000);
         }
+      } else if (room.gameState.currentForfeit.type === 'tongue_twister') {
+        // Auto-start tongue twister forfeit
+        console.log(`[auto-forfeit] Auto-starting tongue twister forfeit for ${currentPlayer.name}: "${room.gameState.currentForfeit.tongueTwister}"`);
+        // Start 20-second timer for tongue twister
+        const endsAt = Date.now() + 20000; // 20 seconds from now
+        room.gameState.tongueTwisterDeadline = endsAt;
+        setTimeout(() => {
+          const currentRoom = rooms.get(roomCode);
+          if (!currentRoom || currentRoom.gameState.gamePhase !== 'forfeit') return;
+          
+          console.log(`[tongue-twister] Auto-completed tongue twister for ${currentPlayer.name}`);
+          
+          // Reset the charade life flag since tongue twister forfeits don't involve charades
+          // Note: No lives are lost or gained during tongue twister forfeits
+          currentPlayer.needsCharadeForLife = false;
+          
+          currentRoom.gameState.gamePhase = 'category_selection';
+          currentRoom.gameState.currentForfeit = null;
+          currentRoom.gameState.tongueTwisterDeadline = null;
+          
+          // Notify clients about the completed forfeit
+          io.to(roomCode).emit('forfeit-completed', { gameState: currentRoom.gameState, forfeitType: 'tongue_twister' });
+          
+          // Attempt an automatic karaoke break
+          try {
+            maybeTriggerKaraoke(currentRoom, roomCode);
+          } catch (err) {
+            console.error('[karaoke] maybeTriggerKaraoke error after tongue twister', err);
+          }
+          if (currentRoom.gameState.gamePhase === 'karaoke_break') {
+            console.log('[karaoke] Karaoke break triggered after tongue twister; skipping scheduled nextTurn');
+          } else {
+            scheduleNextTurn(currentRoom, roomCode, 'after auto tongue twister', 3000);
+          }
+        }, 20000); // 20 seconds for tongue twister
       } else if (room.gameState.currentForfeit.type === 'charade' || room.gameState.currentForfeit.type === 'pictionary') {
         // Auto-start charade or pictionary forfeit
         console.log(`[auto-forfeit] Auto-starting ${room.gameState.currentForfeit.type} forfeit for ${currentPlayer.name}`);
@@ -1629,6 +1679,50 @@ io.on('connection', (socket) => {
         }
       }, PICTIONARY_DURATION_MS);
       pictionaryTimeouts.set(roomCode, handle);
+    } else if (gameState.currentForfeit.type === 'tongue_twister') {
+      // For tongue twister forfeits, display it for 20 seconds then move on
+      console.log(`[tongue-twister] Starting tongue twister for ${currentPlayer.name}: "${gameState.currentForfeit.tongueTwister}"`);
+      
+      // Set deadline for client-side timer display
+      const endsAt = Date.now() + 20000; // 20 seconds from now
+      gameState.tongueTwisterDeadline = endsAt;
+      
+      // Stay in forfeit phase but mark it as started
+      // After 20 seconds, automatically complete the forfeit
+      setTimeout(() => {
+        const currentRoom = rooms.get(roomCode);
+        if (!currentRoom || currentRoom.gameState.gamePhase !== 'forfeit') return;
+        
+        console.log(`[tongue-twister] Completed tongue twister for ${currentPlayer.name}`);
+        
+        // Reset the charade life flag since tongue twister forfeits don't involve charades
+        // Note: No lives are lost or gained during tongue twister forfeits
+        currentPlayer.needsCharadeForLife = false;
+        
+        currentRoom.gameState.gamePhase = 'category_selection';
+        currentRoom.gameState.currentForfeit = null;
+        currentRoom.gameState.tongueTwisterDeadline = null;
+        
+        // Notify clients about the completed forfeit
+        io.to(roomCode).emit('forfeit-completed', { gameState: currentRoom.gameState, forfeitType: 'tongue_twister' });
+        
+        // Attempt an automatic karaoke break
+        const beforePhase = currentRoom.gameState.gamePhase;
+        try {
+          maybeTriggerKaraoke(currentRoom, roomCode);
+        } catch (err) {
+          console.error('[karaoke] maybeTriggerKaraoke error after tongue twister', err);
+        }
+        const afterPhase = currentRoom.gameState.gamePhase;
+        if (afterPhase === 'karaoke_break') {
+          console.log('[karaoke] Karaoke break triggered after tongue twister; skipping scheduled nextTurn until karaoke ends');
+          return;
+        }
+        
+        // Move to next turn after a short delay
+        console.log(`[tongue-twister] No karaoke break; scheduling nextTurn in 3s`);
+        scheduleNextTurn(currentRoom, roomCode, 'after tongue twister', 3000);
+      }, 15000); // 15 seconds for tongue twister (no lives lost or gained)
     }
   });
 

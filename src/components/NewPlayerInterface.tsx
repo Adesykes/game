@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useWakeLock } from '../hooks/useWakeLock';
 import { useFullScreen } from '../hooks/useFullScreen';
 import { Socket } from 'socket.io-client';
@@ -35,6 +35,7 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
   const [pictionaryGuessInput, setPictionaryGuessInput] = useState('');
   const [lightningCountdown, setLightningCountdown] = useState<number | null>(null);
   const [pictionaryTimeLeft, setPictionaryTimeLeft] = useState(60);
+  const [tongueTwisterTimeLeft, setTongueTwisterTimeLeft] = useState(20);
   const [lightningTimeLeft, setLightningTimeLeft] = useState<number>(0);
   const [hasBuzzed, setHasBuzzed] = useState<boolean>(false);
   const [selectedLightningIndex, setSelectedLightningIndex] = useState<number | null>(null);
@@ -54,7 +55,9 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
   const isEliminated = player?.isEliminated || false;
   
   // Debug logging
-  console.log(`[NewPlayerInterface] gamePhase: ${gameState.gamePhase}, currentPlayerIndex: ${gameState.currentPlayerIndex}, isMyTurn: ${isMyTurn}, playerId: ${playerId}, currentPlayerId: ${currentPlayer?.id}`);
+  console.log(`[NewPlayerInterface] gamePhase: ${gameState.gamePhase}, currentPlayerIndex: ${gameState.currentPlayerIndex}, isMyTurn: ${isMyTurn}, playerId: ${playerId}, currentPlayerId: ${currentPlayerIdFromState}`);
+  console.log(`[NewPlayerInterface] currentPlayer:`, currentPlayer);
+  console.log(`[NewPlayerInterface] player:`, player);
   
   // Early return for loading state
   if (!gameState || !socket || !player) {
@@ -122,11 +125,21 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
 
   // Reset timer when a new question appears
   useEffect(() => {
-    if (currentQuestion && gameState.gamePhase === 'question') {
-      setSelectedAnswer(null);
-      setTimeLeft(30);
-    }
+    console.log(`[question-reset] Resetting selectedAnswer to null for new question`);
+    setSelectedAnswer(null);
+    setTimeLeft(30);
   }, [currentQuestion, gameState.gamePhase]);
+
+  // Debug selectedAnswer changes
+  useEffect(() => {
+    console.log(`[selectedAnswer] selectedAnswer changed to: ${selectedAnswer}`);
+  }, [selectedAnswer]);
+
+  // Debug question display conditions
+  useEffect(() => {
+    const shouldShowQuestion = gameState.gamePhase === 'question' && currentQuestion && isMyTurn;
+    console.log(`[question-display] Conditions: phase=${gameState.gamePhase}, hasQuestion=${!!currentQuestion}, isMyTurn=${isMyTurn}, shouldShow=${shouldShowQuestion}`);
+  }, [gameState.gamePhase, currentQuestion, isMyTurn]);
 
   // Charade countdown synced to server deadline
   useEffect(() => {
@@ -151,6 +164,18 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
     }, 250);
     return () => clearInterval(id);
   }, [gameState.gamePhase, pictionaryDeadline]);
+
+  // Tongue twister countdown synced to server deadline
+  useEffect(() => {
+    if (gameState.gamePhase !== 'forfeit' || gameState.currentForfeit?.type !== 'tongue_twister') return;
+    const id = setInterval(() => {
+      const now = Date.now();
+      const dl = gameState.tongueTwisterDeadline ?? now;
+      const remaining = Math.max(0, Math.floor((dl - now) / 1000));
+      setTongueTwisterTimeLeft(remaining);
+    }, 250);
+    return () => clearInterval(id);
+  }, [gameState.gamePhase, gameState.currentForfeit?.type, gameState.tongueTwisterDeadline]);
 
   // Lightning countdown synced to server
   useEffect(() => {
@@ -236,11 +261,20 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
     socket.emit('select-category', gameState.id, playerId, category);
   };
 
-  const submitAnswer = (answerIndex: number) => {
-    if (!isMyTurn || gameState.gamePhase !== 'question' || !currentQuestion) return;
+  const submitAnswer = useCallback((answerIndex: number) => {
+    console.log(`[submitAnswer] Attempting to submit answer ${answerIndex} for player ${playerId}`);
+    console.log(`[submitAnswer] isMyTurn: ${isMyTurn}, gamePhase: ${gameState.gamePhase}, currentQuestion: ${!!currentQuestion}`);
+    console.log(`[submitAnswer] currentPlayerIdFromState: ${currentPlayerIdFromState}, playerId: ${playerId}`);
+    
+    if (!isMyTurn || gameState.gamePhase !== 'question' || !currentQuestion) {
+      console.log(`[submitAnswer] BLOCKED: isMyTurn=${isMyTurn}, phase=${gameState.gamePhase}, hasQuestion=${!!currentQuestion}`);
+      return;
+    }
+    
+    console.log(`[submitAnswer] Submitting answer ${answerIndex}`);
     setSelectedAnswer(answerIndex);
     socket.emit('submit-answer', gameState.id, playerId, answerIndex);
-  };
+  }, [isMyTurn, gameState.gamePhase, gameState.id, currentQuestion, playerId, socket, currentPlayerIdFromState]);
   
   const submitCharadeGuess = () => {
     if (gameState.gamePhase !== 'charade_guessing' || isMyTurn) return;
@@ -548,21 +582,28 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                 </div>
                 <p className="text-white text-lg mb-6">{currentQuestion.question}</p>
                 <div className="space-y-3" data-test="answer-options">
-                  {currentQuestion.options.map((option, index) => (
-                    <button
-                      key={index}
-                      onClick={() => submitAnswer(index)}
-                      disabled={selectedAnswer !== null}
-                      className={`w-full p-4 rounded-xl font-bold transition-all ${
-                        selectedAnswer === index 
-                          ? 'bg-blue-600 text-white' 
-                          : 'bg-white/10 hover:bg-white/20 text-white'
-                      } ${selectedAnswer !== null ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
-                    >
-                      <span className="mr-3 text-yellow-400">{String.fromCharCode(65 + index)}.</span>
-                      {option}
-                    </button>
-                  ))}
+                  {currentQuestion.options.map((option, index) => {
+                    const isDisabled = selectedAnswer !== null;
+                    console.log(`[answer-button] Rendering button ${index}, selectedAnswer: ${selectedAnswer}, isDisabled: ${isDisabled}`);
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          console.log(`[answer-button] Clicked answer ${index} (${String.fromCharCode(65 + index)})`);
+                          submitAnswer(index);
+                        }}
+                        disabled={isDisabled}
+                        className={`w-full p-4 rounded-xl font-bold transition-all ${
+                          selectedAnswer === index 
+                            ? 'bg-blue-600 text-white' 
+                            : 'bg-white/10 hover:bg-white/20 text-white'
+                        } ${isDisabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        <span className="mr-3 text-yellow-400">{String.fromCharCode(65 + index)}.</span>
+                        {option}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -656,12 +697,23 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                 <h2 className="text-xl font-bold text-white mb-2">
                   {isMyTurn ? 'Your Forfeit' : `${currentPlayer.name}'s Forfeit`}
                 </h2>
-                <div className={`${gameState.currentForfeit.type === 'shot' ? 'bg-amber-500/30 border-amber-500/50' : gameState.currentForfeit.type === 'pictionary' ? 'bg-purple-500/30 border-purple-500/50' : 'bg-red-500/20 border-red-500/40'} p-4 rounded-xl mb-4 border`}>
+                <div className={`${gameState.currentForfeit.type === 'shot' ? 'bg-amber-500/30 border-amber-500/50' : gameState.currentForfeit.type === 'pictionary' ? 'bg-purple-500/30 border-purple-500/50' : gameState.currentForfeit.type === 'tongue_twister' ? 'bg-green-500/30 border-green-500/50' : 'bg-red-500/20 border-red-500/40'} p-4 rounded-xl mb-4 border`}>
                   <p className="text-white mb-2">{gameState.currentForfeit.description}</p>
                   {isMyTurn && gameState.currentForfeit.wordToAct && (
                     <p className="text-2xl font-bold mt-4 bg-white/10 p-3 rounded-lg">
                       {gameState.currentForfeit.wordToAct}
                     </p>
+                  )}
+                  {isMyTurn && gameState.currentForfeit.tongueTwister && (
+                    <p className="text-2xl font-bold mt-4 bg-white/10 p-3 rounded-lg text-center">
+                      🤪 {gameState.currentForfeit.tongueTwister}
+                    </p>
+                  )}
+                  {gameState.currentForfeit.type === 'tongue_twister' && (
+                    <div className="text-center mt-4">
+                      <span className="text-white/80 text-sm">Time remaining:</span>
+                      <span className="text-green-300 font-bold text-xl ml-2">{tongueTwisterTimeLeft}s</span>
+                    </div>
                   )}
                   {isMyTurn && gameState.currentForfeit.type === 'shot' && (
                     <p className="text-2xl mt-4 text-yellow-300">

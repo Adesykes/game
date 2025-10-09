@@ -30,6 +30,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
   const [guessInput, setGuessInput] = useState('');
   const [charadeTimeLeft, setCharadeTimeLeft] = useState(120);
   const [pictionaryTimeLeft, setPictionaryTimeLeft] = useState(60);
+  const [tongueTwisterTimeLeft, setTongueTwisterTimeLeft] = useState(20);
   const [questionTimeLeft, setQuestionTimeLeft] = useState(30);
   const { isFullScreen, toggleFullScreen } = useFullScreen();
   const [showKaraokeSettings, setShowKaraokeSettings] = useState(false);
@@ -174,6 +175,18 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
     }, 250);
     return () => clearInterval(id);
   }, [gameState.gamePhase, pictionaryDeadline]);
+
+  // Tongue twister countdown synced to server deadline
+  useEffect(() => {
+    if (gameState.gamePhase !== 'forfeit' || gameState.currentForfeit?.type !== 'tongue_twister') return;
+    const id = setInterval(() => {
+      const now = Date.now();
+      const dl = gameState.tongueTwisterDeadline ?? now;
+      const remaining = Math.max(0, Math.floor((dl - now) / 1000));
+      setTongueTwisterTimeLeft(remaining);
+    }, 250);
+    return () => clearInterval(id);
+  }, [gameState.gamePhase, gameState.currentForfeit?.type, gameState.tongueTwisterDeadline]);
 
   // Question countdown timer
   useEffect(() => {
@@ -747,21 +760,27 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                       ? 'bg-amber-500/10 border-amber-500/30' 
                       : gameState.currentForfeit.type === 'pictionary' 
                         ? 'bg-purple-500/10 border-purple-500/30' 
-                        : 'bg-red-500/10 border-red-500/30'
+                        : gameState.currentForfeit.type === 'tongue_twister'
+                          ? 'bg-green-500/10 border-green-500/30'
+                          : 'bg-red-500/10 border-red-500/30'
                   } p-4 rounded-xl border`}>
                     <p className={`${
                       gameState.currentForfeit.type === 'shot' 
                         ? 'text-amber-300' 
                         : gameState.currentForfeit.type === 'pictionary' 
                           ? 'text-purple-300' 
-                          : 'text-red-300'
+                          : gameState.currentForfeit.type === 'tongue_twister'
+                            ? 'text-green-300'
+                            : 'text-red-300'
                     } font-semibold mb-2`}>
                       {
                         gameState.currentForfeit.type === 'shot' 
                           ? 'Shot Time!' 
                           : gameState.currentForfeit.type === 'pictionary' 
                             ? 'Pictionary!' 
-                            : 'Forfeit!'
+                            : gameState.currentForfeit.type === 'tongue_twister'
+                              ? '🤪 Tongue Twister!'
+                              : 'Forfeit!'
                       }
                     </p>
                     <p className="text-white mb-3">{gameState.currentForfeit.description}</p>
@@ -770,6 +789,19 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                         <div className="mt-2 text-2xl font-bold text-white bg-white/10 rounded-lg p-3 inline-block">
                           {gameState.currentForfeit.wordToAct}
                         </div>
+                      </div>
+                    )}
+                    {isHostTurn && gameState.currentForfeit.tongueTwister && (
+                      <div className="mb-4 select-none">
+                        <div className="mt-2 text-2xl font-bold text-white bg-white/10 rounded-lg p-3 text-center">
+                          🤪 {gameState.currentForfeit.tongueTwister}
+                        </div>
+                      </div>
+                    )}
+                    {gameState.currentForfeit.type === 'tongue_twister' && (
+                      <div className="text-center mb-4">
+                        <span className="text-white/80 text-sm">Time remaining:</span>
+                        <span className="text-green-300 font-bold text-xl ml-2">{tongueTwisterTimeLeft}s</span>
                       </div>
                     )}
                     {isHostTurn && gameState.currentForfeit.type === 'shot' && (
@@ -815,6 +847,8 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                                 ? `Waiting for ${currentPlayer.name} to start the charade...`
                                 : gameState.currentForfeit.type === 'pictionary'
                                 ? `Waiting for ${currentPlayer.name} to start the pictionary...`
+                                : gameState.currentForfeit.type === 'tongue_twister'
+                                ? `Tongue twister in progress...`
                                 : `Waiting for ${currentPlayer.name} to take a shot...`
                             }
                           </p>

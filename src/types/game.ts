@@ -57,6 +57,7 @@ export interface GameState {
   pictionarySolution: string | null; // The word/phrase being drawn
   pictionarySolved: boolean;
   drawingData: string | null; // Base64 encoded drawing data
+  tongueTwisterDeadline?: number | null; // When the current tongue twister forfeit ends
   globalLockedCategories: string[]; // Categories locked globally for all players
   globalRecentCategories: string[]; // Last 3 categories selected globally
   currentKaraokeSong?: KaraokeSong | null; // Active karaoke selection
@@ -87,9 +88,10 @@ export interface CategorySelection {
 
 export interface Forfeit {
   id: string;
-  type: 'charade' | 'pictionary' | 'shot';
+  type: 'charade' | 'pictionary' | 'shot' | 'tongue_twister';
   description: string;
   wordToAct: string | null; // The word or phrase to act out or draw (null for non-charade forfeits)
+  tongueTwister?: string | null; // The tongue twister to recite (for tongue_twister forfeits)
 }
 
 export interface KaraokeSong {
