@@ -63,7 +63,7 @@ export interface GameState {
   karaokeBreakCount?: number; // Number of karaoke breaks triggered
   karaokeSettings?: KaraokeSettings; // Host-adjustable settings
   karaokeStartAt?: number; // Server timestamp when current karaoke break started
-  karaokeVotingOptions?: KaraokeSong[]; // 12 song options for voting
+  karaokeVotingOptions?: KaraokeSong[]; // 6 song options for voting
   karaokeVotes?: { [playerId: string]: number[] }; // Player votes (indices of two chosen songs)
   karaokeVotingEndAt?: number; // When voting ends
   // Lightning round fields

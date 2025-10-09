@@ -1609,7 +1609,7 @@ const KARAOKE_SONGS = [
 
 function pickKaraokeOptions() {
   const shuffled = [...KARAOKE_SONGS].sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, 12);
+  return shuffled.slice(0, 6);
 }
 
 function triggerKaraoke(room, roomCode, manual=false, skipVoting=false) {
