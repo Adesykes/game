@@ -1777,7 +1777,7 @@ function nextTurn(room, roomCode) {
   
   // Always set the game phase to 'category_selection' for the next player
   // This ensures that after a correct answer, the next player sees the category selection screen
-  if (room.gameState.gamePhase !== 'forfeit' && room.gameState.gamePhase !== 'charade_guessing' && room.gameState.gamePhase !== 'karaoke_voting' && room.gameState.gamePhase !== 'karaoke_break') {
+  if (room.gameState.gamePhase !== 'forfeit' && room.gameState.gamePhase !== 'charade_guessing' && room.gameState.gamePhase !== 'pictionary_drawing' && room.gameState.gamePhase !== 'karaoke_voting' && room.gameState.gamePhase !== 'karaoke_break') {
     room.gameState.gamePhase = 'category_selection';
     console.log(`[nextTurn] Set gamePhase to 'category_selection' for new player ${players[newIndex]?.id} to select category`);
   } else {

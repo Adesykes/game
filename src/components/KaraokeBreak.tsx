@@ -16,6 +16,16 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
   const [elapsed, setElapsed] = useState(0);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [selectedVotes, setSelectedVotes] = useState<number[]>([]);
+
+  // Initialize selectedVotes from server state
+  useEffect(() => {
+    if (gameState.gamePhase === 'karaoke_voting' && gameState.karaokeVotes?.[playerId]) {
+      const playerVotes = Array.isArray(gameState.karaokeVotes[playerId])
+        ? (gameState.karaokeVotes[playerId] as number[])
+        : (gameState.karaokeVotes[playerId] !== undefined ? [gameState.karaokeVotes[playerId] as unknown as number] : []);
+      setSelectedVotes(playerVotes);
+    }
+  }, [gameState.gamePhase, gameState.karaokeVotes, playerId]);
   const barsRef = useRef<number[]>(Array.from({length:24},()=>Math.random()));
   const [, forceTick] = useState(0);
   const confettiRef = useRef<HTMLCanvasElement | null>(null);
@@ -172,7 +182,10 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
     const votingOptions = gameState.karaokeVotingOptions || [];
     const votingEndAt = gameState.karaokeVotingEndAt || 0;
     const timeLeft = Math.max(0, Math.floor((votingEndAt - Date.now()) / 1000));
-  const hasVoted = gameState.karaokeVotes && gameState.karaokeVotes[playerId] !== undefined;
+    const playerVotes = Array.isArray(gameState.karaokeVotes?.[playerId])
+      ? (gameState.karaokeVotes![playerId] as number[])
+      : (gameState.karaokeVotes?.[playerId] !== undefined ? [gameState.karaokeVotes![playerId] as unknown as number] : []);
+    const hasCompletedVoting = playerVotes.length >= 2;
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 md:p-6">
@@ -188,16 +201,13 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
             <p className="text-white/80 text-sm mb-6">Choose two songs you want to sing! Most votes win. Voting ends in {timeLeft}s</p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
               {votingOptions.map((option, index) => {
-                const playerVotes = Array.isArray(gameState.karaokeVotes?.[playerId])
-                  ? (gameState.karaokeVotes![playerId] as number[])
-                  : (gameState.karaokeVotes?.[playerId] !== undefined ? [gameState.karaokeVotes![playerId] as unknown as number] : []);
                 const isSelected = selectedVotes.includes(index);
-                const isVoted = hasVoted && playerVotes.includes(index);
+                const isVoted = hasCompletedVoting && playerVotes.includes(index);
                 return (
                   <button
                     key={index}
                     onClick={() => {
-                      if (hasVoted) return;
+                      if (hasCompletedVoting) return;
                       setSelectedVotes(prev => {
                         let next = prev;
                         if (prev.includes(index)) {
@@ -213,13 +223,13 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
                         return next;
                       });
                     }}
-                    disabled={hasVoted}
+                    disabled={hasCompletedVoting}
                     className={`p-4 rounded-xl border transition-all ${
                       isVoted
                         ? 'bg-green-600/30 border-green-400 text-green-200'
                         : isSelected
                         ? 'bg-blue-600/30 border-blue-400 text-blue-200'
-                        : hasVoted
+                        : hasCompletedVoting
                         ? 'bg-gray-600/30 border-gray-500 text-gray-400 cursor-not-allowed'
                         : 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40'
                     }`}
@@ -233,12 +243,12 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
               })}
             </div>
             {/* Submission notice */}
-            {hasVoted && (
+            {hasCompletedVoting && (
               <div className="text-green-400 font-bold text-xl">
                 Votes submitted! Waiting for others...
               </div>
             )}
-            {!hasVoted && (
+            {!hasCompletedVoting && (
               <div className="text-white/70 text-sm text-center">Tap to select up to two songs. Tap again to unselect. Your latest two choices are counted.</div>
             )}
           </div>
