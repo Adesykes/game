@@ -133,7 +133,7 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
     preferredVoiceRef.current = candidate || null;
     return preferredVoiceRef.current;
   }
-  function speak(text: string, rate=0.95, pitch=1.0) {
+  function speak(text: string, rate=0.95, pitch=1.0) { // eslint-disable-line @typescript-eslint/no-unused-vars
     if (!('speechSynthesis' in window)) return;
     const utter = new SpeechSynthesisUtterance(text);
     const voice = selectPreferredVoice();
@@ -150,14 +150,20 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
   }, []);
 
   // Speak Alexa play only on host (using enhanced female voice selection)
+  // Note: This TTS doesn't actually control Alexa - users must speak the command manually
   useEffect(() => {
     if (!song || !isHost) return;
-    speak(`Alexa, play ${song.alexaPhrase}`, 0.95, 1.0);
+    // Optional: Comment out TTS since Alexa can't hear browser audio
+    // speak(`Alexa, play ${song.alexaPhrase}`, 0.95, 1.0);
   }, [song, isHost]);
 
   // Speak Alexa stop on explicit server karaoke-ended event (covers auto + manual end)
+  // Note: TTS doesn't control Alexa - this is just for user awareness
   useEffect(() => {
-    const handler = () => { if (isHost) speak('Alexa, stop', 0.95, 1.0); };
+    const handler = () => { 
+      // Optional: Comment out TTS since Alexa can't hear browser audio
+      // if (isHost) speak('Alexa, stop', 0.95, 1.0); 
+    };
     socket.on('karaoke-ended', handler);
     return () => { socket.off('karaoke-ended', handler); };
   }, [socket, isHost]);
@@ -260,9 +266,20 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
             </h1>
             <Music2 className="w-8 h-8 text-yellow-300 animate-pulse" />
           </div>
-          <p className="text-white/80 text-sm mb-6">Everyone sings! Alexa command spoken. If not heard, say:
+          <p className="text-white/80 text-sm mb-6">Everyone sings! Say this command to Alexa:
             <span className="block mt-1 text-white font-semibold">Alexa, play {song.alexaPhrase}</span>
           </p>
+          <div className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg p-3 mb-4">
+            <p className="text-yellow-200 text-xs font-medium mb-2">
+              💡 <strong>Alexa Integration Tips:</strong>
+            </p>
+            <ul className="text-yellow-200 text-xs space-y-1">
+              <li>• Position Alexa device close to someone who can speak</li>
+              <li>• Increase device volume before karaoke starts</li>
+              <li>• Have someone say: "Alexa, play {song.alexaPhrase}"</li>
+              <li>• Alternative: Use phone as Bluetooth speaker for Echo</li>
+            </ul>
+          </div>
           <div className="bg-white/10 rounded-xl p-4 mb-6 border border-white/20">
             <div className="text-xl font-bold text-white mb-1">{song.title}</div>
             {song.artist && <div className="text-white/70 text-sm mb-2">by {song.artist}</div>}
