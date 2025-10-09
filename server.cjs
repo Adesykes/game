@@ -1757,30 +1757,66 @@ io.on('connection', (socket) => {
   });
 
   // Lightning round: buzz-in with an answer index
-  socket.on('lightning-buzz', (roomCode, playerId, answerIndex) => {
-    console.log(`[lightning-buzz] room=${roomCode} player=${playerId} idx=${answerIndex}`);
+  socket.on('lightning-buzz', (roomCode, playerId, answerIndex, questionId, submissionId) => {
+    console.log(`[lightning-buzz] room=${roomCode} player=${playerId} idx=${answerIndex} qId=${questionId} subId=${submissionId}`);
     const room = rooms.get(roomCode);
     if (!room) return;
     const gs = room.gameState;
-    if (!gs.lightningActive || gs.gamePhase !== 'lightning_round' || !gs.lightningQuestion) {
-      console.log('[lightning-buzz] Ignored: not active or wrong phase');
+    
+    // Validate lightning round is active and accepting answers
+    if (!gs.lightningActive || gs.gamePhase !== 'lightning_round' || !gs.lightningQuestion || !gs.lightningAcceptingAnswers) {
+      console.log('[lightning-buzz] Ignored: not active, wrong phase, or not accepting answers');
       return;
     }
+    
+    // Validate question ID matches current question
+    if (!questionId || questionId !== gs.lightningQuestionId) {
+      console.log(`[lightning-buzz] Ignored: question ID mismatch. Expected: ${gs.lightningQuestionId}, Got: ${questionId}`);
+      return;
+    }
+    
+    // Validate answer index is valid
+    if (answerIndex === null || answerIndex === undefined || answerIndex < 0 || answerIndex >= gs.lightningQuestion.options.length) {
+      console.log(`[lightning-buzz] Ignored: invalid answer index ${answerIndex}`);
+      return;
+    }
+    
+    // Check for winner already decided
     if (gs.lightningWinnerId) {
       console.log('[lightning-buzz] Ignored: winner already decided');
-      return; // already decided
+      return;
     }
+    
     const player = gs.players.find(p => p.id === playerId);
     if (!player || player.isEliminated) {
       console.log('[lightning-buzz] Ignored: invalid or eliminated player');
       return;
     }
+    
+    // Initialize submissions tracking if not exists
+    if (!gs.lightningSubmissions) {
+      gs.lightningSubmissions = {};
+    }
+    
+    // Check for duplicate submission from this player for this question
+    if (gs.lightningSubmissions[playerId]) {
+      console.log(`[lightning-buzz] ${player.name} already submitted for this question, ignoring`);
+      return;
+    }
+    
+    // Record the submission
+    gs.lightningSubmissions[playerId] = {
+      answerIndex,
+      submissionId: submissionId || Math.random().toString(36).substring(2, 9),
+      timestamp: Date.now()
+    };
+    
     // Initialize answered players array if not exists
     if (!gs.lightningAnsweredPlayers) {
       gs.lightningAnsweredPlayers = [];
     }
     
-    // Check if player has already answered this round
+    // Check if player has already answered this round (legacy check)
     if (gs.lightningAnsweredPlayers.includes(playerId)) {
       console.log(`[lightning-buzz] ${player.name} already answered this round, ignoring`);
       return;
@@ -2197,6 +2233,9 @@ function endLightning(room, roomCode, reason = 'timeout') {
   gs.lightningEndAt = null;
   gs.lightningAnsweredPlayers = []; // Reset answered players
   gs.lightningMode = null; // Reset lightning mode
+  gs.lightningAcceptingAnswers = false; // Reset accepting answers flag
+  gs.lightningQuestionId = null; // Reset question ID
+  gs.lightningSubmissions = {}; // Reset submissions tracking
   if (gs.gamePhase === 'lightning_round') {
     gs.gamePhase = 'category_selection';
   }
@@ -2230,6 +2269,9 @@ function triggerLightning(room, roomCode) {
   gs.lightningAnsweredPlayers = []; // Reset answered players for new round
   gs.lightningMode = 'sudden_death'; // Enable sudden death mode
   gs.lightningEndAt = Date.now() + 8000; // 8 seconds
+  gs.lightningAcceptingAnswers = false; // Start with answers not accepted
+  gs.lightningQuestionId = Math.random().toString(36).substring(2, 9); // Unique ID for this question
+  gs.lightningSubmissions = {}; // Track submissions for this question
   gs.gamePhase = 'lightning_round';
   // Emit countdown event with 5-second delay before starting
   const countdownEndAt = Date.now() + 5000; // 5 seconds from now
@@ -2237,9 +2279,11 @@ function triggerLightning(room, roomCode) {
   // Start dramatic music immediately
   io.to(roomCode).emit('dramatic-music-start');
   setTimeout(() => {
-    io.to(roomCode).emit('lightning-start', { gameState: gs, question: q, deadline: gs.lightningEndAt });
+    gs.lightningAcceptingAnswers = true; // Now accept answers
+    io.to(roomCode).emit('lightning-start', { gameState: gs, question: q, deadline: gs.lightningEndAt, questionId: gs.lightningQuestionId });
   }, 5000);
   const handle = setTimeout(() => {
+    gs.lightningAcceptingAnswers = false; // Stop accepting answers
     if (gs.gamePhase === 'lightning_round') {
       endLightning(room, roomCode, 'timeout');
     }

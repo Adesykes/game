@@ -73,6 +73,9 @@ export interface GameState {
   lightningWinnerId?: string | null;
   lightningMode?: 'normal' | 'sudden_death'; // Mode for lightning round
   lightningAnsweredPlayers?: string[]; // Players who have already answered this round
+  lightningQuestionId?: string | null; // Unique ID for current lightning question
+  lightningAcceptingAnswers?: boolean; // Whether server is currently accepting answers
+  lightningSubmissions?: Record<string, { answerIndex: number; timestamp: number }>; // Track submissions per player
   turnsPlayed?: number; // global turn counter
 }
 

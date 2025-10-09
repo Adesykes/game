@@ -248,8 +248,8 @@ export const useGameEvents = (
       setLightningCountdownEndAt(countdownEndAt);
     };
 
-    const onLightningStart = ({ gameState, question, deadline }: { gameState: GameState; question: Question; deadline: number }) => {
-      console.log('[client] lightning-start');
+    const onLightningStart = ({ gameState, question, deadline, questionId }: { gameState: GameState; question: Question; deadline: number; questionId: string }) => {
+      console.log('[client] lightning-start, questionId:', questionId);
       setGameState(cloneState(gameState));
       setCurrentQuestion(question);
       setQuestionDeadline(deadline);

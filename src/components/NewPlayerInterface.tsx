@@ -172,6 +172,14 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
     }
   }, [gameState.gamePhase]);
 
+  // Reset selection when a new lightning question starts
+  useEffect(() => {
+    if (gameState.gamePhase === 'lightning_round' && gameState.lightningQuestionId) {
+      setHasBuzzed(false);
+      setSelectedLightningIndex(null);
+    }
+  }, [gameState.lightningQuestionId, gameState.gamePhase]);
+
   // Listen for reward choice prompt and applied result
   useEffect(() => {
     if (!socket) return;
@@ -593,16 +601,27 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                   {(gameState.lightningQuestion?.options || currentQuestion?.options || []).map((opt, idx) => (
                     <button
                       key={idx}
+                      disabled={!gameState.lightningQuestionId || hasBuzzed}
                       onClick={() => {
+                        if (!gameState.lightningQuestionId || hasBuzzed) return; // Extra safety check
                         // Allow multiple attempts; server only accepts first correct globally
+                        const questionId = gameState.lightningQuestionId;
+                        const submissionId = Math.random().toString(36).substring(2, 9);
                         setHasBuzzed(true);
                         setSelectedLightningIndex(idx);
-                        socket.emit('lightning-buzz', gameState.id, playerId, idx);
+                        console.log(`[lightning-buzz] Sending buzz: room=${gameState.id} player=${playerId} idx=${idx} qId=${questionId} subId=${submissionId}`);
+                        socket.emit('lightning-buzz', gameState.id, playerId, idx, questionId, submissionId);
                       }}
                       className={`w-full p-3 rounded-lg text-left transition-colors ${
-                        selectedLightningIndex === idx
+                        !gameState.lightningQuestionId
+                          ? 'bg-gray-600/40 text-gray-400 cursor-not-allowed opacity-60'
+                          : hasBuzzed
+                          ? selectedLightningIndex === idx
+                            ? 'bg-yellow-600/60 border-2 border-yellow-400 text-white cursor-not-allowed'
+                            : 'bg-gray-600/40 text-gray-400 cursor-not-allowed opacity-60'
+                          : selectedLightningIndex === idx
                           ? 'bg-yellow-600/40 border border-yellow-500/60 text-white'
-                          : 'bg-white/10 hover:bg-white/20 text-white'
+                          : 'bg-white/10 hover:bg-white/20 text-white cursor-pointer'
                       }`}
                     >
                       <span className="mr-2 text-yellow-300 font-bold">{String.fromCharCode(65 + idx)}.</span>
@@ -610,8 +629,11 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                     </button>
                   ))}
                 </div>
-                {hasBuzzed && (
-                  <p className="text-white/60 text-sm mt-2 text-center">You buzzed{selectedLightningIndex !== null ? ` on ${String.fromCharCode(65 + selectedLightningIndex)}` : ''}! You can change your choice until someone wins.</p>
+                {!gameState.lightningQuestionId && (
+                  <p className="text-yellow-300/70 text-sm mt-2 text-center">⚡ Get ready to buzz!</p>
+                )}
+                {hasBuzzed && gameState.lightningQuestionId && (
+                  <p className="text-white/60 text-sm mt-2 text-center">⚡ Answer locked in: {String.fromCharCode(65 + (selectedLightningIndex ?? 0))}. Waiting for results...</p>
                 )}
               </div>
             )}

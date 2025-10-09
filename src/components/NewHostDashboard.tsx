@@ -40,6 +40,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [lightningTimeLeft, setLightningTimeLeft] = useState<number>(0);
   const [hostLightningSelectedIdx, setHostLightningSelectedIdx] = useState<number | null>(null);
+  const [hostHasBuzzed, setHostHasBuzzed] = useState<boolean>(false);
   const [showLightningRewardHost, setShowLightningRewardHost] = useState<boolean>(false);
   const [rewardSubmittingHost, setRewardSubmittingHost] = useState<boolean>(false);
   
@@ -194,10 +195,19 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
   useEffect(() => {
     if (gameState.gamePhase === 'lightning_round') {
       setHostLightningSelectedIdx(null);
+      setHostHasBuzzed(false);
       setShowLightningRewardHost(false);
       setRewardSubmittingHost(false);
     }
   }, [gameState.gamePhase]);
+
+  // Reset selection when a new lightning question starts
+  useEffect(() => {
+    if (gameState.gamePhase === 'lightning_round' && gameState.lightningQuestionId) {
+      setHostLightningSelectedIdx(null);
+      setHostHasBuzzed(false);
+    }
+  }, [gameState.lightningQuestionId, gameState.gamePhase]);
 
   // Sync karaoke settings when server updates
   useEffect(() => {
@@ -661,13 +671,24 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                       {(gameState.lightningQuestion?.options || []).map((opt, idx) => (
                         <button
                           key={idx}
+                          disabled={!gameState.lightningQuestionId || hostHasBuzzed}
                           onClick={() => {
-                            if (!hostPlayer) return;
+                            if (!hostPlayer || !gameState.lightningQuestionId || hostHasBuzzed) return;
+                            const questionId = gameState.lightningQuestionId;
+                            const submissionId = Math.random().toString(36).substring(2, 9);
                             setHostLightningSelectedIdx(idx);
-                            socket.emit('lightning-buzz', gameState.id, hostPlayer.id, idx);
+                            setHostHasBuzzed(true);
+                            console.log(`[host-lightning-buzz] Sending buzz: room=${gameState.id} player=${hostPlayer.id} idx=${idx} qId=${questionId} subId=${submissionId}`);
+                            socket.emit('lightning-buzz', gameState.id, hostPlayer.id, idx, questionId, submissionId);
                           }}
                           className={`p-2 rounded text-left transition-colors ${
-                            hostLightningSelectedIdx === idx
+                            !gameState.lightningQuestionId
+                              ? 'bg-gray-600/40 text-gray-400 cursor-not-allowed opacity-60'
+                              : hostHasBuzzed
+                              ? hostLightningSelectedIdx === idx
+                                ? 'bg-yellow-600/60 border-2 border-yellow-400 text-white cursor-not-allowed'
+                                : 'bg-gray-600/40 text-gray-400 cursor-not-allowed opacity-60'
+                              : hostLightningSelectedIdx === idx
                               ? 'bg-yellow-600/40 border border-yellow-500/60 text-white'
                               : 'bg-white/10 hover:bg-white/20 text-white'
                           }`}
@@ -677,7 +698,14 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                         </button>
                       ))}
                     </div>
-                    <p className="text-white/60 text-xs mt-2">Tap to buzz; first correct across all players wins.</p>
+                    <p className="text-white/60 text-xs mt-2">
+                      {!gameState.lightningQuestionId 
+                        ? '⚡ Get ready to buzz!'
+                        : hostHasBuzzed 
+                        ? `⚡ Answer locked in: ${String.fromCharCode(65 + (hostLightningSelectedIdx ?? 0))}. Waiting for results...`
+                        : 'Tap to buzz; first correct across all players wins.'
+                      }
+                    </p>
                   </div>
                 )}
 
