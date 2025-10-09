@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 // Import audio asset (ensures bundling for all clients)
 // Adjust relative path if mp3 folder moves to /public or /src/assets
 // @ts-ignore - module declaration added in vite-env.d.ts
@@ -29,7 +29,34 @@ function App() {
   const [roomCode, setRoomCode] = useState('');
   const [playerId, setPlayerId] = useState('');
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const { currentQuestion, answerResult, charadeDeadline, pictionaryDeadline, questionDeadline, lightningCountdownEndAt, forfeitResult, forfeitFailureResult, guessResult } = useGameEvents(socket, setGameState);
+  const { currentQuestion, answerResult, charadeDeadline, pictionaryDeadline, questionDeadline, lightningCountdownEndAt, forfeitResult, forfeitFailureResult, guessResult, lightningNoWinnerMessage, setAnswerResult, setForfeitResult, setForfeitFailureResult, setGuessResult, setLightningNoWinnerMessage } = useGameEvents(socket, setGameState);
+  
+  // Memoize onClose handler to prevent ResultBanner effects from re-running
+  // Memoize onClose handler to prevent ResultBanner effects from re-running
+  const handleBannerClose = useCallback(() => {
+    // Could add additional cleanup logic here if needed
+  }, []);
+
+  // Handle clearing specific result types
+  const handleResultClear = useCallback((type: 'answer' | 'forfeit' | 'forfeitFailure' | 'guess' | 'lightning') => {
+    switch (type) {
+      case 'answer':
+        setAnswerResult(null);
+        break;
+      case 'forfeit':
+        setForfeitResult(null);
+        break;
+      case 'forfeitFailure':
+        setForfeitFailureResult(null);
+        break;
+      case 'guess':
+        setGuessResult(null);
+        break;
+      case 'lightning':
+        setLightningNoWinnerMessage(null);
+        break;
+    }
+  }, []);
   // Global background music only during waiting / ready phases (all clients)
   const bgAudioRef = useRef<HTMLAudioElement | null>(null);
   // Dramatic music for lightning rounds
@@ -278,6 +305,10 @@ function App() {
                 pictionaryDeadline={pictionaryDeadline}
                 playerId={gameState.players.find(p=>p.isHost)?.id || ''}
                 lightningCountdownEndAt={lightningCountdownEndAt}
+                answerResult={answerResult}
+                forfeitResult={forfeitResult}
+                forfeitFailureResult={forfeitFailureResult}
+                guessResult={guessResult}
               />
               <KaraokeBreak gameState={gameState} socket={socket as Socket} playerId={gameState.players.find(p=>p.isHost)?.id || ''} roomCode={roomCode} />
             </>
@@ -291,6 +322,10 @@ function App() {
               pictionaryDeadline={pictionaryDeadline}
               playerId={gameState.players.find(p=>p.isHost)?.id || ''}
               lightningCountdownEndAt={lightningCountdownEndAt}
+              answerResult={answerResult}
+              forfeitResult={forfeitResult}
+              forfeitFailureResult={forfeitFailureResult}
+              guessResult={guessResult}
             />
           )
         );
@@ -309,6 +344,9 @@ function App() {
                 charadeDeadline={charadeDeadline}
                 pictionaryDeadline={pictionaryDeadline}
                 lightningCountdownEndAt={lightningCountdownEndAt}
+                forfeitResult={forfeitResult}
+                forfeitFailureResult={forfeitFailureResult}
+                guessResult={guessResult}
               />
               <KaraokeBreak gameState={gameState} socket={socket as Socket} playerId={playerId} roomCode={roomCode} />
             </>
@@ -322,6 +360,9 @@ function App() {
               charadeDeadline={charadeDeadline}
               pictionaryDeadline={pictionaryDeadline}
               lightningCountdownEndAt={lightningCountdownEndAt}
+              forfeitResult={forfeitResult}
+              forfeitFailureResult={forfeitFailureResult}
+              guessResult={guessResult}
             />
           )
         );
@@ -366,10 +407,10 @@ function App() {
           forfeitResult={forfeitResult}
           forfeitFailureResult={forfeitFailureResult}
           guessResult={guessResult}
+          lightningNoWinnerMessage={lightningNoWinnerMessage}
           playerId={playerId}
-          onClose={() => {
-            // Could add additional cleanup logic here if needed
-          }}
+          onClose={handleBannerClose}
+          onResultClear={handleResultClear}
         />
       )}
       {mode === 'host' && gameState && (
@@ -380,10 +421,10 @@ function App() {
           forfeitResult={forfeitResult}
           forfeitFailureResult={forfeitFailureResult}
           guessResult={guessResult}
+          lightningNoWinnerMessage={lightningNoWinnerMessage}
           playerId={gameState.players.find(p=>p.isHost)?.id || ''}
-          onClose={() => {
-            // Could add additional cleanup logic here if needed
-          }}
+          onClose={handleBannerClose}
+          onResultClear={handleResultClear}
         />
       )}
     </div>

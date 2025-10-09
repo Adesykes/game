@@ -15,6 +15,10 @@ interface HostDashboardProps {
   pictionaryDeadline?: number | null;
   playerId: string;
   lightningCountdownEndAt?: number | null;
+  answerResult?: { playerId: string; answerIndex: number; isCorrect: boolean; correctAnswer: number; categoryLocked?: string; lockedCategories?: string[]; recentCategories?: string[]; categoryLockMessage?: string } | null;
+  forfeitResult?: { playerId: string; success: boolean; forfeitType: string } | null;
+  forfeitFailureResult?: { playerId: string; forfeitType: string } | null;
+  guessResult?: { solverId: string; forfeitType: string; solution: string } | null;
 }
 
 const HostDashboard: React.FC<HostDashboardProps> = ({
@@ -25,6 +29,10 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
   pictionaryDeadline,
   playerId,
   lightningCountdownEndAt,
+  answerResult,
+  forfeitResult,
+  forfeitFailureResult,
+  guessResult,
 }) => {
   const [showQR, setShowQR] = useState(true);
   const [guessInput, setGuessInput] = useState('');
@@ -271,7 +279,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
         } else {
           setLightningCountdown(null);
         }
-      }, 100);
+      }, 500);
       return () => clearInterval(interval);
     } else {
       setLightningCountdown(null);
@@ -281,7 +289,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-4">
       {/* Lightning teaser banner */}
-      {typeof gameState.turnsPlayed === 'number' && gameState.gamePhase !== 'lightning_round' && (
+      {typeof gameState.turnsPlayed === 'number' && gameState.gamePhase !== 'lightning_round' && !answerResult && !forfeitResult && !forfeitFailureResult && !guessResult && (
         <div className="max-w-6xl mx-auto mb-3">
           <div className="bg-yellow-500/15 border border-yellow-400/30 rounded-lg px-3 py-2 text-center">
             <span className="text-yellow-200 text-sm font-semibold">⚡ Lightning round in {((10 - ((gameState.turnsPlayed % 10) || 0)) % 10) || 10} turns</span>

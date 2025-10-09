@@ -1,6 +1,7 @@
-﻿import React, { useEffect } from 'react';
+﻿import React, { useEffect, useRef } from 'react';
 import { GameState, Question, AnswerResult } from '../types/game';
 import { useSound } from '../hooks/useSound';
+import { useVoiceLines } from '../hooks/useVoiceLines';
 import ParticleEffect from './ParticleEffect';
 
 interface ResultBannerProps {
@@ -10,8 +11,10 @@ interface ResultBannerProps {
   forfeitResult: { playerId: string; success: boolean; forfeitType: string } | null;
   forfeitFailureResult: { playerId: string; forfeitType: string } | null;
   guessResult: { solverId: string; forfeitType: string; solution: string } | null;
+  lightningNoWinnerMessage?: string | null;
   playerId: string;
   onClose: () => void;
+  onResultClear?: (type: 'answer' | 'forfeit' | 'forfeitFailure' | 'guess' | 'lightning') => void;
 }
 
 const ResultBanner: React.FC<ResultBannerProps> = ({
@@ -21,8 +24,10 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
   forfeitResult,
   forfeitFailureResult,
   guessResult,
+  lightningNoWinnerMessage,
   playerId,
-  onClose
+  onClose,
+  onResultClear
 }) => {
   const [isVisible, setIsVisible] = React.useState(false);
   const [resultData, setResultData] = React.useState<{
@@ -51,26 +56,46 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
   const lightningTimerRef = React.useRef<NodeJS.Timeout | null>(null);
   const guessTimerRef = React.useRef<NodeJS.Timeout | null>(null);
 
+  // Guards to prevent duplicate timer scheduling (for StrictMode)
+  const questionTimerScheduled = React.useRef(false);
+  const forfeitTimerScheduled = React.useRef(false);
+  const forfeitFailureTimerScheduled = React.useRef(false);
+  const lightningTimerScheduled = React.useRef(false);
+  const guessTimerScheduled = React.useRef(false);
+
+  // Ref for onClose to avoid dependency issues
+  const onCloseRef = useRef(onClose);
+
+  // Update ref when onClose changes
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   // Sound and voice hooks
-  const { playCorrect, playWrong, playStreak, playMastery, playForfeit, playGuess } = useSound();
+  const { playCorrect, playWrong, playStreak, playMastery, playForfeit } = useSound();
+  const { getRandomVoiceLine } = useVoiceLines();
 
   // Handle question results
   useEffect(() => {
     if (answerResult && answerResult.playerId === playerId) {
+      // Prevent duplicate scheduling in StrictMode
+      if (questionTimerScheduled.current) return;
+      questionTimerScheduled.current = true;
       const player = gameState.players.find(p => p.id === answerResult.playerId);
 
-      setResultData({
-        type: 'question',
-        isCorrect: answerResult.isCorrect,
-        playerName: player?.name || 'Unknown Player',
-        correctAnswer: undefined,
-        message: answerResult.isCorrect ? 'Correct!' : 'Incorrect!',
-        difficulty: currentQuestion?.difficulty
-      });
-      setIsVisible(true);
-
-      // Enhanced sound feedback
+      // Only show banner for correct answers
       if (answerResult.isCorrect) {
+        setResultData({
+          type: 'question',
+          isCorrect: answerResult.isCorrect,
+          playerName: player?.name || 'Unknown Player',
+          correctAnswer: undefined,
+          message: 'Correct!',
+          difficulty: currentQuestion?.difficulty
+        });
+        setIsVisible(true);
+
+        // Enhanced sound feedback
         playCorrect();
         const currentPlayer = gameState.players.find(p => p.id === playerId);
         const currentStreak = currentPlayer?.currentStreak || 0;
@@ -88,29 +113,64 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
           setParticleEffect({ type: 'celebration', duration: 2000 });
           setParticleTrigger(true);
         }
+
+        // Clear any existing question timer
+        if (questionTimerRef.current) {
+          clearTimeout(questionTimerRef.current);
+        }
+
+        // Auto-hide after 3 seconds
+        questionTimerRef.current = setTimeout(() => {
+          setIsVisible(false);
+          onCloseRef.current?.();
+          onResultClear?.('answer');
+          questionTimerRef.current = null;
+          questionTimerScheduled.current = false; // Reset guard
+        }, 3000);
       } else {
+        // For wrong answers, show insult banner for 3 seconds then clear
+        const insult = getRandomVoiceLine('wrong_epic');
+        setResultData({
+          type: 'question',
+          isCorrect: answerResult.isCorrect,
+          playerName: player?.name || 'Unknown Player',
+          correctAnswer: undefined,
+          message: insult.text,
+          difficulty: currentQuestion?.difficulty
+        });
+        setIsVisible(true);
+
+        // Play wrong sound and skull effect
         playWrong();
         setParticleEffect({ type: 'skull', duration: 2000 });
         setParticleTrigger(true);
-      }
 
-      // Clear any existing question timer
-      if (questionTimerRef.current) {
-        clearTimeout(questionTimerRef.current);
-      }
+        // Clear any existing question timer
+        if (questionTimerRef.current) {
+          clearTimeout(questionTimerRef.current);
+        }
 
-      // Auto-hide after 3 seconds
-      questionTimerRef.current = setTimeout(() => {
-        setIsVisible(false);
-        onClose();
-        questionTimerRef.current = null;
-      }, 3000);
+        // Auto-hide after 3 seconds, then clear result to let forfeit system take over
+        questionTimerRef.current = setTimeout(() => {
+          setIsVisible(false);
+          onCloseRef.current?.();
+          onResultClear?.('answer');
+          questionTimerRef.current = null;
+          questionTimerScheduled.current = false; // Reset guard
+        }, 3000);
+      }
+    } else {
+      // Reset guard if no result
+      questionTimerScheduled.current = false;
     }
-  }, [answerResult, playerId, gameState.players, currentQuestion, onClose, playCorrect, playWrong, playStreak, playMastery]);
+  }, [answerResult, playerId, gameState.players, currentQuestion, playCorrect, playWrong, playStreak, playMastery, getRandomVoiceLine]);
 
   // Handle forfeit results
   useEffect(() => {
     if (forfeitResult && forfeitResult.playerId === playerId) {
+      // Prevent duplicate scheduling in StrictMode
+      if (forfeitTimerScheduled.current) return;
+      forfeitTimerScheduled.current = true;
       const player = gameState.players.find(p => p.id === forfeitResult.playerId);
       const forfeitTypeMessage = forfeitResult.forfeitType === 'shot' ? 'Take a shot!' :
                                 forfeitResult.forfeitType === 'charade' ? 'Charade completed!' :
@@ -145,22 +205,31 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
       // Auto-hide after 3 seconds
       forfeitTimerRef.current = setTimeout(() => {
         setIsVisible(false);
-        onClose();
+        onCloseRef.current?.();
+        onResultClear?.('forfeit');
         forfeitTimerRef.current = null;
+        forfeitTimerScheduled.current = false; // Reset guard
       }, 3000);
 
       return () => {
         if (forfeitTimerRef.current) {
           clearTimeout(forfeitTimerRef.current);
           forfeitTimerRef.current = null;
+          forfeitTimerScheduled.current = false; // Reset guard on cleanup
         }
       };
+    } else {
+      // Reset guard if no result
+      forfeitTimerScheduled.current = false;
     }
-  }, [forfeitResult, playerId, gameState.players, onClose, playForfeit]);
+  }, [forfeitResult, playerId, gameState.players, playForfeit]);
 
   // Handle forfeit failure results
   useEffect(() => {
     if (forfeitFailureResult && forfeitFailureResult.playerId === playerId) {
+      // Prevent duplicate scheduling in StrictMode
+      if (forfeitFailureTimerScheduled.current) return;
+      forfeitFailureTimerScheduled.current = true;
       const player = gameState.players.find(p => p.id === forfeitFailureResult.playerId);
       const failureMessage = forfeitFailureResult.forfeitType === 'charade' ? 'Charade failed!' :
                             forfeitFailureResult.forfeitType === 'pictionary' ? 'Pictionary failed!' :
@@ -182,15 +251,23 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
       // Auto-hide after 3 seconds
       forfeitFailureTimerRef.current = setTimeout(() => {
         setIsVisible(false);
-        onClose();
+        onCloseRef.current?.();
+        onResultClear?.('forfeitFailure');
         forfeitFailureTimerRef.current = null;
+        forfeitFailureTimerScheduled.current = false; // Reset guard
       }, 3000);
+    } else {
+      // Reset guard if no result
+      forfeitFailureTimerScheduled.current = false;
     }
-  }, [forfeitFailureResult, playerId, gameState.players, onClose]);
+  }, [forfeitFailureResult, playerId, gameState.players]);
 
   // Handle lightning round results
   useEffect(() => {
     if (gameState.lightningWinnerId && gameState.lightningWinnerId !== lastLightningWinnerRef.current) {
+      // Prevent duplicate scheduling in StrictMode
+      if (lightningTimerScheduled.current) return;
+      lightningTimerScheduled.current = true;
       const winner = gameState.players.find(p => p.id === gameState.lightningWinnerId);
       setResultData({
         type: 'lightning',
@@ -214,20 +291,22 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
       // Auto-hide after 3 seconds
       lightningTimerRef.current = setTimeout(() => {
         setIsVisible(false);
-        onClose();
+        onCloseRef.current?.();
         lightningTimerRef.current = null;
+        lightningTimerScheduled.current = false; // Reset guard
       }, 3000);
+    } else {
+      // Reset guard if no new winner
+      lightningTimerScheduled.current = false;
     }
-  }, [gameState.lightningWinnerId, gameState.players, onClose]);
+  }, [gameState.lightningWinnerId, gameState.players]);
 
   // Handle guess results (charade/pictionary solved)
   useEffect(() => {
     if (guessResult) {
-      // Only show guess result banner for the player who was doing the forfeit
-      const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-      if (currentPlayer?.id !== playerId) {
-        return; // Don't show banner for other players
-      }
+      // Prevent duplicate scheduling in StrictMode
+      if (guessTimerScheduled.current) return;
+      guessTimerScheduled.current = true;
 
       const solver = gameState.players.find(p => p.id === guessResult.solverId);
       const forfeitTypeMessage = guessResult.forfeitType === 'charade' ? 'guessed the charade!' : 'guessed the pictionary!';
@@ -251,53 +330,122 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
       // Auto-hide after 3 seconds
       guessTimerRef.current = setTimeout(() => {
         setIsVisible(false);
-        onClose();
+        onCloseRef.current?.();
+        onResultClear?.('guess');
         guessTimerRef.current = null;
+        guessTimerScheduled.current = false; // Reset guard
       }, 3000);
+    } else {
+      // Reset guard if no result
+      guessTimerScheduled.current = false;
     }
-  }, [guessResult, gameState.players, onClose]);
+  }, [guessResult, gameState.players]);
 
   // Clear banner when new results come in (to prevent overlapping banners)
   useEffect(() => {
-    // Only clear for forfeit and guess results (not answer results, which trigger question banners)
-    const hasClearingResult = forfeitResult || forfeitFailureResult || guessResult;
-    if (hasClearingResult && isVisible && resultData) {
-      // Don't clear if the current banner is the same type as the incoming result
-      const shouldClear = 
-        (resultData.type === 'guess' && !guessResult) ||
-        (resultData.type === 'forfeit' && !forfeitResult && !forfeitFailureResult);
-      
-      if (shouldClear) {
-        // Clear any existing banner when forfeit/guess results arrive
-        setIsVisible(false);
-        setResultData(null);
-        setParticleEffect(null);
-        setParticleTrigger(false);
+    // Determine incoming result type
+    const incomingType = guessResult ? 'guess' : (forfeitResult || forfeitFailureResult) ? 'forfeit' : null;
+    
+    // If we have an incoming result and it's different from the currently visible banner type, clear the current banner
+    if (incomingType && isVisible && resultData && resultData.type !== incomingType) {
+      // Clear any existing banner when a different type of result arrives
+      setIsVisible(false);
+      setResultData(null);
+      setParticleEffect(null);
+      setParticleTrigger(false);
 
-        // Clear all timers
-        if (questionTimerRef.current) {
-          clearTimeout(questionTimerRef.current);
-          questionTimerRef.current = null;
-        }
-        if (forfeitTimerRef.current) {
-          clearTimeout(forfeitTimerRef.current);
-          forfeitTimerRef.current = null;
-        }
-        if (forfeitFailureTimerRef.current) {
-          clearTimeout(forfeitFailureTimerRef.current);
-          forfeitFailureTimerRef.current = null;
-        }
-        if (lightningTimerRef.current) {
-          clearTimeout(lightningTimerRef.current);
-          lightningTimerRef.current = null;
-        }
-        if (guessTimerRef.current) {
-          clearTimeout(guessTimerRef.current);
-          guessTimerRef.current = null;
-        }
+      // Clear all timers
+      if (questionTimerRef.current) {
+        clearTimeout(questionTimerRef.current);
+        questionTimerRef.current = null;
+      }
+      if (forfeitTimerRef.current) {
+        clearTimeout(forfeitTimerRef.current);
+        forfeitTimerRef.current = null;
+      }
+      if (forfeitFailureTimerRef.current) {
+        clearTimeout(forfeitFailureTimerRef.current);
+        forfeitFailureTimerRef.current = null;
+      }
+      if (lightningTimerRef.current) {
+        clearTimeout(lightningTimerRef.current);
+        lightningTimerRef.current = null;
+      }
+      if (guessTimerRef.current) {
+        clearTimeout(guessTimerRef.current);
+        guessTimerRef.current = null;
       }
     }
-  }, [forfeitResult, forfeitFailureResult, guessResult, isVisible, resultData]);  if (!isVisible || !resultData) return null;
+  }, [forfeitResult, forfeitFailureResult, guessResult, isVisible, resultData]);
+
+  // Handle lightning no winner message
+  useEffect(() => {
+    if (lightningNoWinnerMessage) {
+      // Prevent duplicate scheduling in StrictMode
+      if (lightningTimerScheduled.current) return;
+      lightningTimerScheduled.current = true;
+
+      setResultData({
+        type: 'lightning',
+        message: lightningNoWinnerMessage
+      });
+      setIsVisible(true);
+
+      // Play wrong sound and skull effect for no winners
+      playWrong();
+      setParticleEffect({ type: 'skull', duration: 2000 });
+      setParticleTrigger(true);
+
+      // Clear any existing lightning timer
+      if (lightningTimerRef.current) {
+        clearTimeout(lightningTimerRef.current);
+      }
+
+      // Auto-hide after 4 seconds
+      lightningTimerRef.current = setTimeout(() => {
+        setIsVisible(false);
+        onCloseRef.current?.();
+        onResultClear?.('lightning');
+        lightningTimerRef.current = null;
+        lightningTimerScheduled.current = false; // Reset guard
+      }, 4000);
+    } else {
+      // Reset guard if no message
+      lightningTimerScheduled.current = false;
+    }
+  }, [lightningNoWinnerMessage, playWrong]);
+
+  // Cleanup all timers on unmount
+  useEffect(() => {
+    return () => {
+      if (questionTimerRef.current) {
+        clearTimeout(questionTimerRef.current);
+        questionTimerRef.current = null;
+      }
+      if (forfeitTimerRef.current) {
+        clearTimeout(forfeitTimerRef.current);
+        forfeitTimerRef.current = null;
+      }
+      if (forfeitFailureTimerRef.current) {
+        clearTimeout(forfeitFailureTimerRef.current);
+        forfeitFailureTimerRef.current = null;
+      }
+      if (lightningTimerRef.current) {
+        clearTimeout(lightningTimerRef.current);
+        lightningTimerRef.current = null;
+      }
+      if (guessTimerRef.current) {
+        clearTimeout(guessTimerRef.current);
+        guessTimerRef.current = null;
+      }
+      // Reset all guards
+      questionTimerScheduled.current = false;
+      forfeitTimerScheduled.current = false;
+      forfeitFailureTimerScheduled.current = false;
+      lightningTimerScheduled.current = false;
+      guessTimerScheduled.current = false;
+    };
+  }, []);  if (!isVisible || !resultData) return null;
 
   const getBackgroundColor = () => {
     switch (resultData.type) {

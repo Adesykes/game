@@ -16,6 +16,7 @@ export const useGameEvents = (
   const [forfeitResult, setForfeitResult] = useState<{ playerId: string; success: boolean; forfeitType: string } | null>(null);
   const [forfeitFailureResult, setForfeitFailureResult] = useState<{ playerId: string; forfeitType: string } | null>(null);
   const [guessResult, setGuessResult] = useState<{ solverId: string; forfeitType: string; solution: string } | null>(null);
+  const [lightningNoWinnerMessage, setLightningNoWinnerMessage] = useState<string | null>(null);
 
   // Sound functions (hook must be top-level)
   const { playCorrect, playWrong, playReady, playStart } = useSound();
@@ -136,9 +137,6 @@ export const useGameEvents = (
         forfeitType: 'charade',
         solution: gameState.charadeSolution || 'Unknown'
       });
-      
-      // Clear guess result after 3 seconds
-      setTimeout(() => setGuessResult(null), 3000);
     };
 
     const onCharadeFailed = ({ gameState, playerId }: { gameState: GameState, playerId: string }) => {
@@ -175,9 +173,6 @@ export const useGameEvents = (
         forfeitType: 'pictionary',
         solution: gameState.pictionarySolution || 'Unknown'
       });
-      
-      // Clear guess result after 3 seconds
-      setTimeout(() => setGuessResult(null), 3000);
     };
 
     const onPictionaryFailed = ({ gameState, playerId }: { gameState: GameState, playerId: string }) => {
@@ -266,11 +261,16 @@ export const useGameEvents = (
       setGameState(cloneState(gameState));
     };
 
-    const onLightningEnded = ({ gameState }: { gameState: GameState }) => {
-      console.log('[client] lightning-ended');
+    const onLightningEnded = ({ gameState, reason }: { gameState: GameState; reason?: string }) => {
+      console.log('[client] lightning-ended, reason:', reason);
       setGameState(cloneState(gameState));
       setCurrentQuestion(null);
       setQuestionDeadline(null);
+      
+      // Show message if lightning round ended with no winners
+      if (reason === 'timeout') {
+        setLightningNoWinnerMessage('No one got the lightning question right!');
+      }
     };
 
     const onLightningRewardChoice = ({ winnerId, options }: { winnerId: string; options: string[] }) => {
@@ -377,5 +377,22 @@ export const useGameEvents = (
     };
   }, [socket, setGameState, currentQuestion, playCorrect, playWrong, playReady, playStart]);
 
-  return { currentQuestion, answerResult, charadeDeadline, pictionaryDeadline, questionDeadline, lightningCountdownEndAt, forfeitResult, forfeitFailureResult, guessResult };
+  return { 
+    currentQuestion, 
+    answerResult, 
+    charadeDeadline, 
+    pictionaryDeadline, 
+    questionDeadline, 
+    lightningCountdownEndAt, 
+    forfeitResult, 
+    forfeitFailureResult, 
+    guessResult,
+    lightningNoWinnerMessage,
+    // Expose setters for result clearing
+    setAnswerResult,
+    setForfeitResult,
+    setForfeitFailureResult,
+    setGuessResult,
+    setLightningNoWinnerMessage
+  };
 };

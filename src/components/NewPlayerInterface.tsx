@@ -16,6 +16,9 @@ interface PlayerInterfaceProps {
   charadeDeadline?: number | null;
   pictionaryDeadline?: number | null;
   lightningCountdownEndAt?: number | null;
+  forfeitResult?: { playerId: string; success: boolean; forfeitType: string } | null;
+  forfeitFailureResult?: { playerId: string; forfeitType: string } | null;
+  guessResult?: { solverId: string; forfeitType: string; solution: string } | null;
 }
 
 const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
@@ -27,6 +30,9 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
   charadeDeadline,
   pictionaryDeadline,
   lightningCountdownEndAt,
+  forfeitResult,
+  forfeitFailureResult,
+  guessResult,
 }) => {
   const [timeLeft, setTimeLeft] = useState(30);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -86,7 +92,7 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
   
   // Control body scroll locking based on game phase
   useEffect(() => {
-    const needsScrollLock = ['charade_guessing', 'pictionary_drawing'].includes(gameState.gamePhase);
+    const needsScrollLock = ['charade_guessing'].includes(gameState.gamePhase);
     
     if (needsScrollLock) {
       // Disable scrolling on body
@@ -238,7 +244,7 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
         } else {
           setLightningCountdown(null);
         }
-      }, 100);
+      }, 500);
       return () => clearInterval(interval);
     } else {
       setLightningCountdown(null);
@@ -317,7 +323,7 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
   }
 
   // Determine if we need fixed positioning or scrollable
-  const needsFixedPosition = ['charade_guessing', 'pictionary_drawing'].includes(gameState.gamePhase);
+  const needsFixedPosition = ['charade_guessing'].includes(gameState.gamePhase);
   const containerClass = needsFixedPosition
     ? "min-h-screen fixed inset-0 overflow-hidden bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-4"
     : "min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-4 pb-24 overflow-auto"; // Extra padding and explicit overflow
@@ -325,7 +331,7 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
   return (
     <div className={containerClass}>
       {/* Lightning teaser banner */}
-      {typeof gameState.turnsPlayed === 'number' && gameState.gamePhase !== 'lightning_round' && (
+      {typeof gameState.turnsPlayed === 'number' && gameState.gamePhase !== 'lightning_round' && !answerResult && !forfeitResult && !forfeitFailureResult && !guessResult && (
         <div className="max-w-md mx-auto mb-3">
           <div className="bg-yellow-500/15 border border-yellow-400/30 rounded-lg px-3 py-2 text-center">
             <span className="text-yellow-200 text-sm font-semibold">⚡ Lightning round in {((10 - ((gameState.turnsPlayed % 10) || 0)) % 10) || 10} turns</span>
@@ -333,7 +339,7 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
         </div>
       )}
       {/* Lightning countdown banner */}
-      {lightningCountdown !== null && lightningCountdown > 0 && (
+      {lightningCountdown !== null && lightningCountdown > 0 && !answerResult && !forfeitResult && !forfeitFailureResult && !guessResult && (
         <div className="max-w-md mx-auto mb-3">
           <div className="bg-red-500/20 border border-red-400/40 rounded-lg px-3 py-2 text-center animate-pulse">
             <span className="text-red-200 text-lg font-bold">⚡ Lightning Round Starting in {lightningCountdown}...</span>

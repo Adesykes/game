@@ -2362,7 +2362,7 @@ function triggerLightning(room, roomCode) {
   gs.lightningWinnerId = null;
   gs.lightningAnsweredPlayers = []; // Reset answered players for new round
   gs.lightningMode = 'sudden_death'; // Enable sudden death mode
-  gs.lightningEndAt = Date.now() + 8000; // 8 seconds
+  gs.lightningEndAt = Date.now() + 15000; // 15 seconds
   gs.lightningAcceptingAnswers = false; // Start with answers not accepted
   gs.lightningQuestionId = Math.random().toString(36).substring(2, 9); // Unique ID for this question
   gs.lightningSubmissions = {}; // Track submissions for this question
@@ -2381,7 +2381,7 @@ function triggerLightning(room, roomCode) {
     if (gs.gamePhase === 'lightning_round') {
       endLightning(room, roomCode, 'timeout');
     }
-  }, 13000); // 5s countdown + 8s round = 13s total
+  }, 20000); // 5s countdown + 15s round = 20s total
   lightningTimeouts.set(roomCode, handle);
 }
 
