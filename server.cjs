@@ -782,13 +782,131 @@ io.on('connection', (socket) => {
       // If still on question phase when time expires, auto-resolve as incorrect
       if (gameState.gamePhase === 'question' && gameState.currentQuestion) {
         const correctAnswer = gameState.currentQuestion.correctAnswer;
+        
+        // Determine the player dynamically at execution time
+        const currentPlayerAtTimeout = gameState.players[gameState.currentPlayerIndex];
+        
+        // Mark that player needs to do charade (but don't deduct life yet)
+        currentPlayerAtTimeout.needsCharadeForLife = true;
+        console.log(`[question-timeout] Player ${currentPlayerAtTimeout.name} timed out - will do charade`);
+        
         gameState.gamePhase = 'forfeit';
         
-        // Get a random forfeit
-  gameState.currentForfeit = drawForfeitFromPool(room, currentPlayer);
+        // Create the forfeit for the dynamically determined player
+        gameState.currentForfeit = drawForfeitFromPool(room, currentPlayerAtTimeout);
         
+        // Auto-start forfeit based on type
+        if (gameState.currentForfeit.type === 'shot') {
+          // For shot forfeits, complete immediately
+          console.log(`[auto-forfeit-timeout] Auto-completing shot forfeit for ${currentPlayerAtTimeout.name}`);
+          currentPlayerAtTimeout.needsCharadeForLife = false;
+          gameState.gamePhase = 'category_selection';
+          gameState.currentForfeit = null;
+          io.to(roomCode).emit('forfeit-completed', { gameState: gameState, forfeitType: 'shot' });
+          // Attempt karaoke break
+          try {
+            maybeTriggerKaraoke(room, roomCode);
+          } catch (err) {
+            console.error('[karaoke] maybeTriggerKaraoke error after auto shot forfeit timeout', err);
+          }
+          if (gameState.gamePhase === 'karaoke_break') {
+            console.log('[karaoke] Karaoke break triggered after auto shot forfeit timeout; skipping scheduled nextTurn');
+          } else {
+            scheduleNextTurn(room, roomCode, 'after auto shot forfeit timeout', 3000);
+          }
+        } else if (gameState.currentForfeit.type === 'charade' || gameState.currentForfeit.type === 'pictionary') {
+          // Auto-start charade or pictionary forfeit
+          console.log(`[auto-forfeit-timeout] Auto-starting ${gameState.currentForfeit.type} forfeit for ${currentPlayerAtTimeout.name}`);
+          // Simulate the start-charade event for the current player
+          setTimeout(() => {
+            // This will trigger the existing start-charade handler logic
+            const startCharadeHandler = (roomCode, playerId) => {
+              const room = rooms.get(roomCode);
+              if (!room) return;
+              const gameState = room.gameState;
+              if (gameState.gamePhase !== 'forfeit' || !gameState.currentForfeit) return;
+
+              const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+              if (currentPlayer.id !== playerId) return;
+              
+              console.log(`[auto-start-charade-timeout] Starting forfeit type: ${gameState.currentForfeit.type} for player ${currentPlayer.name}`);
+              
+              // Handle different forfeit types
+              if (gameState.currentForfeit.type === 'shot') {
+                // This shouldn't happen in auto-start, but handle it just in case
+                console.log(`[forfeit-timeout] Shot forfeit for ${currentPlayer.name}`);
+                currentPlayer.needsCharadeForLife = false;
+                gameState.gamePhase = 'category_selection';
+                gameState.currentForfeit = null;
+                io.to(roomCode).emit('forfeit-completed', { gameState, forfeitType: 'shot' });
+                try {
+                  maybeTriggerKaraoke(room, roomCode);
+                } catch (err) {
+                  console.error('[karaoke] maybeTriggerKaraoke error after shot forfeit timeout', err);
+                }
+                if (gameState.gamePhase === 'karaoke_break') {
+                  console.log('[karaoke] Karaoke break triggered after shot forfeit timeout; skipping scheduled nextTurn');
+                  return;
+                }
+                scheduleNextTurn(room, roomCode, 'after shot forfeit timeout', 3000);
+                return;
+              }
+              
+              // For charade or pictionary forfeits
+              if (!currentPlayer.charadeCount) currentPlayer.charadeCount = 0;
+              currentPlayer.charadeCount++;
+              
+              console.log(`[${gameState.currentForfeit.type}] ${currentPlayer.name} has now done ${currentPlayer.charadeCount} forfeits`);
+
+              if (gameState.currentForfeit.type === 'charade') {
+                gameState.gamePhase = 'charade_guessing';
+                gameState.charadeSolution = gameState.currentForfeit.wordToAct;
+                gameState.charadeSolved = false;
+                const startedAt = Date.now();
+                const endsAt = startedAt + CHARADE_DURATION_MS;
+                console.log(`[charade] auto-start-timeout: room=${roomCode} player=${currentPlayer.id} durationMs=${CHARADE_DURATION_MS} endsAt=${new Date(endsAt).toISOString()}`);
+                io.to(roomCode).emit('charade-started', { gameState, deadline: endsAt });
+                console.log(`[charade] emitted charade-started to room ${roomCode}`);
+
+                const prev = charadeTimeouts.get(roomCode);
+                if (prev) clearTimeout(prev);
+                const handle = setTimeout(() => {
+                  const currentRoom = rooms.get(roomCode);
+                  if (!currentRoom) return;
+                  if (!currentRoom.gameState.charadeSolved) {
+                    handleForfeitFailure(currentRoom, roomCode, currentRoom.gameState.players[currentRoom.gameState.currentPlayerIndex], 'charade');
+                  }
+                }, CHARADE_DURATION_MS);
+                charadeTimeouts.set(roomCode, handle);
+              } else if (gameState.currentForfeit.type === 'pictionary') {
+                gameState.gamePhase = 'pictionary_drawing';
+                gameState.pictionarySolution = gameState.currentForfeit.wordToAct;
+                gameState.pictionarySolved = false;
+                gameState.drawingData = null;
+                const startedAt = Date.now();
+                const endsAt = startedAt + PICTIONARY_DURATION_MS;
+                console.log(`[pictionary] auto-start-timeout: room=${roomCode} player=${currentPlayer.id} durationMs=${PICTIONARY_DURATION_MS} endsAt=${new Date(endsAt).toISOString()}`);
+                io.to(roomCode).emit('pictionary-started', { gameState, deadline: endsAt });
+
+                const prev = pictionaryTimeouts.get(roomCode);
+                if (prev) clearTimeout(prev);
+                const handle = setTimeout(() => {
+                  const currentRoom = rooms.get(roomCode);
+                  if (!currentRoom) return;
+                  if (!currentRoom.gameState.pictionarySolved) {
+                    handleForfeitFailure(currentRoom, roomCode, currentRoom.gameState.players[currentRoom.gameState.currentPlayerIndex], 'pictionary');
+                  }
+                }, PICTIONARY_DURATION_MS);
+                pictionaryTimeouts.set(roomCode, handle);
+              }
+            };
+            startCharadeHandler(roomCode, currentPlayerAtTimeout.id);
+          }, 1000); // Small delay to allow UI to update
+        }
+        
+        // Emit answer-submitted with the correct playerId
         io.to(roomCode).emit('answer-submitted', {
-          playerId: currentPlayer.id,
+          playerId: currentPlayerAtTimeout.id,
           isCorrect: false,
           correctAnswer,
           gameState
@@ -1262,6 +1380,152 @@ io.on('connection', (socket) => {
     
     // Change current player
     gs.currentPlayerIndex = newPlayerIndex;
+    
+    // Clear existing question timeout and start fresh 30s timer for new player
+    const existingTimeout = questionTimeouts.get(roomCode);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+      questionTimeouts.delete(roomCode);
+    }
+    
+    // Start fresh 30s timer for the new current player
+    const timeoutMs = 30000; // 30s to answer
+    const handle = setTimeout(() => {
+      // If still on question phase when time expires, auto-resolve as incorrect
+      if (gs.gamePhase === 'question' && gs.currentQuestion) {
+        const correctAnswer = gs.currentQuestion.correctAnswer;
+        
+        // Determine the player dynamically at execution time
+        const currentPlayerAtTimeout = gs.players[gs.currentPlayerIndex];
+        
+        // Mark that player needs to do charade (but don't deduct life yet)
+        currentPlayerAtTimeout.needsCharadeForLife = true;
+        console.log(`[question-timeout-passed] Player ${currentPlayerAtTimeout.name} timed out after question was passed - will do charade`);
+        
+        gs.gamePhase = 'forfeit';
+        
+        // Create the forfeit for the dynamically determined player
+        gs.currentForfeit = drawForfeitFromPool(room, currentPlayerAtTimeout);
+        
+        // Auto-start forfeit based on type
+        if (gs.currentForfeit.type === 'shot') {
+          // For shot forfeits, complete immediately
+          console.log(`[auto-forfeit-timeout-passed] Auto-completing shot forfeit for ${currentPlayerAtTimeout.name}`);
+          currentPlayerAtTimeout.needsCharadeForLife = false;
+          gs.gamePhase = 'category_selection';
+          gs.currentForfeit = null;
+          io.to(roomCode).emit('forfeit-completed', { gameState: gs, forfeitType: 'shot' });
+          // Attempt karaoke break
+          try {
+            maybeTriggerKaraoke(room, roomCode);
+          } catch (err) {
+            console.error('[karaoke] maybeTriggerKaraoke error after auto shot forfeit timeout passed', err);
+          }
+          if (gs.gamePhase === 'karaoke_break') {
+            console.log('[karaoke] Karaoke break triggered after auto shot forfeit timeout passed; skipping scheduled nextTurn');
+          } else {
+            scheduleNextTurn(room, roomCode, 'after auto shot forfeit timeout passed', 3000);
+          }
+        } else if (gs.currentForfeit.type === 'charade' || gs.currentForfeit.type === 'pictionary') {
+          // Auto-start charade or pictionary forfeit
+          console.log(`[auto-forfeit-timeout-passed] Auto-starting ${gs.currentForfeit.type} forfeit for ${currentPlayerAtTimeout.name}`);
+          // Simulate the start-charade event for the current player
+          setTimeout(() => {
+            // This will trigger the existing start-charade handler logic
+            const startCharadeHandler = (roomCode, playerId) => {
+              const room = rooms.get(roomCode);
+              if (!room) return;
+              const gameState = room.gameState;
+              if (gameState.gamePhase !== 'forfeit' || !gameState.currentForfeit) return;
+
+              const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+              if (currentPlayer.id !== playerId) return;
+              
+              console.log(`[auto-start-charade-timeout-passed] Starting forfeit type: ${gameState.currentForfeit.type} for player ${currentPlayer.name}`);
+              
+              // Handle different forfeit types
+              if (gameState.currentForfeit.type === 'shot') {
+                // This shouldn't happen in auto-start, but handle it just in case
+                console.log(`[forfeit-timeout-passed] Shot forfeit for ${currentPlayer.name}`);
+                currentPlayer.needsCharadeForLife = false;
+                gameState.gamePhase = 'category_selection';
+                gameState.currentForfeit = null;
+                io.to(roomCode).emit('forfeit-completed', { gameState, forfeitType: 'shot' });
+                try {
+                  maybeTriggerKaraoke(room, roomCode);
+                } catch (err) {
+                  console.error('[karaoke] maybeTriggerKaraoke error after shot forfeit timeout passed', err);
+                }
+                if (gameState.gamePhase === 'karaoke_break') {
+                  console.log('[karaoke] Karaoke break triggered after shot forfeit timeout passed; skipping scheduled nextTurn');
+                  return;
+                }
+                scheduleNextTurn(room, roomCode, 'after shot forfeit timeout passed', 3000);
+                return;
+              }
+              
+              // For charade or pictionary forfeits
+              if (!currentPlayer.charadeCount) currentPlayer.charadeCount = 0;
+              currentPlayer.charadeCount++;
+              
+              console.log(`[${gameState.currentForfeit.type}] ${currentPlayer.name} has now done ${currentPlayer.charadeCount} forfeits`);
+
+              if (gameState.currentForfeit.type === 'charade') {
+                gameState.gamePhase = 'charade_guessing';
+                gameState.charadeSolution = gameState.currentForfeit.wordToAct;
+                gameState.charadeSolved = false;
+                const startedAt = Date.now();
+                const endsAt = startedAt + CHARADE_DURATION_MS;
+                console.log(`[charade] auto-start-timeout-passed: room=${roomCode} player=${currentPlayer.id} durationMs=${CHARADE_DURATION_MS} endsAt=${new Date(endsAt).toISOString()}`);
+                io.to(roomCode).emit('charade-started', { gameState, deadline: endsAt });
+                console.log(`[charade] emitted charade-started to room ${roomCode}`);
+
+                const prev = charadeTimeouts.get(roomCode);
+                if (prev) clearTimeout(prev);
+                const handle = setTimeout(() => {
+                  const currentRoom = rooms.get(roomCode);
+                  if (!currentRoom) return;
+                  if (!currentRoom.gameState.charadeSolved) {
+                    handleForfeitFailure(currentRoom, roomCode, currentRoom.gameState.players[currentRoom.gameState.currentPlayerIndex], 'charade');
+                  }
+                }, CHARADE_DURATION_MS);
+                charadeTimeouts.set(roomCode, handle);
+              } else if (gameState.currentForfeit.type === 'pictionary') {
+                gameState.gamePhase = 'pictionary_drawing';
+                gameState.pictionarySolution = gameState.currentForfeit.wordToAct;
+                gameState.pictionarySolved = false;
+                gameState.drawingData = null;
+                const startedAt = Date.now();
+                const endsAt = startedAt + PICTIONARY_DURATION_MS;
+                console.log(`[pictionary] auto-start-timeout-passed: room=${roomCode} player=${currentPlayer.id} durationMs=${PICTIONARY_DURATION_MS} endsAt=${new Date(endsAt).toISOString()}`);
+                io.to(roomCode).emit('pictionary-started', { gameState, deadline: endsAt });
+
+                const prev = pictionaryTimeouts.get(roomCode);
+                if (prev) clearTimeout(prev);
+                const handle = setTimeout(() => {
+                  const currentRoom = rooms.get(roomCode);
+                  if (!currentRoom) return;
+                  if (!currentRoom.gameState.pictionarySolved) {
+                    handleForfeitFailure(currentRoom, roomCode, currentRoom.gameState.players[currentRoom.gameState.currentPlayerIndex], 'pictionary');
+                  }
+                }, PICTIONARY_DURATION_MS);
+                pictionaryTimeouts.set(roomCode, handle);
+              }
+            };
+            startCharadeHandler(roomCode, currentPlayerAtTimeout.id);
+          }, 1000); // Small delay to allow UI to update
+        }
+        
+        // Emit answer-submitted with the correct playerId
+        io.to(roomCode).emit('answer-submitted', {
+          playerId: currentPlayerAtTimeout.id,
+          isCorrect: false,
+          correctAnswer,
+          gameState: gs
+        });
+      }
+    }, timeoutMs);
+    questionTimeouts.set(roomCode, handle);
     
     io.to(roomCode).emit('lifeline-pass-to-random-used', { 
       gameState: gs, 
@@ -1943,6 +2207,16 @@ function endLightning(room, roomCode, reason = 'timeout') {
   // Auto-advance to next turn after lightning timeout
   if (reason === 'timeout') {
     scheduleNextTurn(room, roomCode, 'lightning timeout', 3000);
+  } else if (reason === 'winner') {
+    // Add fallback watchdog: if winner doesn't choose reward within 12 seconds, auto-advance
+    setTimeout(() => {
+      if (gs.gamePhase === 'category_selection' && gs.lightningWinnerId) {
+        console.log(`[lightning-winner-watchdog] Winner ${gs.lightningWinnerId} didn't choose reward, auto-advancing`);
+        // Clear the winner ID to prevent further reward choices
+        gs.lightningWinnerId = null;
+        scheduleNextTurn(room, roomCode, 'lightning winner watchdog', 3000);
+      }
+    }, 12000); // 12 seconds should be enough time to choose a reward
   }
 }
 
@@ -2000,6 +2274,12 @@ function endGame(room, roomCode, winner) {
   
   const c = charadeTimeouts.get(roomCode);
   if (c) { clearTimeout(c); charadeTimeouts.delete(roomCode); }
+  
+  const p = pictionaryTimeouts.get(roomCode);
+  if (p) { clearTimeout(p); pictionaryTimeouts.delete(roomCode); }
+  
+  const l = lightningTimeouts.get(roomCode);
+  if (l) { clearTimeout(l); lightningTimeouts.delete(roomCode); }
   
   // Notify all clients of the game end
   io.to(roomCode).emit('game-finished', { gameState: room.gameState });
