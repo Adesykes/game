@@ -1,5 +1,7 @@
 import { Player, GameState, Question } from '../types/game';
-import { allQuestions } from '../data/questions';
+// Import comprehensive question set from server_data
+const questionsModule = require('../../server_data/expanded_questions.cjs');
+const allQuestions: Question[] = questionsModule.allQuestions;
 
 export const MAX_PLAYERS = 6;
 
@@ -38,7 +40,15 @@ export const createPlayer = (name: string, isHost: boolean = false): Player => {
     isEliminated: false,
     categoryScores: {}, // Initialize empty category scores
     lockedCategories: [], // Initialize empty locked categories
-    recentCategories: [] // Initialize empty recent categories
+    recentCategories: [], // Initialize empty recent categories
+    lifelines: {
+      fiftyFifty: 3,
+      passToRandom: 3
+    },
+    powerUps: {
+      swap_question: 1,
+      steal_category: 1
+    }
   };
 };
 
