@@ -93,11 +93,13 @@ function initRoomRandomPools(room) {
   room._categoryPools = {};
   room._categoryIndices = {};
   room._recentlyUsed = {}; // Track recently used questions per category
+  room._usedByCategory = {}; // Track used questions per category for the entire game
   for (const q of allQuestions) {
     const key = q.category.toLowerCase();
     if (!room._categoryPools[key]) room._categoryPools[key] = [];
     room._categoryPools[key].push(q.id);
     if (!room._recentlyUsed[key]) room._recentlyUsed[key] = [];
+    if (!room._usedByCategory[key]) room._usedByCategory[key] = new Set();
   }
   for (const key of Object.keys(room._categoryPools)) {
     room._categoryPools[key] = shuffleArray(room._categoryPools[key]);
@@ -111,6 +113,11 @@ function initRoomRandomPools(room) {
 function drawQuestionFromPools(room, category) {
   const key = category.toLowerCase();
   if (room._categoryPools && room._categoryPools[key]) {
+    // Ensure used set exists
+    if (!room._usedByCategory) room._usedByCategory = {};
+    if (!room._usedByCategory[key]) room._usedByCategory[key] = new Set();
+    const usedSet = room._usedByCategory[key];
+
     // Enhanced adaptive difficulty weighting with streaks and mastery
     const gs = room.gameState;
     const currentPlayer = gs?.players?.[gs.currentPlayerIndex];
@@ -144,26 +151,36 @@ function drawQuestionFromPools(room, category) {
       
       console.log(`[drawQuestion] Player ${currentPlayer.name}: accuracy=${(overallAccuracy*100).toFixed(1)}%, streak=${currentStreak}, mastery=${categoryMastery}, target=${targetDifficulty}`);
     }
-    // Gather candidate IDs cycling from pool, avoiding recently used questions
-    const windowSize = 8;
+    // If we've used almost all questions in this category, reset used set and reshuffle to avoid repeats across games
+    const poolSize = room._categoryPools[key].length;
+    if (usedSet.size >= poolSize - 1) {
+      room._categoryPools[key] = shuffleArray(room._categoryPools[key]);
+      room._categoryIndices[key] = 0;
+      usedSet.clear();
+    }
+
+    // Gather candidate IDs scanning the pool, skipping used questions
+    const maxScan = Math.min(poolSize, 32); // scan up to 32 positions for diversity
+    const desiredCandidates = 8;
     let collected = [];
-    let localIdx = room._categoryIndices[key];
+    let localIdx = room._categoryIndices[key] % poolSize;
     const recentlyUsed = room._recentlyUsed[key] || [];
-    for (let i = 0; i < windowSize && collected.length < windowSize; i++) {
-      if (localIdx >= room._categoryPools[key].length) {
-        room._categoryPools[key] = shuffleArray(room._categoryPools[key]);
-        room._categoryIndices[key] = 0;
-        localIdx = 0;
-      }
-      const questionId = room._categoryPools[key][localIdx];
-      if (!recentlyUsed.includes(questionId)) {
+    for (let i = 0; i < maxScan && collected.length < desiredCandidates; i++) {
+      const idx = (localIdx + i) % poolSize;
+      const questionId = room._categoryPools[key][idx];
+      if (!usedSet.has(questionId) && !recentlyUsed.includes(questionId)) {
         collected.push(questionId);
       }
-      localIdx++;
     }
-    // If no non-recently used questions found, use the next available
+    // Fallback: if nothing collected due to filtering, allow any not-used; if still empty, allow any
     if (collected.length === 0) {
-      collected = [room._categoryPools[key][room._categoryIndices[key]]];
+      for (let i = 0; i < poolSize && collected.length < desiredCandidates; i++) {
+        const qid = room._categoryPools[key][i];
+        if (!usedSet.has(qid)) collected.push(qid);
+      }
+      if (collected.length === 0) {
+        collected = [room._categoryPools[key][room._categoryIndices[key] % poolSize]];
+      }
     }
     // Choose best match by difficulty
     let chosenId = collected[0];
@@ -186,12 +203,10 @@ function drawQuestionFromPools(room, category) {
         }
       }
     }
-    // Advance main index by at least 1, but preferably more to reduce repeats
-    // For small categories (< 50 questions), advance by 2-3 to consume faster
-    // For large categories, advance by 1-2
-    const poolSize = room._categoryPools[key].length;
-    const advanceAmount = poolSize < 50 ? Math.min(3, Math.floor(poolSize / 5)) : Math.min(2, Math.floor(poolSize / 50)) || 1;
-    room._categoryIndices[key] = room._categoryIndices[key] + advanceAmount;
+    // Mark as used for this game and advance index modestly
+    usedSet.add(chosenId);
+    const advanceAmount = poolSize < 50 ? 2 : 1;
+    room._categoryIndices[key] = (room._categoryIndices[key] + advanceAmount) % poolSize;
     // Update recently used (keep last 5 per category)
     recentlyUsed.push(chosenId);
     if (recentlyUsed.length > 5) recentlyUsed.shift();
@@ -392,6 +407,25 @@ function isCloseMatch(guess, answer) {
   return dist <= allowed;
 }
 const { allQuestions } = require('./server_data/expanded_questions.cjs');
+// Log question inventory on startup
+try {
+  const totalQuestions = Array.isArray(allQuestions) ? allQuestions.length : 0;
+  const byCategory = {};
+  for (const q of allQuestions || []) {
+    const cat = q.category || 'Unknown';
+    byCategory[cat] = (byCategory[cat] || 0) + 1;
+  }
+  const categoryCount = Object.keys(byCategory).length;
+  console.log(`[questions] Loaded ${totalQuestions} questions across ${categoryCount} categories`);
+  // Print a compact per-category summary (sorted by name)
+  const summary = Object.entries(byCategory)
+    .sort((a,b) => a[0].localeCompare(b[0]))
+    .map(([k,v]) => `${k}:${v}`)
+    .join(', ');
+  console.log(`[questions] Per-category counts: ${summary}`);
+} catch (e) {
+  console.log('[questions] Failed to compute question inventory', e);
+}
 
 // Select a random question avoiding repeats until pool is exhausted
 const getRandomQuestion = (usedQuestionIds = []) => {
@@ -942,6 +976,34 @@ io.on('connection', (socket) => {
     console.log(`[submit-answer] Processing answer ${answerIndex} from player ${playerId} (${currentPlayer.name})`);
     let isCorrect = answerIndex === room.gameState.currentQuestion.correctAnswer;
     const questionDifficulty = room.gameState.currentQuestion.difficulty || 'easy';
+
+    // Update power bar: +10% for correct, -10% for incorrect (minimum 0%)
+    console.log(`[submit-answer] Answer ${answerIndex} is ${isCorrect ? 'correct' : 'incorrect'} (correct: ${room.gameState.currentQuestion.correctAnswer})`);
+    console.log(`[submit-answer] About to update power bar for player ${playerId}`);
+    const playerIndex = room.gameState.players.findIndex(p => p.id === playerId);
+    console.log(`[submit-answer] Found player at index ${playerIndex}`);
+    if (playerIndex !== -1) {
+      const currentPowerBar = room.gameState.players[playerIndex].powerBar || 50;
+      const powerBarChange = isCorrect ? 10 : -10;
+      const newPowerBar = Math.max(0, Math.min(100, currentPowerBar + powerBarChange));
+      console.log(`[server] Power bar update: ${room.gameState.players[playerIndex].name} ${currentPowerBar}% -> ${newPowerBar}% (${isCorrect ? '+' : '-'}${Math.abs(powerBarChange)}%)`);
+      room.gameState.players[playerIndex].powerBar = newPowerBar;
+      
+      // Check if player reached 100% and grant sabotage ability
+      if (newPowerBar >= 100 && currentPowerBar < 100) {
+        // Player just reached 100%, grant sabotage ability
+        room.gameState.players[playerIndex].hasSabotage = true;
+        console.log(`[server] Sabotage granted to ${room.gameState.players[playerIndex].name} (${playerId})`);
+        io.to(roomCode).emit('sabotage-granted', { playerId, playerName: room.gameState.players[playerIndex].name, gameState: room.gameState });
+      }
+      
+      // Also grant sabotage if player already has 100% but doesn't have sabotage ability (for existing games)
+      if (newPowerBar >= 100 && !room.gameState.players[playerIndex].hasSabotage) {
+        room.gameState.players[playerIndex].hasSabotage = true;
+        console.log(`[server] Sabotage granted to existing 100% player ${room.gameState.players[playerIndex].name} (${playerId})`);
+        io.to(roomCode).emit('sabotage-granted', { playerId, playerName: room.gameState.players[playerIndex].name, gameState: room.gameState });
+      }
+    }
 
     // Reset per-question consumption flag on resolution
     if (currentPlayer._doubleChanceConsumed) delete currentPlayer._doubleChanceConsumed;
@@ -1974,6 +2036,98 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
+  });
+
+  // Sabotage: reset another player's power bar to 0% and set saboteur to 50%
+  socket.on('sabotage-player', (roomCode, saboteurId, targetId) => {
+    console.log(`[sabotage] Attempt: room=${roomCode} saboteur=${saboteurId} target=${targetId}`);
+    const room = rooms.get(roomCode);
+    if (!room) {
+      console.log('[sabotage] Failed: room not found');
+      return;
+    }
+    const gs = room.gameState;
+    // Only allow sabotage during normal gameplay (category_selection or question)
+    const allowedPhases = ['category_selection', 'question'];
+    if (!allowedPhases.includes(gs.gamePhase)) {
+      console.log(`[sabotage] Rejected: not allowed during phase '${gs.gamePhase}'`);
+      return;
+    }
+    
+    // Find saboteur and target players
+    const saboteur = gs.players.find(p => p.id === saboteurId);
+    const target = gs.players.find(p => p.id === targetId);
+    
+    if (!saboteur || !target) {
+      console.log('[sabotage] Failed: player not found');
+      return;
+    }
+    
+    // Validate saboteur has sabotage ability
+    if (!saboteur.hasSabotage) {
+      console.log('[sabotage] Failed: saboteur does not have sabotage ability');
+      return;
+    }
+    
+    // Validate target is not eliminated
+    if (target.isEliminated) {
+      console.log('[sabotage] Failed: target is eliminated');
+      return;
+    }
+    
+    // Validate target is not the saboteur
+    if (saboteurId === targetId) {
+      console.log('[sabotage] Failed: cannot sabotage self');
+      return;
+    }
+    
+    // Perform sabotage
+    console.log(`[sabotage] Executing: ${saboteur.name} sabotages ${target.name}`);
+    
+    // Reset target's power bar to 0%
+    target.powerBar = 0;
+    
+    // Set saboteur's power bar to 50%
+    saboteur.powerBar = 50;
+    
+    // Remove sabotage ability from saboteur
+    saboteur.hasSabotage = false;
+
+    // Deduct a life from the sabotaged player
+    const prevLives = target.lives || 0;
+    target.lives = Math.max(0, prevLives - 1);
+    console.log(`[sabotage] ${target.name} loses a life: ${prevLives} -> ${target.lives}`);
+    
+    // If target runs out of lives, eliminate them
+    if (target.lives === 0) {
+      target.isEliminated = true;
+      console.log(`[sabotage] ${target.name} eliminated due to sabotage (no lives left)`);
+    }
+    
+    // Emit sabotage event to all clients
+    io.to(roomCode).emit('player-sabotaged', {
+      gameState: gs,
+      saboteurId,
+      targetId,
+      saboteurName: saboteur.name,
+      targetName: target.name
+    });
+    
+    console.log(`[sabotage] Completed: ${target.name} power bar reset to 0%, ${saboteur.name} set to 50%`);
+
+    // If elimination happened, check last-player-standing and/or advance turn if needed
+    if (target.isEliminated) {
+      const lastPlayerStanding = checkLastPlayerStanding(room);
+      if (lastPlayerStanding) {
+        console.log(`[sabotage] Last player standing detected after elimination: ${lastPlayerStanding.name}`);
+        endGame(room, roomCode, lastPlayerStanding);
+        return;
+      }
+      // If the eliminated player was the current player, move to the next turn
+      if (gs.players[gs.currentPlayerIndex]?.id === targetId) {
+        scheduleNextTurn(room, roomCode, 'after sabotage elimination', 1000);
+      }
+    }
   });
   
   // Add reconnection support

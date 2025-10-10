@@ -12,9 +12,10 @@ interface ResultBannerProps {
   forfeitFailureResult: { playerId: string; forfeitType: string } | null;
   guessResult: { solverId: string; forfeitType: string; solution: string } | null;
   lightningNoWinnerMessage?: string | null;
+  sabotageResult?: { saboteurId: string; saboteurName: string; targetId: string; targetName: string } | null;
   playerId: string;
   onClose: () => void;
-  onResultClear?: (type: 'answer' | 'forfeit' | 'forfeitFailure' | 'guess' | 'lightning') => void;
+  onResultClear?: (type: 'answer' | 'forfeit' | 'forfeitFailure' | 'guess' | 'lightning' | 'sabotage') => void;
 }
 
 const ResultBanner: React.FC<ResultBannerProps> = ({
@@ -25,13 +26,14 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
   forfeitFailureResult,
   guessResult,
   lightningNoWinnerMessage,
+  sabotageResult,
   playerId,
   onClose,
   onResultClear
 }) => {
   const [isVisible, setIsVisible] = React.useState(false);
   const [resultData, setResultData] = React.useState<{
-    type: 'question' | 'forfeit' | 'lightning' | 'guess';
+    type: 'question' | 'forfeit' | 'lightning' | 'guess' | 'sabotage';
     isCorrect?: boolean;
     playerName?: string;
     correctAnswer?: string;
@@ -55,6 +57,7 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
   const forfeitFailureTimerRef = React.useRef<NodeJS.Timeout | null>(null);
   const lightningTimerRef = React.useRef<NodeJS.Timeout | null>(null);
   const guessTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const sabotageTimerRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Guards to prevent duplicate timer scheduling (for StrictMode)
   const questionTimerScheduled = React.useRef(false);
@@ -62,6 +65,7 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
   const forfeitFailureTimerScheduled = React.useRef(false);
   const lightningTimerScheduled = React.useRef(false);
   const guessTimerScheduled = React.useRef(false);
+  const sabotageTimerScheduled = React.useRef(false);
 
   // Ref for onClose to avoid dependency issues
   const onCloseRef = useRef(onClose);
@@ -73,6 +77,35 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
 
   // Sound and voice hooks
   const { playCorrect, playWrong, playStreak, playMastery, playForfeit } = useSound();
+  // Handle sabotage banners (target only)
+  useEffect(() => {
+    if (sabotageResult && sabotageResult.targetId === playerId) {
+      if (sabotageTimerScheduled.current) return;
+      sabotageTimerScheduled.current = true;
+
+      setResultData({
+        type: 'sabotage',
+        playerName: sabotageResult.saboteurName,
+        message: `You were sabotaged by ${sabotageResult.saboteurName}!`
+      });
+      setIsVisible(true);
+
+      // Visual impact: skull explosion
+      setParticleEffect({ type: 'skull', duration: 2000 });
+      setParticleTrigger(true);
+
+      if (sabotageTimerRef.current) clearTimeout(sabotageTimerRef.current);
+      sabotageTimerRef.current = setTimeout(() => {
+        setIsVisible(false);
+        onCloseRef.current?.();
+        onResultClear?.('sabotage');
+        sabotageTimerRef.current = null;
+        sabotageTimerScheduled.current = false;
+      }, 3000);
+    } else {
+      sabotageTimerScheduled.current = false;
+    }
+  }, [sabotageResult, playerId]);
   const { getRandomVoiceLine } = useVoiceLines();
 
   // Handle question results
@@ -344,7 +377,7 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
   // Clear banner when new results come in (to prevent overlapping banners)
   useEffect(() => {
     // Determine incoming result type
-    const incomingType = guessResult ? 'guess' : (forfeitResult || forfeitFailureResult) ? 'forfeit' : null;
+    const incomingType = sabotageResult ? 'sabotage' : guessResult ? 'guess' : (forfeitResult || forfeitFailureResult) ? 'forfeit' : null;
     
     // If we have an incoming result and it's different from the currently visible banner type, clear the current banner
     if (incomingType && isVisible && resultData && resultData.type !== incomingType) {
@@ -375,8 +408,12 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
         clearTimeout(guessTimerRef.current);
         guessTimerRef.current = null;
       }
+      if (sabotageTimerRef.current) {
+        clearTimeout(sabotageTimerRef.current);
+        sabotageTimerRef.current = null;
+      }
     }
-  }, [forfeitResult, forfeitFailureResult, guessResult, isVisible, resultData]);
+  }, [forfeitResult, forfeitFailureResult, guessResult, sabotageResult, isVisible, resultData]);
 
   // Handle lightning no winner message
   useEffect(() => {
@@ -438,12 +475,17 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
         clearTimeout(guessTimerRef.current);
         guessTimerRef.current = null;
       }
+      if (sabotageTimerRef.current) {
+        clearTimeout(sabotageTimerRef.current);
+        sabotageTimerRef.current = null;
+      }
       // Reset all guards
       questionTimerScheduled.current = false;
       forfeitTimerScheduled.current = false;
       forfeitFailureTimerScheduled.current = false;
       lightningTimerScheduled.current = false;
       guessTimerScheduled.current = false;
+      sabotageTimerScheduled.current = false;
     };
   }, []);  if (!isVisible || !resultData) return null;
 
@@ -457,6 +499,8 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
         return 'bg-yellow-600';
       case 'guess':
         return 'bg-blue-600';
+      case 'sabotage':
+        return 'bg-red-700';
       default:
         return 'bg-gray-600';
     }
@@ -472,6 +516,8 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
         return 'LIGHTNING WINNER';
       case 'guess':
         return 'CORRECT GUESS!';
+      case 'sabotage':
+        return 'SABOTAGED!';
       default:
         return 'RESULT';
     }

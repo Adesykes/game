@@ -45,6 +45,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onModeSelect }) => {
             Local multiplayer game for up to 6 players
           </p>
           <div className="mt-4 text-xs text-white/40 tracking-wide">Haunting soundtrack active</div>
+          <div className="mt-1 text-xs text-white/60 tracking-wide">Question bank: <span className="text-yellow-300 font-semibold">1,652</span> questions across 10 categories</div>
         </div>
 
         {/* Main Actions */}
@@ -108,6 +109,17 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onModeSelect }) => {
               <li>Successfully guess another player's charade to earn an extra life</li>
               <li>Collect <span className="text-yellow-400">5 points</span> in each of the <span className="text-yellow-400">10 categories</span> to win</li>
               <li>Last player standing wins if all others are eliminated</li>
+            </ul>
+          </div>
+
+          <div className="mt-6 border-t border-white/10 pt-6">
+            <h3 className="font-bold text-white mb-3">Power Bar & Sabotage:</h3>
+            <ul className="text-white/70 text-sm list-disc pl-5 space-y-2">
+              <li>Everyone starts at <span className="text-yellow-300 font-semibold">50%</span> power</li>
+              <li>Correct answers: <span className="text-green-300 font-semibold">+10%</span> • Wrong answers: <span className="text-red-300 font-semibold">-10%</span></li>
+              <li>Reach <span className="text-yellow-300 font-semibold">100%</span> to unlock <span className="text-red-300 font-semibold">Sabotage</span></li>
+              <li>Sabotage (during normal turns only): set a target’s power to <span className="font-semibold">0%</span> and they lose <span className="text-red-400 font-semibold">1 life</span>; your power resets to <span className="font-semibold">50%</span></li>
+              <li>Sabotage is only available during category selection and question phases (not during forfeits or lightning round)</li>
             </ul>
           </div>
           

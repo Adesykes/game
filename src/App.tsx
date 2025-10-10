@@ -29,7 +29,7 @@ function App() {
   const [roomCode, setRoomCode] = useState('');
   const [playerId, setPlayerId] = useState('');
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const { currentQuestion, answerResult, charadeDeadline, pictionaryDeadline, questionDeadline, lightningCountdownEndAt, forfeitResult, forfeitFailureResult, guessResult, lightningNoWinnerMessage, setAnswerResult, setForfeitResult, setForfeitFailureResult, setGuessResult, setLightningNoWinnerMessage } = useGameEvents(socket, setGameState);
+  const { currentQuestion, answerResult, charadeDeadline, pictionaryDeadline, questionDeadline, lightningCountdownEndAt, forfeitResult, forfeitFailureResult, guessResult, lightningNoWinnerMessage, sabotageResult, setAnswerResult, setForfeitResult, setForfeitFailureResult, setGuessResult, setLightningNoWinnerMessage, setSabotageResult } = useGameEvents(socket, setGameState);
   
   // Memoize onClose handler to prevent ResultBanner effects from re-running
   // Memoize onClose handler to prevent ResultBanner effects from re-running
@@ -57,6 +57,14 @@ function App() {
         break;
     }
   }, []);
+  // Also support sabotage clears without widening the public prop types across app
+  const handleResultClearWithSabotage = useCallback((type: 'answer' | 'forfeit' | 'forfeitFailure' | 'guess' | 'lightning' | 'sabotage') => {
+    if (type === 'sabotage') {
+      setSabotageResult(null);
+      return;
+    }
+    handleResultClear(type);
+  }, [handleResultClear, setSabotageResult]);
   // Global background music only during waiting / ready phases (all clients)
   const bgAudioRef = useRef<HTMLAudioElement | null>(null);
   // Dramatic music for lightning rounds
@@ -331,7 +339,7 @@ function App() {
         );
       case 'player':
         return gameState && (
-          gameState.gamePhase === 'ready_check' ? (
+          (gameState.gamePhase === 'ready_check' || gameState.gamePhase === 'waiting') ? (
             <ReadyScreen socket={socket as Socket} gameState={gameState} playerId={playerId} roomCode={roomCode} />
           ) : (gameState.gamePhase === 'karaoke_break' || gameState.gamePhase === 'karaoke_voting') ? (
             <>
@@ -408,9 +416,10 @@ function App() {
           forfeitFailureResult={forfeitFailureResult}
           guessResult={guessResult}
           lightningNoWinnerMessage={lightningNoWinnerMessage}
+          sabotageResult={sabotageResult}
           playerId={playerId}
           onClose={handleBannerClose}
-          onResultClear={handleResultClear}
+          onResultClear={handleResultClearWithSabotage}
         />
       )}
       {mode === 'host' && gameState && (
@@ -422,9 +431,10 @@ function App() {
           forfeitFailureResult={forfeitFailureResult}
           guessResult={guessResult}
           lightningNoWinnerMessage={lightningNoWinnerMessage}
+          sabotageResult={sabotageResult}
           playerId={gameState.players.find(p=>p.isHost)?.id || ''}
           onClose={handleBannerClose}
-          onResultClear={handleResultClear}
+          onResultClear={handleResultClearWithSabotage}
         />
       )}
     </div>

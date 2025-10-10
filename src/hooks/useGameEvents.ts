@@ -17,6 +17,7 @@ export const useGameEvents = (
   const [forfeitFailureResult, setForfeitFailureResult] = useState<{ playerId: string; forfeitType: string } | null>(null);
   const [guessResult, setGuessResult] = useState<{ solverId: string; forfeitType: string; solution: string } | null>(null);
   const [lightningNoWinnerMessage, setLightningNoWinnerMessage] = useState<string | null>(null);
+  const [sabotageResult, setSabotageResult] = useState<{ saboteurId: string; saboteurName: string; targetId: string; targetName: string } | null>(null);
 
   // Sound functions (hook must be top-level)
   const { playCorrect, playWrong, playReady, playStart } = useSound();
@@ -312,6 +313,18 @@ export const useGameEvents = (
       setGameState(gameState);
     };
 
+    const onSabotageGranted = ({ playerId, playerName, gameState }: { playerId: string; playerName: string; gameState: GameState }) => {
+      console.log(`[client] sabotage-granted: ${playerName} (${playerId}) earned sabotage ability!`);
+      setGameState(cloneState(gameState));
+    };
+
+    const onPlayerSabotaged = ({ saboteurId, saboteurName, targetId, targetName, gameState }: { saboteurId: string; saboteurName: string; targetId: string; targetName: string; gameState: GameState }) => {
+      console.log(`[client] player-sabotaged: ${saboteurName} sabotaged ${targetName}!`);
+      setGameState(cloneState(gameState));
+      // Store sabotage event so target client can show a banner
+      setSabotageResult({ saboteurId, saboteurName, targetId, targetName });
+    };
+
     // Register event listeners
     socket.on('player-joined', onPlayerJoined);
     socket.on('game-started', (data) => {
@@ -339,6 +352,8 @@ export const useGameEvents = (
     socket.on('lifeline-pass-to-random-used', onLifelinePassToRandomUsed);
     socket.on('question-swapped', onQuestionSwapped);
     socket.on('powerup-steal-category-result', onPowerupStealCategoryResult);
+    socket.on('sabotage-granted', onSabotageGranted);
+    socket.on('player-sabotaged', onPlayerSabotaged);
   socket.on('lightning-countdown', onLightningCountdown);
   socket.on('lightning-start', onLightningStart);
   socket.on('lightning-winner', onLightningWinner);
@@ -368,6 +383,8 @@ export const useGameEvents = (
       socket.off('lifeline-pass-to-random-used', onLifelinePassToRandomUsed);
       socket.off('question-swapped', onQuestionSwapped);
       socket.off('powerup-steal-category-result', onPowerupStealCategoryResult);
+      socket.off('sabotage-granted', onSabotageGranted);
+      socket.off('player-sabotaged', onPlayerSabotaged);
   socket.off('lightning-countdown', onLightningCountdown);
   socket.off('lightning-start', onLightningStart);
   socket.off('lightning-winner', onLightningWinner);
@@ -388,11 +405,13 @@ export const useGameEvents = (
     forfeitFailureResult, 
     guessResult,
     lightningNoWinnerMessage,
+    sabotageResult,
     // Expose setters for result clearing
     setAnswerResult,
     setForfeitResult,
     setForfeitFailureResult,
     setGuessResult,
-    setLightningNoWinnerMessage
+    setLightningNoWinnerMessage,
+    setSabotageResult
   };
 };

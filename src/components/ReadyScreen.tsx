@@ -27,6 +27,7 @@ const ReadyScreen: React.FC<ReadyScreenProps> = ({ socket, gameState, playerId, 
   const readyCount = gameState.players.filter(p => p.isReady).length;
   const isHost = me?.isHost;
   const total = gameState.players.length;
+  const isWaiting = gameState.gamePhase === 'waiting';
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-pink-900 via-indigo-900 to-black relative">
@@ -47,18 +48,24 @@ const ReadyScreen: React.FC<ReadyScreenProps> = ({ socket, gameState, playerId, 
           Get your drinks ready 🍻 – once everyone hits <span className="text-yellow-300 font-semibold">READY</span>, the madness begins.
         </p>
 
-        <button
-          disabled={me?.isReady}
-          onClick={handleReady}
-          className={`group relative inline-flex items-center justify-center px-10 py-5 rounded-full font-bold text-lg transition-all ${me?.isReady ? 'bg-green-600/60 text-white cursor-default' : 'bg-gradient-to-r from-fuchsia-500 to-amber-400 hover:from-fuchsia-400 hover:to-amber-300 text-black'} shadow-[0_0_25px_-5px_rgba(255,255,255,0.5)]`}
-        >
-          {me?.isReady ? (
-            <span className="flex items-center gap-2"><CheckCircle2 className="w-6 h-6" /> READY</span>
-          ) : (
-            <span className="flex items-center gap-2"><Sparkles className="w-6 h-6" /> READY TO PLAY</span>
-          )}
-          {!me?.isReady && <span className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-white/20" />}
-        </button>
+        {isWaiting ? (
+          <div className="inline-flex items-center justify-center px-6 py-3 rounded-full text-sm font-semibold bg-white/10 text-white/70 border border-white/20">
+            Waiting for host to start the ready check…
+          </div>
+        ) : (
+          <button
+            disabled={me?.isReady}
+            onClick={handleReady}
+            className={`group relative inline-flex items-center justify-center px-10 py-5 rounded-full font-bold text-lg transition-all ${me?.isReady ? 'bg-green-600/60 text-white cursor-default' : 'bg-gradient-to-r from-fuchsia-500 to-amber-400 hover:from-fuchsia-400 hover:to-amber-300 text-black'} shadow-[0_0_25px_-5px_rgba(255,255,255,0.5)]`}
+          >
+            {me?.isReady ? (
+              <span className="flex items-center gap-2"><CheckCircle2 className="w-6 h-6" /> READY</span>
+            ) : (
+              <span className="flex items-center gap-2"><Sparkles className="w-6 h-6" /> READY TO PLAY</span>
+            )}
+            {!me?.isReady && <span className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-white/20" />}
+          </button>
+        )}
 
         <div className="mt-8 text-white/90 flex flex-col items-center">
           <div className="flex items-center gap-2 text-sm tracking-wide">
@@ -74,9 +81,30 @@ const ReadyScreen: React.FC<ReadyScreenProps> = ({ socket, gameState, playerId, 
               </div>
             ))}
           </div>
+
+          {/* Lobby Rules & Info */}
+          <div className="mt-8 w-full max-w-2xl text-left bg-white/5 border border-white/10 rounded-xl p-5">
+            <div className="flex items-baseline justify-between">
+              <h3 className="text-white font-bold">Game Rules</h3>
+              <span className="text-[11px] text-white/60">Question bank: <span className="text-yellow-300 font-semibold">1,652</span> (10 categories)</span>
+            </div>
+            <ul className="mt-3 text-white/80 text-sm list-disc pl-5 space-y-1.5">
+              <li>Everyone starts with 3 lives. Wrong answers and failed forfeits cost 1 life.</li>
+              <li>Collect 5 points in each of the 10 categories to win, or be the last player standing.</li>
+            </ul>
+            <div className="mt-4">
+              <h4 className="text-white font-semibold text-sm mb-1.5">Power Bar & Sabotage</h4>
+              <ul className="text-white/80 text-sm list-disc pl-5 space-y-1.5">
+                <li>Start at 50% power. Correct +10%, wrong -10% (min 0%, max 100%).</li>
+                <li>At 100% power, you unlock Sabotage during normal turns (category selection or question).</li>
+                <li>Sabotage sets a target’s power to 0% and they lose 1 life. Your power resets to 50%.</li>
+                <li>No sabotage during forfeits or lightning round.</li>
+              </ul>
+            </div>
+          </div>
           {gameState.allReady ? (
             <div className="mt-8 text-green-300 font-semibold animate-pulse">All players ready! Starting...</div>
-          ) : isHost && (
+          ) : (!isWaiting && isHost) && (
             <button
               onClick={() => socket.emit('host-force-start', roomCode, playerId)}
               className="mt-8 text-xs tracking-wide px-4 py-2 rounded-md bg-red-600/70 hover:bg-red-600 text-white font-semibold shadow inline-flex items-center gap-2"

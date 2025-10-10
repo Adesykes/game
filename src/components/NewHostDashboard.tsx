@@ -985,7 +985,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
             {gameState.players.map((player) => (
                 <div
                   key={player.id}
-                  className={`flex items-center justify-between p-3 rounded-xl ${
+                  className={`p-3 rounded-xl ${
                     player.id === currentPlayer.id
                       ? 'bg-blue-600/30 border border-blue-400/50'
                       : player.isEliminated
@@ -993,17 +993,31 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                       : 'bg-white/5'
                   }`}
                 >
-                  <div className="flex items-center">
-                    <span className="text-2xl mr-2">{player.avatar}</span>
-                    <div>
-                      <div className={`font-bold ${player.isEliminated ? 'line-through text-white/60' : 'text-white'}`}>
-                        {player.name}
-                        {player.isHost && <span className="ml-2 text-xs bg-yellow-500/50 px-2 py-1 rounded">Host</span>}
-                      </div>
-                      <div className="flex mt-1">
-                        <span className="text-red-400 text-xs">Lives: {player.lives}</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center">
+                      <span className="text-2xl mr-2">{player.avatar}</span>
+                      <div>
+                        <div className={`font-bold ${player.isEliminated ? 'line-through text-white/60' : 'text-white'}`}>
+                          {player.name}
+                          {player.isHost && <span className="ml-2 text-xs bg-yellow-500/50 px-2 py-1 rounded">Host</span>}
+                        </div>
+                        <div className="flex mt-1">
+                          <span className="text-red-400 text-xs">Lives: {player.lives}</span>
+                        </div>
                       </div>
                     </div>
+                  </div>
+                  {/* Power Bar for each player */}
+                  <div className="flex items-center space-2">
+                    <span className="text-white/60 text-xs">Power:</span>
+                    <div className="flex-1 bg-white/20 rounded-full h-2 mx-2">
+                      <div 
+                        className="bg-gradient-to-r from-red-500 to-green-500 h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${player.powerBar ?? 50}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-white/60 text-xs">{player.powerBar ?? 50}%</span>
+                    {player.hasSabotage && <span className="text-red-400 text-xs">⚡</span>}
                   </div>
                 </div>
               ))}

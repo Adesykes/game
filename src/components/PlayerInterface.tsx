@@ -29,7 +29,7 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
   const isMyTurn = currentPlayer?.id === playerId;
 
   const rollDice = () => {
-    if (!isMyTurn || gameState.gamePhase !== 'playing') return;
+    if (!isMyTurn || gameState.gamePhase !== 'category_selection') return;
   console.log('Player rolling dice', { roomId: gameState.id, playerId });
     socket.emit('roll-dice', gameState.id, playerId);
   };
@@ -69,13 +69,56 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
           <div className="flex justify-center items-center space-x-4">
             <div className="flex items-center text-yellow-400">
               <Star className="w-5 h-5 mr-1" />
-              <span className="font-bold">{player.score}</span>
+              <span className="font-bold">{Object.values(player.categoryScores).reduce((sum, score) => sum + score, 0)}</span>
             </div>
             <div className="text-white/60">
-              Position: {player.position}
+              Position: {[...gameState.players].sort((a, b) => 
+                Object.values(b.categoryScores).reduce((sum, score) => sum + score, 0) - 
+                Object.values(a.categoryScores).reduce((sum, score) => sum + score, 0)
+              ).findIndex(p => p.id === playerId) + 1}
             </div>
           </div>
+          {/* Power Bar - Made more prominent */}
+          <div className="mt-6 p-4 bg-gradient-to-r from-red-500/20 to-green-500/20 rounded-xl border border-white/30">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-white font-bold text-lg">⚡ Power Bar</span>
+              <span className="text-white font-bold text-lg">{player.powerBar ?? 50}%</span>
+            </div>
+            <div className="w-full bg-white/30 rounded-full h-4 mb-2">
+              <div 
+                className="bg-gradient-to-r from-red-500 to-green-500 h-4 rounded-full transition-all duration-500 shadow-lg"
+                style={{ width: `${player.powerBar ?? 50}%` }}
+              ></div>
+            </div>
+            {player.hasSabotage && (
+              <div className="text-center">
+                <span className="text-red-400 font-bold text-sm animate-pulse">⚡ SABOTAGE READY ⚡</span>
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Sabotage Controls */}
+        {player.hasSabotage && (gameState.gamePhase === 'category_selection' || gameState.gamePhase === 'question') && (
+          <div className="bg-red-900/20 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-red-400/30">
+            <h3 className="text-xl font-bold text-red-400 mb-4 text-center">⚡ SABOTAGE CONTROLS ⚡</h3>
+            <div className="space-y-2">
+              {gameState.players
+                    .filter(p => p.id !== playerId && !p.isEliminated)
+                    .map(target => (
+                      <button
+                        key={target.id}
+                        onClick={() => {
+                          socket.emit('sabotage-player', gameState.id, playerId, target.id);
+                        }}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                  >
+                    🎯 Sabotage {target.name}
+                  </button>
+                ))}
+            </div>
+          </div>
+        )}
 
         {/* Game Status */}
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-white/20">
@@ -87,7 +130,7 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
               </div>
             )}
 
-      {gameState.gamePhase === 'playing' && (
+      {gameState.gamePhase === 'category_selection' && (
               <div>
         <h2 className="text-lg font-bold text-white mb-2">Collect 5 in EACH category to win</h2>
                 {isMyTurn ? (
@@ -183,13 +226,48 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
               </h3>
               <p className="text-white">
                 {answerResult.isCorrect 
-                  ? `You earned ${answerResult.points} points!` 
+                  ? `Correct answer!` 
                   : `Correct answer was: ${String.fromCharCode(65 + answerResult.correctAnswer)}`
                 }
               </p>
             </div>
           </div>
         )}
+
+        {/* Power Bars Section */}
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-white/20">
+          <h2 className="text-xl font-bold text-white mb-4 flex items-center">
+            ⚡ Power Bars
+          </h2>
+          <div className="space-y-3">
+            {gameState.players
+              .filter(p => !p.isEliminated)
+              .sort((a, b) => (b.powerBar ?? 50) - (a.powerBar ?? 50))
+              .map((p) => (
+                <div key={p.id} className={`p-3 rounded-xl ${p.id === playerId ? 'bg-blue-600/30 border border-blue-400/50' : 'bg-white/5'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xl">{p.avatar}</span>
+                      <span className={`font-bold ${p.id === playerId ? 'text-blue-300' : 'text-white'}`}>
+                        {p.name}
+                        {p.id === playerId && <span className="ml-2 text-xs">(You)</span>}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-white/80 text-sm">{p.powerBar || 50}%</span>
+                      {p.hasSabotage && <span className="text-red-400 text-lg">⚡</span>}
+                    </div>
+                  </div>
+                  <div className="w-full bg-white/20 rounded-full h-3">
+                    <div 
+                      className="bg-gradient-to-r from-red-500 to-green-500 h-3 rounded-full transition-all duration-500"
+                      style={{ width: `${p.powerBar || 50}%` }}
+                    ></div>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
 
         {/* Leaderboard */}
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
@@ -200,7 +278,7 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
           {/* Category progress row for me */}
           <div className="mb-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
             {questionCategories.map((cat) => {
-              const cur = player.categoryProgress?.[cat] ?? 0;
+              const cur = player.categoryScores?.[cat] ?? 0;
               return (
                 <div key={cat} className="bg-white/10 rounded-lg px-2 py-1 flex items-center justify-between">
                   <span className="text-white/80 text-xs">{cat}</span>
@@ -211,18 +289,35 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
           </div>
           <div className="space-y-2">
             {[...gameState.players]
-              .sort((a, b) => b.score - a.score)
+              .sort((a, b) => 
+                Object.values(b.categoryScores).reduce((sum, score) => sum + score, 0) - 
+                Object.values(a.categoryScores).reduce((sum, score) => sum + score, 0)
+              )
               .map((p, index) => (
                 <div key={p.id} 
-                     className={`flex items-center justify-between p-3 rounded-xl ${
+                     className={`p-3 rounded-xl ${
                        p.id === playerId ? 'bg-blue-600/30 border border-blue-400/50' : 'bg-white/5'
                      }`}>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-yellow-400 font-bold">#{index + 1}</span>
-                    <span className="text-xl">{p.avatar}</span>
-                    <span className="text-white font-bold">{p.name}</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-yellow-400 font-bold">#{index + 1}</span>
+                      <span className="text-xl">{p.avatar}</span>
+                      <span className="text-white font-bold">{p.name}</span>
+                    </div>
+                    <span className="text-yellow-400 font-bold">{Object.values(p.categoryScores).reduce((sum, score) => sum + score, 0)}</span>
                   </div>
-                  <span className="text-yellow-400 font-bold">{p.score}</span>
+                  {/* Power Bar for each player */}
+                  <div className="flex items-center space-2">
+                    <span className="text-white/60 text-xs">Power:</span>
+                    <div className="flex-1 bg-white/20 rounded-full h-2 mx-2">
+                      <div 
+                        className="bg-gradient-to-r from-red-500 to-green-500 h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${p.powerBar ?? 50}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-white/60 text-xs">{p.powerBar ?? 50}%</span>
+                    {p.hasSabotage && <span className="text-red-400 text-xs">⚡</span>}
+                  </div>
                 </div>
               ))}
           </div>

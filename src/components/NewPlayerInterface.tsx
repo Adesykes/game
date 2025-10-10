@@ -372,6 +372,47 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
           </div>
         </div>
 
+        {/* Power Bar (player's own) */}
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 mb-6 border border-white/20">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-white font-semibold">⚡ Power</span>
+            <span className="text-white font-bold">{player.powerBar ?? 50}%</span>
+          </div>
+          <div className="w-full bg-white/20 rounded-full h-3">
+            <div
+              className="bg-gradient-to-r from-red-500 to-green-500 h-3 rounded-full transition-all duration-500"
+              style={{ width: `${player.powerBar ?? 50}%` }}
+            />
+          </div>
+          {player.hasSabotage && (
+            <div className="text-center mt-2">
+              <span className="text-red-400 font-bold text-sm">⚡ SABOTAGE READY ⚡</span>
+            </div>
+          )}
+        </div>
+
+        {/* Sabotage controls (visible only when ready) */}
+        {player.hasSabotage && (gameState.gamePhase === 'category_selection' || gameState.gamePhase === 'question') && (
+          <div className="bg-red-900/20 backdrop-blur-lg rounded-2xl p-4 mb-6 border border-red-400/30">
+            <h3 className="text-center text-red-300 font-bold mb-3">Sabotage another player</h3>
+            <div className="space-y-2">
+              {gameState.players
+                .filter(p => p.id !== playerId && !p.isEliminated)
+                .map(target => (
+                  <button
+                    key={target.id}
+                    onClick={() => {
+                      socket.emit('sabotage-player', gameState.id, playerId, target.id);
+                    }}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-3 rounded-lg transition-colors"
+                  >
+                    🎯 Sabotage {target.name}
+                  </button>
+                ))}
+            </div>
+          </div>
+        )}
+
         {/* Game Status */}
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-white/20">
           <div className="text-center">

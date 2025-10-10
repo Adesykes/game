@@ -27,6 +27,8 @@ export interface Player {
     swap_question: number;
     steal_category: number;
   };
+  powerBar: number; // 0-100, starts at 50, affects sabotage availability
+  hasSabotage?: boolean; // Whether player has sabotage ability available
 }
 
 export interface Question {

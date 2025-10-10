@@ -98,7 +98,7 @@ const CreateGame: React.FC<CreateGameProps> = ({ socket, onCreateSuccess }) => {
               </div>
               <div className="flex items-center">
                 <Trophy className="w-3 h-3 mr-1" />
-                500+ questions
+                1,600+ questions
               </div>
               <div className="flex items-center">
                 <Play className="w-3 h-3 mr-1" />

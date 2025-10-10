@@ -48,7 +48,8 @@ export const createPlayer = (name: string, isHost: boolean = false): Player => {
     powerUps: {
       swap_question: 1,
       steal_category: 1
-    }
+    },
+    powerBar: 50 // Initialize at 50%
   };
 };
 

@@ -1,16 +1,33 @@
 import { Server } from 'socket.io';
 import { createServer } from 'http';
 import express from 'express';
-import { GameState } from '../types/game';
+import { GameState, Player } from '../types/game';
 import { 
   generateRoomCode, 
   createPlayer, 
   assignPlayerAppearance, 
-  addPointsToPlayer,
-  checkWinCondition,
   getNextPlayer,
   MAX_PLAYERS
 } from '../utils/gameLogic';
+
+// Simple win condition check - player needs 5 in each category
+const checkWinCondition = (gameState: GameState): Player | null => {
+  const questionCategories = ['History', 'Science', 'Sports', 'Entertainment', 'Geography', 'Technology', 'Music', 'Food', 'Literature', 'Animals'];
+  
+  for (const player of gameState.players) {
+    if (player.isEliminated) continue;
+    
+    const hasAllCategories = questionCategories.every(category => 
+      (player.categoryScores[category] || 0) >= 5
+    );
+    
+    if (hasAllCategories) {
+      return player;
+    }
+  }
+  
+  return null;
+};
 
 const app = express();
 const server = createServer(app);
@@ -208,8 +225,29 @@ io.on('connection', (socket) => {
 
     const isCorrect = answerIndex === room.gameState.currentQuestion.correctAnswer;
     const points = isCorrect ? 100 : 0;
+    console.log(`[submit-answer] Answer ${answerIndex} is ${isCorrect ? 'correct' : 'incorrect'} (correct: ${room.gameState.currentQuestion.correctAnswer})`);
     
-    const newGameState = addPointsToPlayer(room.gameState, playerId, points);
+    // Update power bar: +10% for correct, -10% for incorrect (minimum 0%)
+    console.log(`[submit-answer] About to update power bar for player ${playerId}`);
+    const playerIndex = room.gameState.players.findIndex(p => p.id === playerId);
+    console.log(`[submit-answer] Found player at index ${playerIndex}`);
+    if (playerIndex !== -1) {
+      const currentPowerBar = room.gameState.players[playerIndex].powerBar || 50;
+      const powerBarChange = isCorrect ? 10 : -10;
+      const newPowerBar = Math.max(0, Math.min(100, currentPowerBar + powerBarChange));
+      console.log(`[server] Power bar update: ${room.gameState.players[playerIndex].name} ${currentPowerBar}% -> ${newPowerBar}% (${isCorrect ? '+' : '-'}${Math.abs(powerBarChange)}%)`);
+      room.gameState.players[playerIndex].powerBar = newPowerBar;
+      
+      // Check if player reached 100% and grant sabotage ability
+      if (newPowerBar >= 100 && currentPowerBar < 100) {
+        // Player just reached 100%, grant sabotage ability
+        room.gameState.players[playerIndex].hasSabotage = true;
+        console.log(`[server] Sabotage granted to ${room.gameState.players[playerIndex].name} (${playerId})`);
+        io.to(roomCode).emit('sabotage-granted', { playerId, playerName: room.gameState.players[playerIndex].name, gameState: room.gameState });
+      }
+    }
+    
+    const newGameState = { ...room.gameState };
     newGameState.currentQuestion = null;
     newGameState.gamePhase = 'category_selection';
     room.gameState = newGameState;
@@ -238,8 +276,33 @@ io.on('connection', (socket) => {
     }, 3000);
   });
 
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+  socket.on('sabotage-player', (roomCode: string, playerId: string, targetName: string) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+
+    const player = room.gameState.players.find(p => p.id === playerId);
+    if (!player || !player.hasSabotage) return;
+
+    const target = room.gameState.players.find(p => p.name === targetName);
+    if (!target) return;
+
+    // Reset target's power bar to 0 and remove sabotage ability
+    target.powerBar = 0;
+    target.hasSabotage = false;
+
+    // Reset saboteur's power bar to 50% and remove sabotage ability
+    player.powerBar = 50;
+    player.hasSabotage = false;
+
+    console.log(`[server] ${player.name} sabotaged ${target.name}, resetting target's power bar to 0 and saboteur's power bar to 50%`);
+
+    io.to(roomCode).emit('player-sabotaged', { 
+      saboteurId: playerId, 
+      saboteurName: player.name,
+      targetId: target.id,
+      targetName: target.name,
+      gameState: room.gameState 
+    });
   });
 });
 
