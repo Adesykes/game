@@ -689,9 +689,9 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                   {(gameState.lightningQuestion?.options || currentQuestion?.options || []).map((opt, idx) => (
                     <button
                       key={idx}
-                      disabled={!gameState.lightningQuestionId || hasBuzzed}
+                      disabled={!gameState.lightningQuestionId || hasBuzzed || !gameState.lightningAcceptingAnswers}
                       onClick={() => {
-                        if (!gameState.lightningQuestionId || hasBuzzed) return; // Extra safety check
+                        if (!gameState.lightningQuestionId || hasBuzzed || !gameState.lightningAcceptingAnswers) return; // Extra safety check
                         // Allow multiple attempts; server only accepts first correct globally
                         const questionId = gameState.lightningQuestionId;
                         const submissionId = Math.random().toString(36).substring(2, 9);
@@ -701,7 +701,7 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                         socket.emit('lightning-buzz', gameState.id, playerId, idx, questionId, submissionId);
                       }}
                       className={`w-full p-3 rounded-lg text-left transition-colors ${
-                        !gameState.lightningQuestionId
+                        !gameState.lightningQuestionId || !gameState.lightningAcceptingAnswers
                           ? 'bg-gray-600/40 text-gray-400 cursor-not-allowed opacity-60'
                           : hasBuzzed
                           ? selectedLightningIndex === idx
@@ -719,6 +719,9 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                 </div>
                 {!gameState.lightningQuestionId && (
                   <p className="text-yellow-300/70 text-sm mt-2 text-center">⚡ Get ready to buzz!</p>
+                )}
+                {gameState.lightningQuestionId && !gameState.lightningAcceptingAnswers && (
+                  <p className="text-yellow-300/70 text-sm mt-2 text-center">⚡ Stand by… buzzing will open in a moment</p>
                 )}
                 {hasBuzzed && gameState.lightningQuestionId && (
                   <p className="text-white/60 text-sm mt-2 text-center">⚡ Answer locked in: {String.fromCharCode(65 + (selectedLightningIndex ?? 0))}. Waiting for results...</p>

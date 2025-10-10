@@ -513,6 +513,23 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                       </div>
                     ) : (
                       <>
+                    {/* Host Sabotage Controls */}
+                    {hostPlayer?.hasSabotage && (
+                      <div className="mb-4 max-w-3xl mx-auto bg-red-900/20 border border-red-500/30 rounded-xl p-3">
+                        <div className="text-center text-red-300 font-bold mb-2">⚡ Sabotage Ready</div>
+                        <div className="flex flex-wrap gap-2 justify-center">
+                          {gameState.players.filter(p => p.id !== hostPlayer.id && !p.isEliminated).map(p => (
+                            <button
+                              key={p.id}
+                              onClick={() => socket.emit('sabotage-player', gameState.id, hostPlayer.id, p.id)}
+                              className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold"
+                            >
+                              🎯 {p.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <p className="text-white/80 mb-3">
                       {isHostTurn
                         ? 'Choose a category for your question:'
@@ -692,9 +709,9 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                       {(gameState.lightningQuestion?.options || []).map((opt, idx) => (
                         <button
                           key={idx}
-                          disabled={!gameState.lightningQuestionId || hostHasBuzzed}
+                          disabled={!gameState.lightningQuestionId || hostHasBuzzed || !gameState.lightningAcceptingAnswers}
                           onClick={() => {
-                            if (!hostPlayer || !gameState.lightningQuestionId || hostHasBuzzed) return;
+                            if (!hostPlayer || !gameState.lightningQuestionId || hostHasBuzzed || !gameState.lightningAcceptingAnswers) return;
                             const questionId = gameState.lightningQuestionId;
                             const submissionId = Math.random().toString(36).substring(2, 9);
                             setHostLightningSelectedIdx(idx);
@@ -703,7 +720,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                             socket.emit('lightning-buzz', gameState.id, hostPlayer.id, idx, questionId, submissionId);
                           }}
                           className={`p-2 rounded text-left transition-colors ${
-                            !gameState.lightningQuestionId
+                            !gameState.lightningQuestionId || !gameState.lightningAcceptingAnswers
                               ? 'bg-gray-600/40 text-gray-400 cursor-not-allowed opacity-60'
                               : hostHasBuzzed
                               ? hostLightningSelectedIdx === idx
@@ -722,6 +739,8 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                     <p className="text-white/60 text-xs mt-2">
                       {!gameState.lightningQuestionId 
                         ? '⚡ Get ready to buzz!'
+                        : !gameState.lightningAcceptingAnswers
+                        ? '⚡ Stand by… buzzing will open in a moment'
                         : hostHasBuzzed 
                         ? `⚡ Answer locked in: ${String.fromCharCode(65 + (hostLightningSelectedIdx ?? 0))}. Waiting for results...`
                         : 'Tap to buzz; first correct across all players wins.'
