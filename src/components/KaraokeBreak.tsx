@@ -125,7 +125,7 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
     return () => { cancelAnimationFrame(frame); window.removeEventListener('resize', w); };
   }, []);
 
-  // --- Voice selection helper (choose a natural female voice if available) ---
+  // --- Voice selection helper (choose a realistic human-like voice if available) ---
   const preferredVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
   function selectPreferredVoice() {
     if (!('speechSynthesis' in window)) return null;
@@ -133,12 +133,13 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
     const voices = window.speechSynthesis.getVoices();
     if (!voices || voices.length === 0) return null;
     const targetNames = [
+      'Microsoft Aria Online', 'Microsoft Jenny Online', 'Microsoft Zira Online',
       'Google UK English Female', 'Google US English', 'Google English',
       'Microsoft Zira', 'Microsoft Aria', 'Microsoft Jenny', 'Samantha', 'Victoria', 'Zira'
     ].map(v => v.toLowerCase());
-    const femaleRegex = /female|aria|jenny|zira|samantha|victoria/i;
+    const humanRegex = /online|neural|natural|aria|jenny|zira|samantha|victoria/i;
     let candidate = voices.find(v => targetNames.includes(v.name.toLowerCase()));
-    if (!candidate) candidate = voices.find(v => femaleRegex.test(v.name));
+    if (!candidate) candidate = voices.find(v => humanRegex.test(v.name));
     if (!candidate) candidate = voices.find(v => /en-/i.test(v.lang));
     preferredVoiceRef.current = candidate || null;
     return preferredVoiceRef.current;
@@ -164,7 +165,7 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
   useEffect(() => {
     if (!song || !isHost) return;
     // Optional: Comment out TTS since Alexa can't hear browser audio
-    // speak(`Alexa, play ${song.alexaPhrase}`, 0.95, 1.0);
+    speak(`Alexa, play ${song.alexaPhrase}`, 0.95, 1.0);
   }, [song, isHost]);
 
   // Speak Alexa stop on explicit server karaoke-ended event (covers auto + manual end)
@@ -172,7 +173,7 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
   useEffect(() => {
     const handler = () => { 
       // Optional: Comment out TTS since Alexa can't hear browser audio
-      // if (isHost) speak('Alexa, stop', 0.95, 1.0); 
+      if (isHost) speak('Alexa, stop', 0.95, 1.0); 
     };
     socket.on('karaoke-ended', handler);
     return () => { socket.off('karaoke-ended', handler); };

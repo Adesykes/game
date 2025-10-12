@@ -125,17 +125,19 @@ export const useVoiceLines = () => {
           break;
       }
 
-      // Try to use a fun voice if available
+      // Try to use a realistic human-like voice if available
       const voices = speechSynthesis.getVoices();
-      const funVoice = voices.find(voice =>
+      const humanVoice = voices.find(voice =>
+        voice.name.toLowerCase().includes('aria online') ||
+        voice.name.toLowerCase().includes('jenny online') ||
+        voice.name.toLowerCase().includes('zira online') ||
         voice.name.toLowerCase().includes('female') ||
-        voice.name.toLowerCase().includes('male') ||
         voice.name.toLowerCase().includes('zira') ||
         voice.name.toLowerCase().includes('hazel')
       );
 
-      if (funVoice) {
-        utterance.voice = funVoice;
+      if (humanVoice) {
+        utterance.voice = humanVoice;
       }
 
       speechSynthesis.speak(utterance);
