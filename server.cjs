@@ -2785,12 +2785,20 @@ function startSuddenDeath(room, roomCode) {
   room.gameState.suddenDeathActive = true;
   room.gameState.suddenDeathPairs = buildRoundRobinPairs(activeIds);
   room.gameState.suddenDeathCurrentPair = null;
+  room._suddenDeathNextAllowedAt = Date.now(); // throttle marker
   room.gameState.gamePhase = 'question';
   advanceSuddenDeath(room, roomCode);
 }
 
 function advanceSuddenDeath(room, roomCode) {
   if (!room.gameState.suddenDeathActive) return;
+  const now = Date.now();
+  // Throttle: ensure at least 900ms since last advance to prevent rapid cycling
+  if (room._suddenDeathNextAllowedAt && now < room._suddenDeathNextAllowedAt) {
+    const delay = room._suddenDeathNextAllowedAt - now;
+    setTimeout(() => advanceSuddenDeath(room, roomCode), delay + 10);
+    return;
+  }
   // Cull pairs containing eliminated players
   const alive = new Set(room.gameState.players.filter(p => !p.isEliminated).map(p => p.id));
   room.gameState.suddenDeathPairs = (room.gameState.suddenDeathPairs || []).filter(([a,b]) => alive.has(a) && alive.has(b));
@@ -2828,8 +2836,13 @@ function advanceSuddenDeath(room, roomCode) {
   const deadline = (room.gameState.h2hStartAt || Date.now()) + 15000;
   io.to(roomCode).emit('h2h-started', { gameState: room.gameState, challengerId: pair[0], opponentId: pair[1], deadline });
 
-  // Watchdog: after 15s, treat missing answers as wrong and advance
-  setTimeout(() => {
+  // Cancel any prior watchdog
+  if (room._suddenDeathWatchdog) {
+    try { clearTimeout(room._suddenDeathWatchdog); } catch {}
+    room._suddenDeathWatchdog = null;
+  }
+  // Watchdog: after 15s, treat missing answers as wrong and advance; record handle so we can clear if pair resolves early
+  room._suddenDeathWatchdog = setTimeout(() => {
     if (!room.gameState.suddenDeathActive) return;
     const current = room.gameState.suddenDeathCurrentPair;
     if (!current || current[0] !== pair[0] || current[1] !== pair[1]) return;
@@ -2854,7 +2867,8 @@ function advanceSuddenDeath(room, roomCode) {
     room.gameState.h2hOpponentId = null;
     room.gameState.h2hStartAt = null;
     io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'Sudden death timeout' });
-    setTimeout(() => advanceSuddenDeath(room, roomCode), 600);
+    room._suddenDeathNextAllowedAt = Date.now() + 700; // small gap before next duel
+    setTimeout(() => advanceSuddenDeath(room, roomCode), 700);
   }, Math.max(0, deadline - Date.now() + 50));
 }
 
