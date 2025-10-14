@@ -46,13 +46,16 @@ export interface GameState {
   currentPlayerIndex: number;
   currentQuestion: Question | null;
   selectedCategory: string | null; // Currently selected category
-  gamePhase: 'waiting' | 'ready_check' | 'category_selection' | 'question' | 'forfeit' | 'charade_guessing' | 'pictionary_drawing' | 'karaoke_voting' | 'karaoke_break' | 'lightning_round' | 'finished';
+  gamePhase: 'waiting' | 'ready_check' | 'category_selection' | 'category_spin' | 'question' | 'forfeit' | 'charade_guessing' | 'pictionary_drawing' | 'karaoke_voting' | 'karaoke_break' | 'lightning_round' | 'finished';
   // During server-scheduled turn transitions, categories should be hidden until this timestamp (ms since epoch)
   turnCooldownUntil?: number;
   allReady?: boolean; // Flag when all players pressed ready
   winner: Player | null;
   round: number;
   maxRounds: number; // Maximum number of rounds before game ends
+  // Rounds can span multiple full table cycles; cycleInRound increments when looping back to player 0
+  cyclesPerRound?: number; // Default: 2 for Round 1 setup
+  cycleInRound?: number;   // How many full table cycles completed within the current round
   currentForfeit: Forfeit | null;
   charadeSolution: string | null; // The word/phrase being acted out
   charadeSolved: boolean;
@@ -80,6 +83,16 @@ export interface GameState {
   lightningAcceptingAnswers?: boolean; // Whether server is currently accepting answers
   lightningSubmissions?: Record<string, { answerIndex: number; timestamp: number }>; // Track submissions per player
   turnsPlayed?: number; // global turn counter
+  // Head-to-head round fields (Round 2)
+  h2hActive?: boolean;
+  h2hChallengerId?: string | null;
+  h2hOpponentId?: string | null;
+  h2hStartAt?: number | null; // start timestamp for 25s timer window
+  h2hSubmissions?: Record<string, { answerIndex: number; timestamp: number }>; // submissions by challenger/opponent
+  // Round 5 Sudden Death fields
+  suddenDeathActive?: boolean; // whether sudden death mode is active
+  suddenDeathPairs?: Array<[string, string]>; // pending pairs to play (player id tuples)
+  suddenDeathCurrentPair?: [string, string] | null; // current pair playing
 }
 
 // No longer using board squares or chance events

@@ -18,11 +18,13 @@ interface QuestionOverlayProps {
   playerId: string;
   roomCode: string;
   deadlineMs?: number | null;
+  h2hInfo?: { active: boolean; challengerId?: string | null; opponentId?: string | null };
 }
 
-const QuestionOverlay: React.FC<QuestionOverlayProps> = ({ question, isMyTurn, onSubmit, socket, lifelines, powerUps, playerId, roomCode, deadlineMs }) => {
+const QuestionOverlay: React.FC<QuestionOverlayProps> = ({ question, isMyTurn, onSubmit, socket, lifelines, powerUps, playerId, roomCode, deadlineMs, h2hInfo }) => {
   const [selectedAnswer, setSelectedAnswer] = React.useState<number | null>(null);
   const [timeLeft, setTimeLeft] = React.useState<number>(30);
+  const isH2HParticipant = !!(h2hInfo?.active && (h2hInfo.challengerId === playerId || h2hInfo.opponentId === playerId));
 
   React.useEffect(() => {
     // Reset when question changes
@@ -36,14 +38,14 @@ const QuestionOverlay: React.FC<QuestionOverlayProps> = ({ question, isMyTurn, o
   }, [question]);
 
   React.useEffect(() => {
-    if (!isMyTurn) return;
+    if (!isMyTurn && !isH2HParticipant) return;
     if (timeLeft <= 0) return;
     const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
     return () => clearTimeout(t);
-  }, [isMyTurn, timeLeft]);
+  }, [isMyTurn, isH2HParticipant, timeLeft]);
 
   const handleSubmit = (answerIndex: number) => {
-    if (!isMyTurn || selectedAnswer !== null) return;
+    if (!(isMyTurn || isH2HParticipant) || selectedAnswer !== null) return;
     setSelectedAnswer(answerIndex);
     onSubmit(answerIndex);
   };
@@ -67,8 +69,12 @@ const QuestionOverlay: React.FC<QuestionOverlayProps> = ({ question, isMyTurn, o
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
       <div className="bg-gray-800 p-6 md:p-8 rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto relative" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-white">{question.category}</h2>
-          {isMyTurn && (
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">{question.category}
+            {h2hInfo?.active && (
+              <span className="text-xs px-2 py-1 rounded-full bg-pink-600 text-white">Head-to-Head</span>
+            )}
+          </h2>
+          {(isMyTurn || (h2hInfo?.active && (h2hInfo.challengerId === playerId || h2hInfo.opponentId === playerId))) && (
             <div className="flex items-center text-yellow-400">
               <span className="font-bold mr-1">⏱</span>
               <span className="font-bold">{timeLeft}s</span>
@@ -78,7 +84,7 @@ const QuestionOverlay: React.FC<QuestionOverlayProps> = ({ question, isMyTurn, o
         <p className="text-lg mb-6 text-white">{question.question}</p>
 
   {/* Lifelines and Power-ups - only visible to current player */}
-  {isMyTurn && (
+  {(isMyTurn || (h2hInfo?.active && (h2hInfo.challengerId === playerId || h2hInfo.opponentId === playerId))) && (
           <div className="mb-6">
             <div className="flex flex-wrap gap-3 mb-3">
               <button
@@ -108,13 +114,13 @@ const QuestionOverlay: React.FC<QuestionOverlayProps> = ({ question, isMyTurn, o
           </div>
         )}
 
-        {isMyTurn ? (
+        {(isMyTurn || (h2hInfo?.active && (h2hInfo.challengerId === playerId || h2hInfo.opponentId === playerId))) ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {question.options.map((option, index) => (
               <button
                 key={index}
                 onClick={() => handleSubmit(index)}
-                disabled={!isMyTurn || selectedAnswer !== null}
+                disabled={!(isMyTurn || (h2hInfo?.active && (h2hInfo.challengerId === playerId || h2hInfo.opponentId === playerId))) || selectedAnswer !== null}
                 className={`p-4 rounded-lg text-left transition-all ${
                   selectedAnswer === index
                     ? 'bg-blue-600 text-white border-2 border-blue-400'

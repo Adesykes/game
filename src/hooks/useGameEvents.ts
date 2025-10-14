@@ -63,8 +63,14 @@ export const useGameEvents = (
     const onCategorySelected = ({ question, gameState }: { question: Question; gameState: GameState }) => {
       setGameState(cloneState(gameState));
       setCurrentQuestion(question);
-      // Start a 30s deadline for answering
-      setQuestionDeadline(Date.now() + 30000);
+      // Start deadline: 25s if H2H active, 20s for Round 3 spin, 15s for Round 4, else 30s
+      const deadlineMs = Date.now() + (
+        gameState.h2hActive ? 25000 :
+        gameState.round === 3 ? 20000 :
+        gameState.round === 4 ? 15000 :
+        30000
+      );
+      setQuestionDeadline(deadlineMs);
     };
 
   const onAnswerSubmitted = ({
@@ -104,18 +110,21 @@ export const useGameEvents = (
         categoryLockMessage
       });
 
-      // Only reset current question for incorrect answers initially
-      // For correct answers, we'll clear it on next-turn or game-state-update
+      // Only reset question in non-H2H mode; during H2H keep the question visible until completion
       if (!isCorrect) {
-        setCurrentQuestion(null);
-        setQuestionDeadline(null);
+        if (!gameState.h2hActive) {
+          setCurrentQuestion(null);
+          setQuestionDeadline(null);
+        }
       } else {
         console.log('[client] Correct answer - waiting for turn advancement');
         // Add a backup timer to clear the question if we don't get a turn update
-        setTimeout(() => {
-          setCurrentQuestion(null);
-          setQuestionDeadline(null);
-        }, 2000);
+        if (!gameState.h2hActive) {
+          setTimeout(() => {
+            setCurrentQuestion(null);
+            setQuestionDeadline(null);
+          }, 2000);
+        }
       }
     };
 
@@ -360,6 +369,17 @@ export const useGameEvents = (
   socket.on('lightning-elimination', onLightningElimination);
   socket.on('lightning-ended', onLightningEnded);
   socket.on('lightning-reward-choice', onLightningRewardChoice);
+  // Head-to-head
+  socket.on('h2h-started', ({ gameState, deadline }: { gameState: GameState; deadline: number }) => {
+    setGameState(cloneState(gameState));
+    setCurrentQuestion(gameState.currentQuestion || null);
+    setQuestionDeadline(deadline);
+  });
+  socket.on('h2h-complete', ({ gameState }: { gameState: GameState }) => {
+    setGameState(cloneState(gameState));
+    setCurrentQuestion(null);
+    setQuestionDeadline(null);
+  });
 
     // Clean up
     return () => {
@@ -391,6 +411,8 @@ export const useGameEvents = (
   socket.off('lightning-elimination', onLightningElimination);
   socket.off('lightning-ended', onLightningEnded);
   socket.off('lightning-reward-choice', onLightningRewardChoice);
+      socket.off('h2h-started');
+      socket.off('h2h-complete');
     };
   }, [socket, setGameState, currentQuestion, playCorrect, playWrong, playReady, playStart]);
 

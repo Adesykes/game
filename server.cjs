@@ -440,6 +440,17 @@ const getRandomQuestion = (usedQuestionIds = []) => {
 // Socket event handlers
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id, 'from address:', socket.handshake.address);
+  try {
+    socket.emit('server-handshake', { serverTime: Date.now(), portAnnounce: (socket.server && socket.server.address && socket.server.address().port) || null });
+    // Also emit current activePort for late joiners
+    try { socket.emit('server-port', { port: activePort }); } catch {}
+  } catch {}
+
+  // Heartbeat interval for diagnostics
+  const hb = setInterval(() => {
+    try { socket.emit('server-heartbeat', { t: Date.now() }); } catch {}
+  }, 5000);
+  socket.on('disconnect', () => { try { clearInterval(hb); } catch {} });
 
   // Rejoin an existing room after refresh/reconnect
   socket.on('rejoin-room', (roomCode, playerId, callback) => {
@@ -494,6 +505,20 @@ io.on('connection', (socket) => {
         gamePhase: 'waiting',
         winner: null,
         round: 1,
+        // Round/cycle control: each round lasts 2 cycles around the table by default
+        cyclesPerRound: 2,
+        cycleInRound: 0,
+        maxRounds: 5,
+  // Round 5 Sudden Death state
+  suddenDeathActive: false,
+  suddenDeathPairs: [],
+  suddenDeathCurrentPair: null,
+        // Head-to-head (Round 2) state
+        h2hActive: false,
+        h2hChallengerId: null,
+        h2hOpponentId: null,
+        h2hStartAt: null,
+        h2hSubmissions: {},
         currentForfeit: null,
         charadeSolution: null,
         charadeSolved: false,
@@ -760,6 +785,11 @@ io.on('connection', (socket) => {
 
     const gameState = room.gameState;
     console.log(`Current game phase: ${gameState.gamePhase}`);
+    // In Round 3, players cannot manually choose; they must spin
+    if (gameState.round === 3) {
+      console.log('[round3] Manual category selection blocked; use spin instead');
+      return;
+    }
     if (gameState.gamePhase !== 'category_selection') {
       console.log(`Invalid game phase: ${gameState.gamePhase}`);
       return;
@@ -793,9 +823,9 @@ io.on('connection', (socket) => {
   // Draw question from shuffled pools (no immediate repeats until cycle completed)
   const question = drawQuestionFromPools(room, category);
     
-    // Set the current question and update game phase
-    gameState.currentQuestion = question;
-    gameState.gamePhase = 'question';
+  // Set the current question and update game phase
+  gameState.currentQuestion = question;
+  gameState.gamePhase = 'question';
     
     // Emit the event to all players
     io.to(roomCode).emit('category-selected', {
@@ -805,8 +835,9 @@ io.on('connection', (socket) => {
       playerId
     });
     
-    // Start a timer for answering the question
-    const timeoutMs = 30000; // 30s to answer
+  // Start a timer for answering the question
+  // If H2H was armed (rare edge), prefer 25s; Round 3 uses 20s; Round 4 uses 15s; otherwise 30s
+  const timeoutMs = (gameState.h2hActive ? 25000 : (gameState.round === 3 ? 20000 : (gameState.round === 4 ? 15000 : 30000)));
     const existingTimeout = questionTimeouts.get(roomCode);
     if (existingTimeout) {
       clearTimeout(existingTimeout);
@@ -814,7 +845,7 @@ io.on('connection', (socket) => {
     
     const handle = setTimeout(() => {
       // If still on question phase when time expires, auto-resolve as incorrect
-      if (gameState.gamePhase === 'question' && gameState.currentQuestion) {
+      if (gameState.gamePhase === 'question' && gameState.currentQuestion && !gameState.h2hActive) {
         const correctAnswer = gameState.currentQuestion.correctAnswer;
         
         // Determine the player dynamically at execution time
@@ -951,6 +982,128 @@ io.on('connection', (socket) => {
     questionTimeouts.set(roomCode, handle);
   });
 
+  // Round 3: spin-to-pick a category; vertical wheel UI on clients.
+  socket.on('start-spin', (roomCode) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const gs = room.gameState;
+    if (gs.round !== 3) { console.log('[round3] start-spin rejected: not round 3'); return; }
+    if (gs.gamePhase !== 'category_selection') { console.log('[round3] start-spin rejected: wrong phase', gs.gamePhase); return; }
+    // Enter a brief spin phase for clients to animate
+    gs.gamePhase = 'category_spin';
+    io.to(roomCode).emit('game-state-update', { gameState: gs, message: 'Round 3 spin starting' });
+
+    // Choose a category: prefer not globally locked; fallback to any
+    const locked = new Set(gs.globalLockedCategories || []);
+    const candidates = CATEGORIES.filter(c => !locked.has(c));
+    const pick = (candidates.length ? candidates : CATEGORIES)[Math.floor(Math.random() * (candidates.length ? candidates.length : CATEGORIES.length))];
+
+    // Emit immediate spin result so clients can animate to it
+    io.to(roomCode).emit('spin-result', { category: pick });
+
+    // After a short spin duration, draw question and begin 20s timer
+    setTimeout(() => {
+      try {
+        const room2 = rooms.get(roomCode); if (!room2) return;
+        const gs2 = room2.gameState;
+        // Safety: remain in round 3 spin flow
+        const question = drawQuestionFromPools(room2, pick);
+        gs2.currentQuestion = question;
+        gs2.gamePhase = 'question';
+        const deadline = Date.now() + 20000;
+        io.to(roomCode).emit('category-selected', { category: pick, question, gameState: gs2 });
+        // Arm timer for 20s
+        const existing = questionTimeouts.get(roomCode); if (existing) clearTimeout(existing);
+        const h = setTimeout(() => {
+          const r3 = rooms.get(roomCode); if (!r3) return;
+          const s3 = r3.gameState;
+          if (s3.gamePhase === 'question' && s3.currentQuestion) {
+            const currentPlayerAtTimeout = s3.players[s3.currentPlayerIndex];
+            currentPlayerAtTimeout.needsCharadeForLife = true;
+            s3.gamePhase = 'forfeit';
+            s3.currentForfeit = drawForfeitFromPool(r3, currentPlayerAtTimeout);
+            io.to(roomCode).emit('game-state-update', { gameState: s3, message: 'Round 3 question timed out' });
+          }
+        }, 20000);
+        questionTimeouts.set(roomCode, h);
+      } catch (e) {
+        console.error('[round3] spin resolve failed', e);
+        const roomErr = rooms.get(roomCode); if (!roomErr) return;
+        roomErr.gameState.gamePhase = 'category_selection';
+        io.to(roomCode).emit('game-state-update', { gameState: roomErr.gameState, message: 'Spin failed' });
+      }
+    }, 1800); // ~1.8s spin duration
+  });
+
+  // Start a head-to-head challenge (Round 2). Auto-selects a category and presents a question.
+  socket.on('start-h2h', (roomCode, challengerId, opponentId) => {
+    console.log(`[h2h] start request room=${roomCode} challenger=${challengerId} opponent=${opponentId}`);
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const gs = room.gameState;
+    // Only in Round 2
+    if (gs.round !== 2) { console.log('[h2h] rejected: not round 2'); return; }
+    // Only when selecting category
+    if (gs.gamePhase !== 'category_selection') { console.log('[h2h] rejected: wrong phase', gs.gamePhase); return; }
+    const currentPlayer = gs.players[gs.currentPlayerIndex];
+    if (!currentPlayer || currentPlayer.id !== challengerId) { console.log('[h2h] rejected: not challenger turn'); return; }
+    const opponent = gs.players.find(p => p.id === opponentId && !p.isEliminated);
+    if (!opponent || opponent.id === challengerId) { console.log('[h2h] rejected: invalid opponent'); return; }
+
+    // Arm H2H state
+    gs.h2hActive = true;
+    gs.h2hChallengerId = challengerId;
+    gs.h2hOpponentId = opponentId;
+    gs.h2hSubmissions = {};
+    gs.h2hStartAt = Date.now();
+
+    // Auto-pick a category that's not globally locked (fallback to any)
+    try {
+      const locked = new Set(gs.globalLockedCategories || []);
+      const candidates = CATEGORIES.filter(c => !locked.has(c));
+      const category = (candidates.length ? candidates : CATEGORIES)[Math.floor(Math.random() * (candidates.length ? candidates.length : CATEGORIES.length))];
+      const question = drawQuestionFromPools(room, category);
+      gs.currentQuestion = question;
+      gs.gamePhase = 'question';
+
+      // 25s deadline for H2H
+      const deadline = (gs.h2hStartAt || Date.now()) + 25000;
+      const existingTimeout = questionTimeouts.get(roomCode);
+      if (existingTimeout) {
+        clearTimeout(existingTimeout);
+      }
+      const handle = setTimeout(() => {
+        // On timeout, conclude H2H if still active
+        const r = rooms.get(roomCode);
+        if (!r) return;
+        const s = r.gameState;
+        if (!s.h2hActive) return;
+        console.log('[h2h] timer expired, completing');
+        s.h2hActive = false;
+        s.h2hChallengerId = null;
+        s.h2hOpponentId = null;
+        s.h2hStartAt = null;
+        s.h2hSubmissions = {};
+        s.currentQuestion = null;
+        s.gamePhase = 'category_selection';
+        io.to(roomCode).emit('h2h-complete', { gameState: s });
+        scheduleNextTurn(r, roomCode, 'h2h timeout', 2000);
+      }, 25000);
+      questionTimeouts.set(roomCode, handle);
+
+      io.to(roomCode).emit('h2h-started', { gameState: gs, deadline });
+      console.log(`[h2h] started between ${currentPlayer.name} and ${opponent.name} in category ${category}`);
+    } catch (e) {
+      console.error('[h2h] failed to start', e);
+      // Reset H2H flags on failure
+      gs.h2hActive = false;
+      gs.h2hChallengerId = null;
+      gs.h2hOpponentId = null;
+      gs.h2hStartAt = null;
+      gs.h2hSubmissions = {};
+    }
+  });
+
   socket.on('submit-answer', (roomCode, playerId, answerIndex) => {
     console.log(`[submit-answer] Received answer submission: room=${roomCode}, player=${playerId}, answer=${answerIndex}`);
     const room = rooms.get(roomCode);
@@ -960,6 +1113,100 @@ io.on('connection', (socket) => {
     }
     if (!room.gameState.currentQuestion) {
       console.log(`[submit-answer] No current question in room ${roomCode}`);
+      return;
+    }
+    // Sudden Death (Round 5) branch: both players answer; wrong loses a life. Continue until one remains.
+    if (room.gameState.suddenDeathActive && room.gameState.suddenDeathCurrentPair) {
+      const pair = room.gameState.suddenDeathCurrentPair;
+      const allowed = [pair[0], pair[1]];
+      if (!allowed.includes(playerId)) {
+        console.log('[submit-answer][sudden-death] rejected: not a participant');
+        return;
+      }
+      const isCorrect = answerIndex === room.gameState.currentQuestion.correctAnswer;
+      if (!room.gameState.h2hSubmissions) room.gameState.h2hSubmissions = {};
+      room.gameState.h2hSubmissions[playerId] = { answerIndex, timestamp: Date.now() };
+      io.to(roomCode).emit('answer-submitted', {
+        playerId,
+        isCorrect,
+        correctAnswer: room.gameState.currentQuestion.correctAnswer,
+        gameState: room.gameState
+      });
+      const both = !!(room.gameState.h2hSubmissions[pair[0]] && room.gameState.h2hSubmissions[pair[1]]);
+      if (both) {
+        // Apply life changes: any incorrect loses 1 life
+        [pair[0], pair[1]].forEach(pid => {
+          const sub = room.gameState.h2hSubmissions[pid];
+          const correct = sub && sub.answerIndex === room.gameState.currentQuestion.correctAnswer;
+          const idx = room.gameState.players.findIndex(p => p.id === pid);
+          if (idx !== -1 && !correct) {
+            const p = room.gameState.players[idx];
+            p.lives = Math.max(0, (p.lives || 3) - 1);
+            if (p.lives <= 0) p.isEliminated = true;
+          }
+        });
+        // Clear question and H2H gating, then advance to next pair
+        room.gameState.currentQuestion = null;
+        room.gameState.h2hSubmissions = {};
+        room.gameState.h2hActive = false;
+        room.gameState.h2hChallengerId = null;
+        room.gameState.h2hOpponentId = null;
+        room.gameState.h2hStartAt = null;
+        io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'Sudden death result processed' });
+        setTimeout(() => {
+          try { advanceSuddenDeath(room, roomCode); } catch (e) { console.error('[sudden-death] advance failed', e); }
+        }, 800);
+      }
+      return;
+    }
+    // If H2H is active, allow either of the two participants to submit.
+    if (room.gameState.h2hActive && (room.gameState.h2hChallengerId || room.gameState.h2hOpponentId)) {
+      const allowed = [room.gameState.h2hChallengerId, room.gameState.h2hOpponentId].filter(Boolean);
+      if (!allowed.includes(playerId)) {
+        console.log('[submit-answer][h2h] rejected: not a participant');
+        return;
+      }
+      const isCorrect = answerIndex === room.gameState.currentQuestion.correctAnswer;
+      // Record submission
+      if (!room.gameState.h2hSubmissions) room.gameState.h2hSubmissions = {};
+      room.gameState.h2hSubmissions[playerId] = { answerIndex, timestamp: Date.now() };
+      // Apply immediate effects: life and power
+      const pIdx = room.gameState.players.findIndex(p => p.id === playerId);
+      if (pIdx !== -1) {
+        const p = room.gameState.players[pIdx];
+        if (isCorrect) {
+          p.lives = Math.min(5, (p.lives || 3) + 1);
+          const pb = p.powerBar || 50; p.powerBar = Math.min(100, pb + 10);
+        } else {
+          p.lives = Math.max(0, (p.lives || 3) - 1);
+          const pb = p.powerBar || 50; p.powerBar = Math.max(0, pb - 10);
+          if (p.lives <= 0) p.isEliminated = true;
+        }
+      }
+      io.to(roomCode).emit('answer-submitted', { 
+        playerId,
+        isCorrect,
+        correctAnswer: room.gameState.currentQuestion.correctAnswer,
+        gameState: room.gameState
+      });
+
+      const both = room.gameState.h2hChallengerId && room.gameState.h2hOpponentId &&
+        room.gameState.h2hSubmissions[room.gameState.h2hChallengerId] && room.gameState.h2hSubmissions[room.gameState.h2hOpponentId];
+      const expired = (room.gameState.h2hStartAt || 0) > 0 && Date.now() - (room.gameState.h2hStartAt || 0) > 25000;
+      if (both || expired) {
+        // End H2H and move on
+        room.gameState.h2hActive = false;
+        room.gameState.h2hChallengerId = null;
+        room.gameState.h2hOpponentId = null;
+        room.gameState.h2hStartAt = null;
+        room.gameState.h2hSubmissions = {};
+        room.gameState.currentQuestion = null;
+        room.gameState.gamePhase = 'category_selection';
+        io.to(roomCode).emit('h2h-complete', { gameState: room.gameState });
+        // Clear the question timeout if set
+        const t = questionTimeouts.get(roomCode); if (t) { clearTimeout(t); questionTimeouts.delete(roomCode); }
+        scheduleNextTurn(room, roomCode, 'h2h complete', 2000);
+      }
       return;
     }
     if (room.gameState.gamePhase === 'karaoke_voting' || room.gameState.gamePhase === 'karaoke_break') {
@@ -2430,7 +2677,49 @@ function nextTurn(room, roomCode) {
   } while (players[room.gameState.currentPlayerIndex]?.isEliminated && attempts < total);
 
   if (room.gameState.currentPlayerIndex === 0) {
-    room.gameState.round++;
+    const cyclesPerRound = room.gameState.cyclesPerRound || 2;
+    const prevCycle = room.gameState.cycleInRound || 0;
+    const nextCycle = prevCycle + 1;
+    room.gameState.cycleInRound = nextCycle;
+    if (nextCycle >= cyclesPerRound) {
+      room.gameState.round++;
+      room.gameState.cycleInRound = 0;
+      // Configure cycles per round dynamically when entering a new round
+      switch (room.gameState.round) {
+        case 1:
+          room.gameState.cyclesPerRound = 2; // default
+          break;
+        case 2:
+          room.gameState.cyclesPerRound = 2; // Head-to-Head
+          break;
+        case 3:
+          room.gameState.cyclesPerRound = 2; // Spin
+          break;
+        case 4:
+          room.gameState.cyclesPerRound = 4; // Four full cycles
+          break;
+        case 5:
+          room.gameState.cyclesPerRound = 1; // Not used in sudden death
+          break;
+        default:
+          room.gameState.cyclesPerRound = room.gameState.cyclesPerRound || 2;
+      }
+      // Announce new round so clients can show banner/audio
+      io.to(roomCode).emit('round-start', {
+        gameState: JSON.parse(JSON.stringify(room.gameState)),
+        round: room.gameState.round,
+        cyclesPerRound: room.gameState.cyclesPerRound,
+      });
+      // Enter sudden death mode at Round 5
+      if (room.gameState.round === 5) {
+        try {
+          startSuddenDeath(room, roomCode);
+        } catch (e) {
+          console.error('[sudden-death] failed to start', e);
+        }
+        return;
+      }
+    }
   }
   
   const newIndex = room.gameState.currentPlayerIndex;
@@ -2470,6 +2759,103 @@ function nextTurn(room, roomCode) {
   // Log the state after emitting the event
   console.log(`[nextTurn] COMPLETED: room=${roomCode}, final gamePhase=${room.gameState.gamePhase}, final currentPlayerIndex=${room.gameState.currentPlayerIndex}`);
   console.log(`[nextTurn] Final current player: ${players[room.gameState.currentPlayerIndex]?.name} (${players[room.gameState.currentPlayerIndex]?.id})`);
+}
+
+// --- Round 5: Sudden Death helpers ---
+function buildRoundRobinPairs(playerIds) {
+  const ids = playerIds.slice();
+  const n = ids.length;
+  const pairs = [];
+  if (n < 2) return pairs;
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      pairs.push([ids[i], ids[j]]);
+    }
+  }
+  // Shuffle pairs
+  for (let k = pairs.length - 1; k > 0; k--) {
+    const r = Math.floor(Math.random() * (k + 1));
+    const tmp = pairs[k]; pairs[k] = pairs[r]; pairs[r] = tmp;
+  }
+  return pairs;
+}
+
+function startSuddenDeath(room, roomCode) {
+  const activeIds = room.gameState.players.filter(p => !p.isEliminated).map(p => p.id);
+  room.gameState.suddenDeathActive = true;
+  room.gameState.suddenDeathPairs = buildRoundRobinPairs(activeIds);
+  room.gameState.suddenDeathCurrentPair = null;
+  room.gameState.gamePhase = 'question';
+  advanceSuddenDeath(room, roomCode);
+}
+
+function advanceSuddenDeath(room, roomCode) {
+  if (!room.gameState.suddenDeathActive) return;
+  // Cull pairs containing eliminated players
+  const alive = new Set(room.gameState.players.filter(p => !p.isEliminated).map(p => p.id));
+  room.gameState.suddenDeathPairs = (room.gameState.suddenDeathPairs || []).filter(([a,b]) => alive.has(a) && alive.has(b));
+
+  // Win condition: only one survivor
+  const survivors = Array.from(alive.values());
+  if (survivors.length <= 1) {
+    const winner = room.gameState.players.find(p => p.id === survivors[0]) || null;
+    room.gameState.winner = winner || null;
+    room.gameState.gamePhase = 'finished';
+    room.gameState.suddenDeathActive = false;
+    room.gameState.suddenDeathCurrentPair = null;
+    io.to(roomCode).emit('game-finished', { gameState: room.gameState });
+    return;
+  }
+
+  // Rebuild if empty to ensure everyone meets everyone
+  if (!room.gameState.suddenDeathPairs || room.gameState.suddenDeathPairs.length === 0) {
+    room.gameState.suddenDeathPairs = buildRoundRobinPairs(survivors);
+  }
+
+  const pair = room.gameState.suddenDeathPairs.shift();
+  room.gameState.suddenDeathCurrentPair = pair;
+
+  // Draw question (no category selection), visible to both
+  const q = getRandomQuestion([]);
+  room.gameState.currentQuestion = q;
+  room.gameState.gamePhase = 'question';
+  // Reuse H2H flags for UI gating
+  room.gameState.h2hActive = true;
+  room.gameState.h2hChallengerId = pair[0];
+  room.gameState.h2hOpponentId = pair[1];
+  room.gameState.h2hStartAt = Date.now();
+  room.gameState.h2hSubmissions = {};
+  const deadline = (room.gameState.h2hStartAt || Date.now()) + 15000;
+  io.to(roomCode).emit('h2h-started', { gameState: room.gameState, challengerId: pair[0], opponentId: pair[1], deadline });
+
+  // Watchdog: after 15s, treat missing answers as wrong and advance
+  setTimeout(() => {
+    if (!room.gameState.suddenDeathActive) return;
+    const current = room.gameState.suddenDeathCurrentPair;
+    if (!current || current[0] !== pair[0] || current[1] !== pair[1]) return;
+    const subs = room.gameState.h2hSubmissions || {};
+    const haveA = !!subs[current[0]];
+    const haveB = !!subs[current[1]];
+    if (haveA && haveB) return;
+    [current[0], current[1]].forEach(pid => {
+      const sub = subs[pid];
+      const correct = sub && sub.answerIndex === room.gameState.currentQuestion.correctAnswer;
+      const idx = room.gameState.players.findIndex(p => p.id === pid);
+      if (idx !== -1 && !correct) {
+        const p = room.gameState.players[idx];
+        p.lives = Math.max(0, (p.lives || 3) - 1);
+        if (p.lives <= 0) p.isEliminated = true;
+      }
+    });
+    room.gameState.currentQuestion = null;
+    room.gameState.h2hSubmissions = {};
+    room.gameState.h2hActive = false;
+    room.gameState.h2hChallengerId = null;
+    room.gameState.h2hOpponentId = null;
+    room.gameState.h2hStartAt = null;
+    io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'Sudden death timeout' });
+    setTimeout(() => advanceSuddenDeath(room, roomCode), 600);
+  }, Math.max(0, deadline - Date.now() + 50));
 }
 
 function endLightning(room, roomCode, reason = 'timeout') {
@@ -2585,7 +2971,43 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-const PORT = process.env.PORT || 3001;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Game server running on port ${PORT}`);
+// Enhanced port selection with fallback if desired port is busy
+let desiredPort = parseInt(process.env.PORT || '', 10);
+if (Number.isNaN(desiredPort)) desiredPort = 3001;
+let activePort = desiredPort;
+const maxAttempts = 15; // try up to 15 consecutive ports
+let attempts = 0;
+
+console.log(`[startup] process.env.PORT=${process.env.PORT || 'undefined'} (desired ${desiredPort})`);
+
+server.on('error', (err) => {
+  if (err && err.code === 'EADDRINUSE' && attempts < maxAttempts) {
+    console.warn(`[startup] Port ${activePort} in use. Retrying on ${activePort + 1}...`);
+    attempts += 1;
+    activePort += 1;
+    setTimeout(() => {
+      try {
+        server.listen(activePort, '0.0.0.0');
+      } catch (e) {
+        console.error('[startup] Retry listen failed', e);
+      }
+    }, 400);
+  } else {
+    console.error('[startup] Failed to start server:', err);
+  }
+});
+
+server.listen(activePort, '0.0.0.0', () => {
+  console.log(`Game server running on port ${activePort} (env requested ${desiredPort})`);
+  try {
+    // Broadcast the active port to any already-connected sockets (rare race) and future clients get a dedicated handshake
+    io.emit('server-port', { port: activePort });
+  } catch (e) {
+    console.warn('[startup] Failed initial server-port emit', e);
+  }
+});
+
+// Simple health endpoint for debugging connectivity
+app.get('/health', (req, res) => {
+  res.json({ ok: true, port: activePort, rooms: rooms.size, uptimeSec: Math.floor(process.uptime()) });
 });

@@ -6,6 +6,7 @@ import { Users, Trophy, Clock, Maximize, Minimize } from 'lucide-react';
 import { questionCategories } from '../data/questions';
 import QRCodeDisplay from './QRCodeDisplay';
 import { DrawingCanvas, DrawingDisplay } from './DrawingComponents';
+import Round3Spin from './Round3Spin';
 
 interface HostDashboardProps {
   socket: Socket;
@@ -78,6 +79,17 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const activePlayers = gameState.players.filter(p => !p.isEliminated);
   const hostPlayer = gameState.players.find(p => p.isHost);
+  // Round 2 Head-to-Head: host can prompt current player to choose an opponent and start H2H
+  const [selectedOpponentId, setSelectedOpponentId] = useState<string | null>(null);
+  const isRound2 = gameState.round === 2;
+  const isCategoryPhase = gameState.gamePhase === 'category_selection';
+
+  const startHeadToHead = () => {
+    if (!isRound2 || !isCategoryPhase || !selectedOpponentId || !currentPlayer) return;
+    // Start H2H on behalf of current player (challenger)
+    socket.emit('start-h2h', roomCode, currentPlayer.id, selectedOpponentId);
+  };
+  // H2H controls are rendered inside the header section below
   const isHostTurn = !!currentPlayer?.isHost;
   const viewerIsHost = playerId === hostPlayer?.id; // Check if the person viewing is actually the host
 
@@ -321,6 +333,41 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
           </button>
           
           <h1 className="text-3xl font-bold text-white mb-1">Game Host</h1>
+          {isRound2 && isCategoryPhase && !gameState.h2hActive && (
+            <div className="mt-3 mb-4 p-4 bg-blue-900/30 border border-blue-500/40 rounded-xl text-left max-w-2xl mx-auto">
+              <h3 className="text-lg font-bold text-white mb-2">Round 2: Head-to-Head</h3>
+              <p className="text-white/80 mb-3">Choose an opponent for <span className="font-semibold text-white">{currentPlayer.name}</span>. Both will get the same question. Correct = +1 life, +10% power. Wrong = -1 life, -10% power. 25s timer.</p>
+              <div className="flex flex-wrap gap-2 mb-3 justify-center">
+                {activePlayers.filter(p => p.id !== currentPlayer.id).map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedOpponentId(p.id)}
+                    className={`px-3 py-2 rounded-lg ${selectedOpponentId === p.id ? 'bg-green-600/70' : 'bg-white/10 hover:bg-white/20'} text-white`}
+                  >
+                    Challenge {p.name}
+                  </button>
+                ))}
+              </div>
+              <div className="text-center">
+                <button
+                  onClick={startHeadToHead}
+                  disabled={!selectedOpponentId || !!gameState.h2hActive}
+                  className={`mt-1 px-4 py-2 rounded-lg font-semibold ${selectedOpponentId ? 'bg-pink-600 hover:bg-pink-700' : 'bg-gray-600 cursor-not-allowed'} text-white`}
+                >
+                  Start Head-to-Head
+                </button>
+              </div>
+            </div>
+          )}
+          {gameState.h2hActive && (
+            <div className="mt-2 flex flex-wrap justify-center gap-2">
+              {gameState.players.map(p => (
+                <span key={p.id} className={`text-xs px-2 py-1 rounded-full ${p.id === gameState.h2hChallengerId ? 'bg-pink-600 text-white' : p.id === gameState.h2hOpponentId ? 'bg-pink-500 text-white' : 'bg-white/10 text-white/70'}`}>
+                  {p.name} {p.id === gameState.h2hChallengerId ? '(Challenger)' : p.id === gameState.h2hOpponentId ? '(Opponent)' : ''}
+                </span>
+              ))}
+            </div>
+          )}
           <p className="text-white/80 mb-4">Room Code: <span className="font-mono text-yellow-400 font-bold">{roomCode}</span></p>
           
           {gameState.gamePhase === 'waiting' && (
@@ -504,7 +551,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
               )}
               
               <div className="mt-4">
-                {gameState.gamePhase === 'category_selection' && (
+                {(gameState.gamePhase === 'category_selection' || gameState.gamePhase === 'category_spin') && (
                   <div>
                     {gameState.turnCooldownUntil && Date.now() < gameState.turnCooldownUntil ? (
                       <div className="text-center py-12">
@@ -535,7 +582,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                         ? 'Choose a category for your question:'
                         : `${currentPlayer.name} is choosing a category...`}
                     </p>
-                    {isHostTurn && (
+                    {isHostTurn && gameState.round !== 3 && (
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 max-w-3xl mx-auto">
                         {/* Host power-up: Steal Category */}
                         {(hostPlayer?.powerUps?.steal_category || 0) > 0 && (
@@ -592,8 +639,17 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                         })}
                       </div>
                     )}
+                    {isHostTurn && gameState.round === 3 && (
+                      <div className="max-w-md mx-auto mt-4">
+                        <Round3Spin
+                          locked={gameState.globalLockedCategories || []}
+                          onSpin={() => socket.emit('start-spin', gameState.id)}
+                          socket={socket}
+                        />
+                      </div>
+                    )}
                     
-                    {isHostTurn && gameState?.globalLockedCategories && gameState.globalLockedCategories.length > 0 && (
+                    {isHostTurn && gameState.round !== 3 && gameState?.globalLockedCategories && gameState.globalLockedCategories.length > 0 && (
                       <div className="mt-4 p-3 bg-blue-900/30 rounded-lg border border-blue-500/30 max-w-3xl mx-auto">
                         <p className="text-blue-200 text-sm">
                           <span className="font-semibold">Category Lock System:</span> Maximum 3 categories can be locked at once for ALL players. 

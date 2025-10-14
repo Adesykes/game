@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { GameState, Question, AnswerResult } from '../types/game';
 
 // Generate a unique player ID
 const generateUniqueId = (): string => {
@@ -34,67 +33,122 @@ export const useSocket = () => {
     socketCreatedRef.current = true;
     
     // Use window.location to dynamically determine server URL
-    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-    const host = window.location.hostname;
-    const port = 3001; // Your Socket.IO server port
-    
-    // If we're in development and using localhost, just use the port directly
-    // Otherwise, use the full URL (for production or network testing)
-    const serverUrl = host === 'localhost' || host === '127.0.0.1' 
-      ? `${protocol}//${host}:${port}`
-      : host.includes('192.168.') ? `${protocol}//${host}:${port}` : '/';
-    
-    console.log(`Connecting to Socket.IO server at: ${serverUrl}`);
-    
-    const newSocket = io(serverUrl, {
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
-      timeout: 30000,
-      transports: ['websocket', 'polling'], // Try websocket first, then fall back to polling
-      auth: { persistentId },
-      forceNew: true,
-      autoConnect: true
-    });
-    
-    // Store in ref immediately
-    socketRef.current = newSocket;
-    
-    newSocket.on('connect', () => {
-      console.log('Connected to game server with ID:', newSocket.id);
-      setConnected(true);
-    });
+    (async () => {
+      const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+      const host = window.location.hostname;
+      // Allow manual override: set window.__GAME_SERVER_PORT or ?serverPort=####
+      let overridePort: number | undefined;
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const qp = urlParams.get('serverPort');
+        if (qp) overridePort = parseInt(qp, 10);
+        // @ts-ignore optional global injection
+        if (!overridePort && window.__GAME_SERVER_PORT) overridePort = parseInt(String(window.__GAME_SERVER_PORT), 10);
+      } catch {}
 
-    newSocket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error.message);
-      console.error('Connection details:', {
-        url: serverUrl,
-        transport: newSocket.io.engine?.transport?.name
+      // Never treat the client dev port (5173) as a server candidate; server is separate (3001+)
+      const BASE_SERVER_START = 3001;
+      const fallbackRange = Array.from({length:15}, (_,i)=>BASE_SERVER_START+i);
+      const candidatePorts = overridePort ? [overridePort, ...fallbackRange] : fallbackRange;
+      const urls = (host === 'localhost' || host === '127.0.0.1' || host.startsWith('192.168.'))
+        ? candidatePorts.map(p => `${protocol}//${host}:${p}`)
+        : ['/'];
+
+  let workingSocket: Socket | null = null;
+      let connectedUrl: string | null = null;
+      let handshakeReceived = false;
+
+      const attempt = (url: string): Promise<boolean> => {
+        return new Promise(resolve => {
+          console.log(`[socket] Attempting connection to ${url}`);
+          const candidate = io(url, {
+            reconnectionAttempts: 0,
+            timeout: 4000,
+            transports: ['websocket','polling'],
+            auth: { persistentId },
+            forceNew: true,
+            autoConnect: true
+          });
+          let done = false;
+            const finish = (ok: boolean) => {
+              if (done) return; done = true; resolve(ok);
+              if (!ok) { try { candidate.close(); } catch {} }
+            };
+          const handshakeTimer = setTimeout(() => {
+            if (!handshakeReceived) {
+              console.warn('[socket] No handshake after connect; closing and trying next port');
+              finish(false);
+            }
+          }, 1500);
+          candidate.once('server-handshake', () => {
+            handshakeReceived = true;
+          });
+          candidate.once('connect', () => {
+            // We still wait for handshake; if not arrives in 1.5s we drop
+            // keep candidate open tentatively
+          });
+          candidate.once('connect_error', () => {
+            clearTimeout(handshakeTimer);
+            finish(false);
+          });
+          candidate.once('disconnect', () => {
+            if (!handshakeReceived) finish(false);
+          });
+          // If handshake arrives later
+          candidate.on('server-handshake', (info) => {
+            clearTimeout(handshakeTimer);
+            if (!done) {
+              workingSocket = candidate;
+              connectedUrl = url;
+              finish(true);
+            }
+            console.log('[socket] Handshake received', info);
+            // If connect event already fired earlier, ensure we mark connected
+            if (candidate.connected) {
+              try { setConnected(true); } catch {}
+            }
+          });
+        });
+      };
+
+      for (const url of urls) {
+        handshakeReceived = false;
+        const ok = await attempt(url);
+        if (ok) break;
+      }
+
+      // Fallback: try origin port (dev server) only if all server ports failed
+      if (!workingSocket) {
+        const originPort = window.location.port;
+        if (originPort) {
+          const originUrl = `${protocol}//${host}:${originPort}`;
+          console.warn('[socket] Trying fallback origin URL', originUrl);
+          await attempt(originUrl);
+        }
+      }
+
+      if (!workingSocket || !connectedUrl) {
+        console.error('[socket] Could not connect to any server (including fallback). Will retry in 5s.');
+        setTimeout(() => { socketCreatedRef.current = false; }, 5000); // allow retry
+        return;
+      }
+
+      console.log(`[socket] Connected via ${connectedUrl}`);
+      socketRef.current = workingSocket;
+      const ws = workingSocket as Socket; // non-null assertion for listeners
+      ws.on('server-port', (data: any) => console.log('[socket] Server active port broadcast', data));
+      ws.on('server-heartbeat', () => {/* heartbeat */});
+      ws.on('connect', () => { setConnected(true); });
+      ws.on('disconnect', () => {
+        setConnected(false);
+        console.log('[socket] Disconnected; scheduling reconnect attempt');
+        setTimeout(() => { socketCreatedRef.current = false; }, 3000);
       });
-      setConnected(false);
-      
-      // Display error in UI for better debugging
-      const errorEl = document.createElement('div');
-      errorEl.style.position = 'fixed';
-      errorEl.style.bottom = '10px';
-      errorEl.style.left = '10px';
-      errorEl.style.backgroundColor = 'rgba(255,0,0,0.7)';
-      errorEl.style.color = 'white';
-      errorEl.style.padding = '10px';
-      errorEl.style.borderRadius = '5px';
-      errorEl.style.zIndex = '9999';
-      errorEl.textContent = `Socket Error: ${error.message}. Check console for details.`;
-      document.body.appendChild(errorEl);
-      
-      // Remove after 10 seconds
-      setTimeout(() => errorEl.remove(), 10000);
-    });
+      try { fetch('/health').then(r=>r.json()).then(h=>console.log('[socket] Health endpoint', h)).catch(()=>{}); } catch {}
+    })();
 
-    newSocket.on('disconnect', () => {
-      setConnected(false);
-      console.log('Disconnected from game server');
-    });
-
-    // No cleanup function - let the socket persist
+    // Legacy fallback (unused if early return above succeeds) -----------------
+    // (Removed legacy single-endpoint fallback; dynamic logic above suffices)
   }, [persistentId]);
 
   return { socket, connected };

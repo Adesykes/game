@@ -18,6 +18,7 @@ import PlayerInterface from './components/NewPlayerInterface';
 import KaraokeBreak from './components/KaraokeBreak';
 import QuestionOverlay from './components/QuestionOverlay';
 import ResultBanner from './components/ResultBanner';
+import RoundBanner from './components/RoundBanner';
 import { GameState } from './types/game';
 
 type AppMode = 'welcome' | 'create' | 'join' | 'host' | 'player';
@@ -69,6 +70,8 @@ function App() {
   const bgAudioRef = useRef<HTMLAudioElement | null>(null);
   // Dramatic music for lightning rounds
   const dramaticAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [showRoundBanner, setShowRoundBanner] = useState<{ round: number; cyclesPerRound: number; cycleInRound: number } | null>(null);
+  const [lastRoundBannerShown, setLastRoundBannerShown] = useState<number | null>(null);
 
   // Create element once
   useEffect(() => {
@@ -113,6 +116,31 @@ function App() {
     socket.on('lobby-music-stop', handler);
     return () => { socket.off('lobby-music-stop', handler); };
   }, [socket]);
+
+  // Show round banners when server announces or on first entry into category_selection
+  useEffect(() => {
+    if (!socket) return;
+    const onRoundStart = (data: { gameState: GameState; round: number; cyclesPerRound?: number }) => {
+      setGameState(data.gameState);
+      // Only show once per round
+      setLastRoundBannerShown(prev => {
+        if (prev === data.round) return prev;
+        setShowRoundBanner({ round: data.round, cyclesPerRound: data.cyclesPerRound ?? (data.gameState.cyclesPerRound || 1), cycleInRound: data.gameState.cycleInRound || 0 });
+        return data.round;
+      });
+    };
+    socket.on('round-start', onRoundStart);
+    return () => { socket.off('round-start', onRoundStart); };
+  }, [socket]);
+
+  // Also detect the start of round 1 when we first switch into category_selection
+  useEffect(() => {
+    if (!gameState) return;
+    if (gameState.round === 1 && gameState.gamePhase === 'category_selection' && lastRoundBannerShown !== 1) {
+      setShowRoundBanner({ round: 1, cyclesPerRound: gameState.cyclesPerRound || 2, cycleInRound: gameState.cycleInRound || 0 });
+      setLastRoundBannerShown(1);
+    }
+  }, [gameState, lastRoundBannerShown]);
 
   // Dramatic music start/stop for lightning rounds
   useEffect(() => {
@@ -390,12 +418,37 @@ function App() {
   return (
     <div className={mode === 'player' ? 'overflow-auto' : ''}>
       {renderContent()}
-      {mode === 'player' && gameState && currentQuestion && gameState.gamePhase === 'question' && socket &&
-        (gameState.players[gameState.currentPlayerIndex]?.id === playerId) && (
+      {showRoundBanner && (
+        <div onClick={() => setShowRoundBanner(null)}>
+          <RoundBanner
+            round={showRoundBanner.round}
+            cyclesPerRound={showRoundBanner.cyclesPerRound}
+            cycleInRound={showRoundBanner.cycleInRound}
+            secondsPerTurn={showRoundBanner.round === 2 ? 25 : showRoundBanner.round === 3 ? 20 : showRoundBanner.round === 4 ? 15 : showRoundBanner.round === 5 ? 15 : 30}
+            rules={[
+              showRoundBanner.round === 1 ? 'Standard rules. Earn points by answering correctly.' :
+              showRoundBanner.round === 2 ? 'Head-to-Head: Choose an opponent. Both get the same question. Correct: +1 life, +10% power. Wrong: -1 life, -10% power. 25s timer.' :
+              showRoundBanner.round === 3 ? 'Spin the Wheel: No manual choice. A random category is selected. 20s timer. Forfeits, lives, power-ups, and category locking same as Round 1.' :
+              showRoundBanner.round === 4 ? 'Standard rules return. 15s timer. Forfeits, lives, power-ups, and category locking same as Round 1.' :
+              showRoundBanner.round === 5 ? 'Sudden Death: Head-to-Head duels each turn. Two players face the same question. Wrong answers lose 1 life; correct is safe. 15s per duel. Continues until one player remains. Everyone plays everyone at least once.' :
+              'Rules will be announced for this round.',
+              `Round ${showRoundBanner.round} lasts ${showRoundBanner.cyclesPerRound} full cycles around the table.`,
+            ]}
+            intensity={showRoundBanner.round >= 5 ? 'ultra' : showRoundBanner.round >= 3 ? 'high' : showRoundBanner.round >= 2 ? 'med' : 'low'}
+            roundIntroSrc={showRoundBanner.round === 2 ? '/round2-intro.mp3' : undefined}
+            onClose={() => setShowRoundBanner(null)}
+          />
+        </div>
+      )}
+      {mode === 'player' && gameState && currentQuestion && socket && (() => {
+        const mine = gameState.players[gameState.currentPlayerIndex]?.id === playerId;
+        const h2h = !!(gameState.h2hActive && (gameState.h2hChallengerId === playerId || gameState.h2hOpponentId === playerId));
+        return gameState.gamePhase === 'question' && (mine || h2h);
+      })() && (
         <QuestionOverlay
           key={`${currentQuestion.id}-${currentQuestion.options.length}`}
           question={currentQuestion}
-          isMyTurn={true}
+          isMyTurn={gameState.players[gameState.currentPlayerIndex]?.id === playerId}
           onSubmit={(answerIndex) => {
             socket.emit('submit-answer', gameState.id, playerId, answerIndex);
           }}
@@ -405,7 +458,36 @@ function App() {
           lifelines={gameState.players.find(p => p.id === playerId)?.lifelines || { fiftyFifty: 0, passToRandom: 0 }}
           powerUps={gameState.players.find(p => p.id === playerId)?.powerUps || { swap_question: 0, steal_category: 0 }}
           deadlineMs={questionDeadline || null}
+          h2hInfo={{ active: !!gameState.h2hActive, challengerId: gameState.h2hChallengerId, opponentId: gameState.h2hOpponentId }}
         />
+      )}
+      {mode === 'host' && gameState && currentQuestion && socket && (() => {
+        const host = gameState.players.find(p => p.isHost);
+        if (!host) return false;
+        const mine = gameState.players[gameState.currentPlayerIndex]?.id === host.id;
+        const h2h = !!(gameState.h2hActive && (gameState.h2hChallengerId === host.id || gameState.h2hOpponentId === host.id));
+        return gameState.gamePhase === 'question' && (mine || h2h);
+      })() && (
+        (() => {
+          const host = gameState.players.find(p => p.isHost)!;
+          return (
+            <QuestionOverlay
+              key={`host-${currentQuestion.id}-${currentQuestion.options.length}`}
+              question={currentQuestion}
+              isMyTurn={gameState.players[gameState.currentPlayerIndex]?.id === host.id}
+              onSubmit={(answerIndex) => {
+                socket.emit('submit-answer', gameState.id, host.id, answerIndex);
+              }}
+              socket={socket}
+              playerId={host.id}
+              roomCode={roomCode}
+              lifelines={host.lifelines || { fiftyFifty: 0, passToRandom: 0 }}
+              powerUps={host.powerUps || { swap_question: 0, steal_category: 0 }}
+              deadlineMs={questionDeadline || null}
+              h2hInfo={{ active: !!gameState.h2hActive, challengerId: gameState.h2hChallengerId, opponentId: gameState.h2hOpponentId }}
+            />
+          );
+        })()
       )}
       {mode === 'player' && gameState && (
         <ResultBanner

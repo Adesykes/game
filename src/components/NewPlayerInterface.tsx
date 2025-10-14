@@ -6,6 +6,7 @@ import { GameState, Question, AnswerResult } from '../types/game';
 import { Heart, Clock, AlertTriangle, Maximize, Minimize } from 'lucide-react';
 import { questionCategories } from '../data/questions';
 import { DrawingCanvas, DrawingDisplay } from './DrawingComponents';
+import Round3Spin from './Round3Spin';
 
 interface PlayerInterfaceProps {
   socket: Socket;
@@ -47,6 +48,7 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
   const [selectedLightningIndex, setSelectedLightningIndex] = useState<number | null>(null);
   const [showLightningReward, setShowLightningReward] = useState<boolean>(false);
   const [rewardSubmitting, setRewardSubmitting] = useState<boolean>(false);
+  const [selectedOpponentId, setSelectedOpponentId] = useState<string | null>(null);
   const { isFullScreen, toggleFullScreen } = useFullScreen();
 
   // Ref to track the latest game state for race condition prevention
@@ -363,7 +365,13 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
           </button>
           
           <div className="text-6xl mb-2">{player.avatar}</div>
-          <h1 className="text-2xl font-bold text-white mb-1">{player.name}</h1>
+          <h1 className="text-2xl font-bold text-white mb-1 flex items-center justify-center gap-2">{player.name}
+            {gameState.h2hActive && (
+              <span className={`text-xs px-2 py-1 rounded-full ${gameState.h2hChallengerId === player.id || gameState.h2hOpponentId === player.id ? 'bg-pink-600 text-white' : 'bg-white/20 text-white/80'}`}>
+                H2H {gameState.h2hChallengerId === player.id ? 'Challenger' : gameState.h2hOpponentId === player.id ? 'Opponent' : 'Active'}
+              </span>
+            )}
+          </h1>
           <div className="flex justify-center items-center space-x-6">
             <div className="flex items-center text-red-400">
               <Heart className="w-5 h-5 mr-1" />
@@ -484,7 +492,7 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
               </div>
             )}
 
-            {gameState.gamePhase === 'category_selection' && (
+            {(gameState.gamePhase === 'category_selection' || gameState.gamePhase === 'category_spin') && (
               <div>
                 {/* Hide categories during server-scheduled turn cooldown */}
                 {gameState.turnCooldownUntil && Date.now() < gameState.turnCooldownUntil ? (
@@ -495,16 +503,51 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                 ) : (
                   <>
                 <h2 className="text-xl font-bold text-white mb-4">
-                  {isMyTurn ? 'Choose a category' : `${currentPlayer.name} is choosing a category`}
-                  {!isMyTurn && (
-                    <div className="text-sm text-white/60 mt-1">
-                      Waiting for {currentPlayer.name} to select a category...
-                    </div>
+                  {gameState.round === 3 ? (
+                    isMyTurn ? 'Round 3: Spin the Wheel' : 'Round 3: Spinning…'
+                  ) : gameState.round === 2 ? (
+                    isMyTurn ? 'Round 2: Head-to-Head' : 'Round 2: Head-to-Head'
+                  ) : (
+                    isMyTurn ? 'Choose a category' : `${currentPlayer.name} is choosing a category`
+                  )}
+                  {!isMyTurn && gameState.round === 2 && (
+                    <div className="text-sm text-white/60 mt-1">Waiting for {currentPlayer.name} to choose an opponent…</div>
+                  )}
+                  {!isMyTurn && gameState.round !== 2 && gameState.round !== 3 && (
+                    <div className="text-sm text-white/60 mt-1">Waiting for {currentPlayer.name} to select a category...</div>
                   )}
                 </h2>
+
+                {/* Round 2: Head-to-Head controls for the current player */}
+                {gameState.round === 2 && isMyTurn && !gameState.h2hActive && (
+                  <div className="mb-4 p-4 bg-blue-900/30 border border-blue-500/40 rounded-xl">
+                    <p className="text-white/80 mb-3">Choose an opponent to challenge. You will both get the same question. Correct = +1 life, +10% power. Wrong = -1 life, -10% power. 25s timer.</p>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {gameState.players.filter(p => !p.isEliminated && p.id !== playerId).map(p => (
+                        <button
+                          key={p.id}
+                          onClick={() => setSelectedOpponentId(p.id)}
+                          className={`px-3 py-2 rounded-lg ${selectedOpponentId === p.id ? 'bg-green-600/70' : 'bg-white/10 hover:bg-white/20'} text-white`}
+                        >
+                          Challenge {p.name}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (!selectedOpponentId) return;
+                        socket.emit('start-h2h', gameState.id, playerId, selectedOpponentId);
+                      }}
+                      disabled={!selectedOpponentId}
+                      className={`mt-1 px-4 py-2 rounded-lg font-semibold ${selectedOpponentId ? 'bg-pink-600 hover:bg-pink-700' : 'bg-gray-600 cursor-not-allowed'} text-white`}
+                    >
+                      Start Head-to-Head
+                    </button>
+                  </div>
+                )}
                 
                 {/* Defensive double-guard: only render buttons if still the current player */}
-                {isMyTurn && currentPlayerIdFromState === playerId && (
+                {isMyTurn && currentPlayerIdFromState === playerId && gameState.round !== 3 && gameState.round !== 2 && (
                   <div className="mb-4">
                     <button
                       onClick={() => {
@@ -540,7 +583,7 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                   </div>
                 )}
                 
-                {isMyTurn && currentPlayerIdFromState === playerId && (
+                {isMyTurn && currentPlayerIdFromState === playerId && gameState.round !== 3 && (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2" data-test="category-button-grid">
                     {questionCategories.map(category => {
                       const isLocked = gameState?.globalLockedCategories?.includes(category) || false;
@@ -593,14 +636,28 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                   </div>
                 )}
                 
-                {!isMyTurn && (
+                {!isMyTurn && gameState.round !== 3 && (
                   <div className="text-center py-8">
                     <div className="text-white/60 text-lg mb-2">⏳</div>
                     <p className="text-white/60">Waiting for {currentPlayer?.name} to choose a category...</p>
                   </div>
                 )}
+
+                {/* Round 3 Spin UI placement for player */}
+                {isMyTurn && gameState.round === 3 && (
+                  <div className="mt-2">
+                    <Round3Spin
+                      locked={gameState.globalLockedCategories || []}
+                      onSpin={() => socket.emit('start-spin', gameState.id)}
+                      socket={socket}
+                    />
+                  </div>
+                )}
+                {!isMyTurn && gameState.round === 3 && (
+                  <div className="text-center py-4 text-white/70">Spinning for a random category…</div>
+                )}
                 
-                {gameState?.globalLockedCategories && gameState.globalLockedCategories.length > 0 && (
+                {gameState.round !== 3 && gameState?.globalLockedCategories && gameState.globalLockedCategories.length > 0 && (
                   <div className="mt-4 p-3 bg-blue-900/30 rounded-lg border border-blue-500/30">
                     <p className="text-blue-200 text-sm">
                       <span className="font-semibold">Category Lock System:</span> Maximum 3 categories can be locked at once for ALL players. 
@@ -729,7 +786,9 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
               </div>
             )}
 
-            {gameState.gamePhase === 'question' && currentQuestion && !isMyTurn && (
+            {gameState.gamePhase === 'question' && currentQuestion && !isMyTurn && !(
+              gameState.h2hActive && (gameState.h2hChallengerId === playerId || gameState.h2hOpponentId === playerId)
+            ) && (
               <div className="bg-white/5 border border-white/10 rounded-xl p-4" data-test="waiting-question-only">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-lg font-bold text-white">{currentQuestion.category}</h3>
