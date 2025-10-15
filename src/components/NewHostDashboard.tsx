@@ -333,6 +333,22 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
           </button>
           
           <h1 className="text-3xl font-bold text-white mb-1">Game Host</h1>
+          {/* Host-only DEV tools: Jump to round for testing */}
+          {viewerIsHost && (
+            <div className="mt-2 mb-4 p-2 rounded-lg bg-white/5 border border-white/10 inline-flex items-center gap-2">
+              <span className="text-white/70 text-sm mr-1">Dev:</span>
+              {[1,2,3,4,5].map(r => (
+                <button
+                  key={r}
+                  onClick={() => socket.emit('host-set-round', gameState.id, playerId, r)}
+                  className={`px-2 py-1 text-xs rounded bg-white/10 hover:bg-white/20 text-white ${gameState.round===r ? 'ring-2 ring-yellow-400' : ''}`}
+                  title={`Jump to Round ${r}`}
+                >
+                  Round {r}
+                </button>
+              ))}
+            </div>
+          )}
           {isRound2 && isCategoryPhase && !gameState.h2hActive && (
             <div className="mt-3 mb-4 p-4 bg-blue-900/30 border border-blue-500/40 rounded-xl text-left max-w-2xl mx-auto">
               <h3 className="text-lg font-bold text-white mb-2">Round 2: Head-to-Head</h3>

@@ -724,6 +724,58 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Host: set round for testing (1-5)
+  socket.on('host-set-round', (roomCode, playerId, roundNumber) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const gs = room.gameState;
+    // Validate host only
+    const host = gs.players.find(p => p.id === playerId && p.isHost);
+    if (!host) return;
+    const r = Math.max(1, Math.min(5, Number(roundNumber) || 1));
+    console.log(`[host-set-round] room=${roomCode} host=${host.name} -> round ${r}`);
+    // Clear question timeout if any
+    const qt = questionTimeouts.get(roomCode); if (qt) { try { clearTimeout(qt); } catch {} questionTimeouts.delete(roomCode); }
+    // Reset H2H state
+    gs.h2hActive = false;
+    gs.h2hChallengerId = null;
+    gs.h2hOpponentId = null;
+    // Reset forfeits / drawings / karaoke / lightning
+    gs.currentForfeit = null;
+    gs.gamePhase = 'category_selection';
+    gs.karaokeStartAt = null;
+    gs.karaokeVotingOptions = null;
+    gs.karaokeVotes = {};
+    gs.lightningActive = false;
+    gs.lightningMode = null;
+    gs.lightningQuestionId = null;
+    gs.lightningAcceptingAnswers = false;
+    // Sudden death cleanup
+    gs.suddenDeathActive = false;
+    gs.suddenDeathPairs = [];
+    gs.suddenDeathCurrentPair = null;
+    if (room._suddenDeathWatchdog) { try { clearTimeout(room._suddenDeathWatchdog); } catch {} room._suddenDeathWatchdog = null; }
+    room._suddenDeathNextAllowedAt = null;
+    // Set round and cycles
+    gs.round = r;
+    gs.cycleInRound = 0;
+    switch (gs.round) {
+      case 1: gs.cyclesPerRound = 2; break;
+      case 2: gs.cyclesPerRound = 2; break;
+      case 3: gs.cyclesPerRound = 2; break;
+      case 4: gs.cyclesPerRound = 4; break;
+      case 5: gs.cyclesPerRound = 1; break;
+      default: gs.cyclesPerRound = gs.cyclesPerRound || 2;
+    }
+    // Broadcast updated state and round banner
+    io.to(roomCode).emit('game-state-update', { gameState: gs, message: `Host set round to ${gs.round}` });
+    io.to(roomCode).emit('round-start', { gameState: JSON.parse(JSON.stringify(gs)), round: gs.round, cyclesPerRound: gs.cyclesPerRound, cycleInRound: 0 });
+    // If Round 5, initialize sudden death immediately
+    if (gs.round === 5) {
+      try { startSuddenDeath(room, roomCode); } catch (e) { console.error('[host-set-round] failed to start sudden death', e); }
+    }
+  });
+
   // Player presses Ready
   socket.on('player-ready', (roomCode, playerId) => {
     const room = rooms.get(roomCode);
@@ -1032,7 +1084,7 @@ io.on('connection', (socket) => {
         roomErr.gameState.gamePhase = 'category_selection';
         io.to(roomCode).emit('game-state-update', { gameState: roomErr.gameState, message: 'Spin failed' });
       }
-    }, 1800); // ~1.8s spin duration
+    }, 7000); // 5s spin + 2s highlight before question
   });
 
   // Start a head-to-head challenge (Round 2). Auto-selects a category and presents a question.
