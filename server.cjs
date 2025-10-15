@@ -331,6 +331,22 @@ const assignPlayerAppearance = (player, existingPlayers) => {
 // Centralized next-turn scheduler to avoid race conditions and enforce a delay
 const nextTurnTimers = new Map(); // roomCode -> timeout handle
 
+// Cancel any pending nextTurn for this room (used when entering interludes)
+function cancelScheduledNextTurn(room, roomCode, reason = 'interlude') {
+  try {
+    const existing = nextTurnTimers.get(roomCode);
+    if (existing) {
+      clearTimeout(existing);
+      nextTurnTimers.delete(roomCode);
+      console.log(`[scheduleNextTurn] cancelled room=${roomCode} reason=${reason}`);
+      if (room?.gameState?.turnCooldownUntil) delete room.gameState.turnCooldownUntil;
+      try { io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: `Turn advance canceled (${reason})` }); } catch {}
+    }
+  } catch (e) {
+    console.warn('[cancelScheduledNextTurn] Failed to cancel', e);
+  }
+}
+
 function scheduleNextTurn(room, roomCode, reason = 'default', delayMs = 3000) {
   try {
     const existing = nextTurnTimers.get(roomCode);
@@ -699,11 +715,13 @@ io.on('connection', (socket) => {
     if (room.gameState.gamePhase !== 'karaoke_break') return;
     room.gameState.currentKaraokeSong = null;
     room.gameState.gamePhase = 'category_selection';
+    // Resume the same player's turn after karaoke ends
+    room.gameState.resumeAfterKaraoke = true;
     const endedAt = Date.now();
     io.to(roomCode).emit('karaoke-ended', { endedAt });
     io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'Karaoke ended (manual)' });
-  // Advance using centralized scheduler
-  scheduleNextTurn(room, roomCode, 'karaoke manual end', 3000);
+  // Advance using centralized scheduler, resuming same player
+  scheduleNextTurn(room, roomCode, 'karaoke manual end (resume same player)', 3000);
   });
 
   // Host: manually start a lightning round
@@ -2329,8 +2347,11 @@ io.on('connection', (socket) => {
       player.lifelines.fiftyFifty += 1;
     }
     io.to(roomCode).emit('lightning-reward-applied', { gameState: gs, playerId, reward });
-    // After reward, proceed to next normal turn with 3s delay
-    scheduleNextTurn(room, roomCode, 'after lightning reward', 3000);
+    // After reward, resume the SAME player's normal turn with 3s delay
+    gs.resumeAfterLightning = true;
+    // Clear winner to avoid watchdog double-scheduling
+    gs.lightningWinnerId = null;
+    scheduleNextTurn(room, roomCode, 'after lightning reward (resume same player)', 3000);
   });
 
   socket.on('disconnect', () => {
@@ -2586,16 +2607,19 @@ function triggerKaraoke(room, roomCode, manual=false, skipVoting=false) {
     gs.karaokeBreakCount = (gs.karaokeBreakCount || 0) + 1;
     gs.karaokeStartAt = now;
     gs.gamePhase = 'karaoke_break';
+    cancelScheduledNextTurn(room, roomCode, 'enter karaoke_break');
     io.to(roomCode).emit('game-state-update', { gameState: gs, message: manual ? 'Manual karaoke break!' : 'Karaoke break!' });
     io.to(roomCode).emit('karaoke-sync', { startAt: gs.karaokeStartAt, duration: gs.karaokeSettings.durationSec });
     setTimeout(() => {
       if (gs.gamePhase === 'karaoke_break') {
         gs.currentKaraokeSong = null;
         gs.gamePhase = 'category_selection';
+        // Resume the same player's turn after karaoke (skipVoting)
+        gs.resumeAfterKaraoke = true;
         const endedAt = Date.now();
         io.to(roomCode).emit('karaoke-ended', { endedAt });
         io.to(roomCode).emit('game-state-update', { gameState: gs, message: 'Karaoke ended (auto)' });
-        scheduleNextTurn(room, roomCode, 'karaoke auto end (skip voting)', 3000);
+        scheduleNextTurn(room, roomCode, 'karaoke auto end (skip voting, resume same player)', 3000);
       }
     }, gs.karaokeSettings.durationSec * 1000);
   } else {
@@ -2605,6 +2629,7 @@ function triggerKaraoke(room, roomCode, manual=false, skipVoting=false) {
     gs.karaokeBreakCount = (gs.karaokeBreakCount || 0) + 1;
     gs.karaokeVotingEndAt = now + 30000; // 30 seconds for voting
     gs.gamePhase = 'karaoke_voting';
+    cancelScheduledNextTurn(room, roomCode, 'enter karaoke_voting');
     io.to(roomCode).emit('game-state-update', { gameState: gs, message: 'Karaoke voting!' });
     // Start voting timer
     setTimeout(() => {
@@ -2653,6 +2678,7 @@ function endKaraokeVoting(room, roomCode) {
   gs.currentKaraokeSong = { ...gs.karaokeVotingOptions[winningIndex], durationHintSec: gs.karaokeSettings.durationSec };
   gs.karaokeStartAt = Date.now();
   gs.gamePhase = 'karaoke_break';
+  cancelScheduledNextTurn(room, roomCode, 'enter karaoke_break (post voting)');
   // Clear voting data
   delete gs.karaokeVotingOptions;
   delete gs.karaokeVotes;
@@ -2664,10 +2690,12 @@ function endKaraokeVoting(room, roomCode) {
     if (gs.gamePhase === 'karaoke_break') {
       gs.currentKaraokeSong = null;
       gs.gamePhase = 'category_selection';
+      // Resume the same player's turn after karaoke (post-voting)
+      gs.resumeAfterKaraoke = true;
       const endedAt = Date.now();
       io.to(roomCode).emit('karaoke-ended', { endedAt });
       io.to(roomCode).emit('game-state-update', { gameState: gs, message: 'Karaoke ended (auto)' });
-      scheduleNextTurn(room, roomCode, 'karaoke auto end (after voting)', 3000);
+      scheduleNextTurn(room, roomCode, 'karaoke auto end (after voting, resume same player)', 3000);
     }
   }, gs.karaokeSettings.durationSec * 1000);
 }
@@ -2717,6 +2745,45 @@ function nextTurn(room, roomCode) {
   if (activePlayers.length === 0) {
     console.log(`[nextTurn] All players eliminated, ending game with no winner`);
     endGame(room, roomCode, null);
+    return;
+  }
+
+  // If we're resuming after lightning, do not advance index or increment turns
+  if (room.gameState.resumeAfterLightning) {
+    delete room.gameState.resumeAfterLightning;
+    // Ensure proper phase for selection
+    room.gameState.gamePhase = 'category_selection';
+    const idx = room.gameState.currentPlayerIndex;
+    console.log(`[nextTurn] Resuming same player after lightning: index=${idx}`);
+    io.to(roomCode).emit('next-turn', { gameState: JSON.parse(JSON.stringify(room.gameState)) });
+    console.log('[nextTurn] COMPLETED: resume after lightning');
+    return;
+  }
+
+  // If we're resuming after karaoke, do not advance index or increment turns
+  if (room.gameState.resumeAfterKaraoke) {
+    delete room.gameState.resumeAfterKaraoke;
+    room.gameState.gamePhase = 'category_selection';
+    const idx = room.gameState.currentPlayerIndex;
+    console.log(`[nextTurn] Resuming same player after karaoke: index=${idx}`);
+    io.to(roomCode).emit('next-turn', { gameState: JSON.parse(JSON.stringify(room.gameState)) });
+    console.log('[nextTurn] COMPLETED: resume after karaoke');
+    return;
+  }
+
+  // Interlude guard: avoid advancing during karaoke or lightning phases
+  if (room.gameState.gamePhase === 'karaoke_break' || room.gameState.gamePhase === 'karaoke_voting' || room.gameState.gamePhase === 'lightning_round') {
+    console.log(`[nextTurn] Suppressing advance during phase=${room.gameState.gamePhase}`);
+    return;
+  }
+
+  // Trigger lightning on schedule BEFORE advancing player index to avoid skipping
+  const nextTurnNumber = (room.gameState.turnsPlayed || 0) + 1;
+  if (nextTurnNumber % 10 === 0) {
+    room.gameState.turnsPlayed = nextTurnNumber;
+    console.log(`[lightning] Triggering lightning round on turn ${room.gameState.turnsPlayed} (pre-advance)`);
+    try { triggerLightning(room, roomCode); } catch (e) { console.error('[lightning] Failed to trigger lightning', e); }
+    console.log('[nextTurn] COMPLETED with lightning trigger (no index advance)');
     return;
   }
   
@@ -2776,9 +2843,8 @@ function nextTurn(room, roomCode) {
   
   const newIndex = room.gameState.currentPlayerIndex;
   console.log(`[nextTurn] After: room=${roomCode} newIndex=${newIndex} newPlayer=${players[newIndex]?.id} attempts=${attempts}`);
-  // Increment global turn counter and check for lightning round trigger
+  // Increment global turn counter; lightning was already handled above
   room.gameState.turnsPlayed = (room.gameState.turnsPlayed || 0) + 1;
-  const shouldLightning = room.gameState.turnsPlayed % 10 === 0;
   
   // Always set the game phase to 'category_selection' for the next player
   // This ensures that after a correct answer, the next player sees the category selection screen
@@ -2789,18 +2855,7 @@ function nextTurn(room, roomCode) {
     console.log(`[nextTurn] Keeping gamePhase as '${room.gameState.gamePhase}' since we're in a forfeit or charade`);
   }
   
-  // If it's a lightning turn, trigger lightning round instead of normal flow
-  if (shouldLightning) {
-    console.log(`[lightning] Triggering lightning round on turn ${room.gameState.turnsPlayed}`);
-    try {
-      triggerLightning(room, roomCode);
-    } catch (e) {
-      console.error('[lightning] Failed to trigger lightning', e);
-    }
-    // Do not emit next-turn here; lightning handlers will emit state updates
-    console.log('[nextTurn] COMPLETED with lightning trigger');
-    return;
-  }
+  // No lightning here; handled pre-advance
   
   // Emit the turn change event with updated game state
   console.log(`[nextTurn] Emitting next-turn: gamePhase=${room.gameState.gamePhase}, currentPlayerIndex=${room.gameState.currentPlayerIndex}, currentPlayer=${players[newIndex]?.name} (${players[newIndex]?.id})`);
@@ -2945,7 +3000,9 @@ function endLightning(room, roomCode, reason = 'timeout') {
   io.to(roomCode).emit('dramatic-music-stop');
   // Auto-advance to next turn after lightning timeout
   if (reason === 'timeout') {
-    scheduleNextTurn(room, roomCode, 'lightning timeout', 3000);
+    // Resume the same player's normal turn after lightning
+    gs.resumeAfterLightning = true;
+    scheduleNextTurn(room, roomCode, 'lightning timeout (resume same player)', 3000);
   } else if (reason === 'winner') {
     // Add fallback watchdog: if winner doesn't choose reward within 12 seconds, auto-advance
     setTimeout(() => {
@@ -2953,7 +3010,9 @@ function endLightning(room, roomCode, reason = 'timeout') {
         console.log(`[lightning-winner-watchdog] Winner ${gs.lightningWinnerId} didn't choose reward, auto-advancing`);
         // Clear the winner ID to prevent further reward choices
         gs.lightningWinnerId = null;
-        scheduleNextTurn(room, roomCode, 'lightning winner watchdog', 3000);
+        // Resume same player's turn if reward not chosen
+        gs.resumeAfterLightning = true;
+        scheduleNextTurn(room, roomCode, 'lightning winner watchdog (resume same player)', 3000);
       }
     }, 12000); // 12 seconds should be enough time to choose a reward
   }
@@ -2973,6 +3032,8 @@ function triggerLightning(room, roomCode) {
   gs.lightningQuestionId = Math.random().toString(36).substring(2, 9); // Unique ID for this question
   gs.lightningSubmissions = {}; // Track submissions for this question
   gs.gamePhase = 'lightning_round';
+  // Ensure any pending nextTurn is canceled while lightning is active
+  cancelScheduledNextTurn(room, roomCode, 'enter lightning_round');
   // Emit countdown event with 5-second delay before starting
   const countdownEndAt = Date.now() + 5000; // 5 seconds from now
   io.to(roomCode).emit('lightning-countdown', { countdownEndAt });
