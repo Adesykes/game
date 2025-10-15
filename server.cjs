@@ -5,6 +5,18 @@ const path = require('path');
 
 const app = express();
 
+// Optional: Sentry for server-side error monitoring
+let __sentryBound = false;
+try {
+  const dsn = process.env.SENTRY_DSN;
+  if (dsn) {
+    const Sentry = require('@sentry/node');
+    Sentry.init({ dsn, tracesSampleRate: 0.1 });
+    app.use(Sentry.Handlers.requestHandler());
+    __sentryBound = true;
+  }
+} catch {}
+
 // Add CORS middleware for all Express routes
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -61,6 +73,14 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled rejection at:', promise, 'reason:', reason);
 });
+
+// Sentry error handler (after all routes)
+try {
+  if (__sentryBound) {
+    const Sentry = require('@sentry/node');
+    app.use(Sentry.Handlers.errorHandler());
+  }
+} catch {}
 
 // Track per-room timeouts to avoid getting stuck in phases
 const questionTimeouts = new Map(); // roomCode -> NodeJS.Timeout
@@ -897,23 +917,27 @@ io.on('connection', (socket) => {
   gameState.currentQuestion = question;
   gameState.gamePhase = 'question';
     
-    // Emit the event to all players
+    // Compute server-authoritative deadline
+    // If H2H was armed (rare edge), prefer 25s; Round 3 uses 20s; Round 4 uses 15s; otherwise 30s
+    const timeoutMs = (gameState.h2hActive ? 25000 : (gameState.round === 3 ? 20000 : (gameState.round === 4 ? 15000 : 30000)));
+    const deadline = Date.now() + timeoutMs;
+
+    // Emit the event to all players including the deadline
     io.to(roomCode).emit('category-selected', {
       category,
       question,
       gameState,
-      playerId
+      playerId,
+      deadline
     });
     
   // Start a timer for answering the question
-  // If H2H was armed (rare edge), prefer 25s; Round 3 uses 20s; Round 4 uses 15s; otherwise 30s
-  const timeoutMs = (gameState.h2hActive ? 25000 : (gameState.round === 3 ? 20000 : (gameState.round === 4 ? 15000 : 30000)));
     const existingTimeout = questionTimeouts.get(roomCode);
     if (existingTimeout) {
       clearTimeout(existingTimeout);
     }
     
-    const handle = setTimeout(() => {
+  const handle = setTimeout(() => {
       // If still on question phase when time expires, auto-resolve as incorrect
       if (gameState.gamePhase === 'question' && gameState.currentQuestion && !gameState.h2hActive) {
         const correctAnswer = gameState.currentQuestion.correctAnswer;
@@ -1075,13 +1099,13 @@ io.on('connection', (socket) => {
     setTimeout(() => {
       try {
         const room2 = rooms.get(roomCode); if (!room2) return;
-        const gs2 = room2.gameState;
+      const gs2 = room2.gameState;
         // Safety: remain in round 3 spin flow
         const question = drawQuestionFromPools(room2, pick);
         gs2.currentQuestion = question;
         gs2.gamePhase = 'question';
-        const deadline = Date.now() + 20000;
-        io.to(roomCode).emit('category-selected', { category: pick, question, gameState: gs2 });
+  const deadline = Date.now() + 20000;
+  io.to(roomCode).emit('category-selected', { category: pick, question, gameState: gs2, deadline });
         // Arm timer for 20s
         const existing = questionTimeouts.get(roomCode); if (existing) clearTimeout(existing);
         const h = setTimeout(() => {

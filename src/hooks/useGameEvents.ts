@@ -60,17 +60,21 @@ export const useGameEvents = (
       setPictionaryDeadline(null);
     };
 
-    const onCategorySelected = ({ question, gameState }: { question: Question; gameState: GameState }) => {
+    const onCategorySelected = ({ question, gameState, deadline }: { question: Question; gameState: GameState; deadline?: number }) => {
       setGameState(cloneState(gameState));
       setCurrentQuestion(question);
-      // Start deadline: 25s if H2H active, 20s for Round 3 spin, 15s for Round 4, else 30s
-      const deadlineMs = Date.now() + (
-        gameState.h2hActive ? 25000 :
-        gameState.round === 3 ? 20000 :
-        gameState.round === 4 ? 15000 :
-        30000
-      );
-      setQuestionDeadline(deadlineMs);
+      // Use server-authoritative deadline when provided; fallback to local estimate if absent
+      if (typeof deadline === 'number' && deadline > Date.now()) {
+        setQuestionDeadline(deadline);
+      } else {
+        const fallback = Date.now() + (
+          gameState.h2hActive ? 25000 :
+          gameState.round === 3 ? 20000 :
+          gameState.round === 4 ? 15000 :
+          30000
+        );
+        setQuestionDeadline(fallback);
+      }
     };
 
   const onAnswerSubmitted = ({

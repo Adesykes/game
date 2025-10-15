@@ -1,6 +1,7 @@
 import React from 'react';
 import { Question } from '../types/game';
 import { Socket } from 'socket.io-client';
+import { useDeadlineTimer } from '../hooks/useDeadlineTimer';
 
 interface QuestionOverlayProps {
   question: Question;
@@ -23,26 +24,15 @@ interface QuestionOverlayProps {
 
 const QuestionOverlay: React.FC<QuestionOverlayProps> = ({ question, isMyTurn, onSubmit, socket, lifelines, powerUps, playerId, roomCode, deadlineMs, h2hInfo }) => {
   const [selectedAnswer, setSelectedAnswer] = React.useState<number | null>(null);
-  const [timeLeft, setTimeLeft] = React.useState<number>(30);
+  const { secondsLeft } = useDeadlineTimer(deadlineMs, 250);
   const isH2HParticipant = !!(h2hInfo?.active && (h2hInfo.challengerId === playerId || h2hInfo.opponentId === playerId));
 
   React.useEffect(() => {
     // Reset when question changes
     setSelectedAnswer(null);
-    // If a server-sourced deadline is provided, compute remaining
-    if (deadlineMs && deadlineMs > Date.now()) {
-      setTimeLeft(Math.max(0, Math.ceil((deadlineMs - Date.now()) / 1000)));
-    } else {
-      setTimeLeft(30);
-    }
   }, [question]);
 
-  React.useEffect(() => {
-    if (!isMyTurn && !isH2HParticipant) return;
-    if (timeLeft <= 0) return;
-    const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
-    return () => clearTimeout(t);
-  }, [isMyTurn, isH2HParticipant, timeLeft]);
+  // Timer driven by server deadline via hook; no local countdown logic needed
 
   const handleSubmit = (answerIndex: number) => {
     if (!(isMyTurn || isH2HParticipant) || selectedAnswer !== null) return;
@@ -77,7 +67,7 @@ const QuestionOverlay: React.FC<QuestionOverlayProps> = ({ question, isMyTurn, o
           {(isMyTurn || (h2hInfo?.active && (h2hInfo.challengerId === playerId || h2hInfo.opponentId === playerId))) && (
             <div className="flex items-center text-yellow-400">
               <span className="font-bold mr-1">⏱</span>
-              <span className="font-bold">{timeLeft}s</span>
+              <span className="font-bold">{secondsLeft}s</span>
             </div>
           )}
         </div>

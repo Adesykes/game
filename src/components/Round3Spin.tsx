@@ -308,8 +308,8 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
       <div className="relative mx-auto" style={{ width: 320, height: 320, perspective: 900 }}>
         {/* Pointer */}
         <div className="absolute left-1/2 -translate-x-1/2 -top-1" aria-hidden>
-          <div className={`w-0 h-0 border-l-[10px] border-r-[10px] border-b-[16px] border-l-transparent border-r-transparent ${justLanded ? 'border-b-yellow-300' : 'border-b-white'} drop-shadow-lg`} />
-          <div className={`h-2 w-[2px] mx-auto ${justLanded ? 'bg-yellow-300' : 'bg-white/70'}`} />
+          <div className={`w-0 h-0 border-l-[10px] border-r-[10px] border-b-[16px] border-l-transparent border-r-transparent ${justLanded ? 'border-b-yellow-300' : 'border-b-white'}`} style={{ filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.4)) drop-shadow(0 4px 8px rgba(0,0,0,0.35))' }} />
+          <div className={`h-2 w-[2px] mx-auto ${justLanded ? 'bg-yellow-300' : 'bg-white/70'}`} style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.45)' }} />
         </div>
 
         {/* Wheel */}
@@ -327,6 +327,19 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
             animation: wobble ? 'wheel-wobble 480ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards' : 'none',
           }}
         >
+          {/* Subtle per-slice separators and rim glow */}
+          <div className="absolute inset-0 rounded-full pointer-events-none" style={{
+            background: `
+              radial-gradient(circle at center, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.1) 35%, rgba(0,0,0,0.15) 70%, rgba(0,0,0,0.35) 100%),
+              conic-gradient(from 0deg,
+                rgba(0,0,0,0.25) 0deg 0.5deg,
+                transparent 0.5deg 35.5deg,
+                rgba(0,0,0,0.25) 35.5deg 36deg
+              )
+            `,
+            mixBlendMode: 'overlay',
+            transform: 'translateZ(4px)'
+          }} />
           {/* Local keyframes for wobble using base rotation var */}
           <style>
             {`
@@ -352,8 +365,8 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
                   SPIN
                 </button>
               </div>
-              {/* Rim */}
-              <div className="absolute -inset-1 rounded-full border border-white/20 pointer-events-none" style={{ transform: 'translateZ(10px)' }} />
+              {/* Rim with glow */}
+              <div className="absolute -inset-1 rounded-full pointer-events-none" style={{ transform: 'translateZ(10px)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.25), 0 0 18px rgba(255,255,255,0.15)' }} />
             </div>
           </div>
 
