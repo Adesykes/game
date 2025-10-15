@@ -39,7 +39,25 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
     correctAnswer?: string;
     message?: string;
     difficulty?: 'easy' | 'medium' | 'hard';
+    deltas?: {
+      streakDelta?: number;
+      powerDelta?: number;
+      lockedCategories?: string[];
+      recentCategories?: string[];
+    };
   } | null>(null);
+  // Track previous snapshot to compute deltas for the local player
+  const prevPlayerSnapshotRef = React.useRef<{ streak: number; power: number; locked: string[]; recents: string[] } | null>(null);
+  useEffect(() => {
+    const me = gameState.players.find(p => p.id === playerId);
+    if (!me) return;
+    prevPlayerSnapshotRef.current = {
+      streak: me.currentStreak || 0,
+      power: me.powerBar ?? 50,
+      locked: [...(me.lockedCategories || [])],
+      recents: [...(me.recentCategories || [])]
+    };
+  }, [gameState.players, playerId]);
   
   // Particle effect state
   const [particleEffect, setParticleEffect] = React.useState<{
@@ -118,13 +136,24 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
 
       // Only show banner for correct answers
       if (answerResult.isCorrect) {
+        // Compute deltas vs. last snapshot for local player
+        const prev = prevPlayerSnapshotRef.current;
+        const meNow = gameState.players.find(p => p.id === playerId);
+        const streakDelta = prev && meNow ? (meNow.currentStreak || 0) - prev.streak : undefined;
+        const powerDelta = prev && meNow ? Math.round((meNow.powerBar ?? 0) - (prev.power ?? 0)) : undefined;
         setResultData({
           type: 'question',
           isCorrect: answerResult.isCorrect,
           playerName: player?.name || 'Unknown Player',
           correctAnswer: undefined,
           message: 'Correct!',
-          difficulty: currentQuestion?.difficulty
+          difficulty: currentQuestion?.difficulty,
+          deltas: {
+            streakDelta,
+            powerDelta,
+            lockedCategories: answerResult.lockedCategories || [],
+            recentCategories: answerResult.recentCategories || []
+          }
         });
         setIsVisible(true);
 
@@ -163,13 +192,24 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
       } else {
         // For wrong answers, show insult banner for 3 seconds then clear
         const insult = getRandomVoiceLine('wrong_epic');
+        // Compute deltas (streak likely resets or changes; power drop)
+        const prev = prevPlayerSnapshotRef.current;
+        const meNow = gameState.players.find(p => p.id === playerId);
+        const streakDelta = prev && meNow ? (meNow.currentStreak || 0) - prev.streak : undefined;
+        const powerDelta = prev && meNow ? Math.round((meNow.powerBar ?? 0) - (prev.power ?? 0)) : undefined;
         setResultData({
           type: 'question',
           isCorrect: answerResult.isCorrect,
           playerName: player?.name || 'Unknown Player',
           correctAnswer: undefined,
           message: insult.text,
-          difficulty: currentQuestion?.difficulty
+          difficulty: currentQuestion?.difficulty,
+          deltas: {
+            streakDelta,
+            powerDelta,
+            lockedCategories: answerResult.lockedCategories || [],
+            recentCategories: answerResult.recentCategories || []
+          }
         });
         setIsVisible(true);
 
@@ -555,16 +595,21 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
             {resultData.message}
           </p>
 
-          {/* Streak display for correct answers */}
-          {resultData.isCorrect && resultData.type === 'question' && (() => {
+          {/* Recap: streak, power, and global locks */}
+          {resultData.type === 'question' && (() => {
             const currentPlayer = gameState.players.find(p => p.id === playerId);
             const currentStreak = currentPlayer?.currentStreak || 0;
             const bestStreak = currentPlayer?.bestStreak || 0;
             const categoryMastery = currentPlayer?.categoryMastery?.[currentQuestion?.category || ''];
+            const streakDelta = resultData.deltas?.streakDelta ?? 0;
+            const powerDelta = resultData.deltas?.powerDelta ?? 0;
+            const lockedCats = resultData.deltas?.lockedCategories || [];
+            const recentCats = resultData.deltas?.recentCategories || [];
             
             return (
               <div className="mb-4">
-                {currentStreak >= 2 && (
+                {/* Streak visuals when correct */}
+                {resultData.isCorrect && currentStreak >= 2 && (
                   <p className="text-xl font-bold text-yellow-300 animate-pulse mb-2">
                     🔥 {currentStreak} IN A ROW! 🔥
                   </p>
@@ -584,6 +629,29 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
                     Difficulty: {resultData.difficulty.toUpperCase()}
                   </p>
                 )}
+                {/* Deltas row */}
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-sm">
+                  {typeof streakDelta === 'number' && streakDelta !== 0 && (
+                    <span className={`px-2 py-1 rounded-full ${streakDelta > 0 ? 'bg-green-600/30 text-green-200' : 'bg-red-600/30 text-red-200'}`}>
+                      Streak {streakDelta > 0 ? `+${streakDelta}` : streakDelta}
+                    </span>
+                  )}
+                  {typeof powerDelta === 'number' && powerDelta !== 0 && (
+                    <span className={`px-2 py-1 rounded-full ${powerDelta > 0 ? 'bg-green-600/30 text-green-200' : 'bg-red-600/30 text-red-200'}`}>
+                      Power {powerDelta > 0 ? `+${powerDelta}%` : `${powerDelta}%`}
+                    </span>
+                  )}
+                  {lockedCats.length > 0 && (
+                    <span className="px-2 py-1 rounded-full bg-blue-600/30 text-blue-200" title={`Locked: ${lockedCats.join(', ')}`}>
+                      🔒 {lockedCats.length} locked
+                    </span>
+                  )}
+                  {recentCats.length > 0 && (
+                    <span className="px-2 py-1 rounded-full bg-green-600/30 text-green-200" title={`Recent: ${recentCats.join(', ')}`}>
+                      ✓ {recentCats.length}/3 recent
+                    </span>
+                  )}
+                </div>
               </div>
             );
           })()}

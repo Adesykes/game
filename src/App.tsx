@@ -19,6 +19,7 @@ import KaraokeBreak from './components/KaraokeBreak';
 import QuestionOverlay from './components/QuestionOverlay';
 import ResultBanner from './components/ResultBanner';
 import RoundBanner from './components/RoundBanner';
+import ScoreboardInterlude from './components/ScoreboardInterlude';
 import { GameState } from './types/game';
 
 type AppMode = 'welcome' | 'create' | 'join' | 'host' | 'player';
@@ -72,6 +73,8 @@ function App() {
   const dramaticAudioRef = useRef<HTMLAudioElement | null>(null);
   const [showRoundBanner, setShowRoundBanner] = useState<{ round: number; cyclesPerRound: number; cycleInRound: number } | null>(null);
   const [lastRoundBannerShown, setLastRoundBannerShown] = useState<number | null>(null);
+  const [showInterlude, setShowInterlude] = useState(false);
+  const lastInterludeRoundRef = useRef<number | null>(null);
 
   // Create element once
   useEffect(() => {
@@ -128,6 +131,11 @@ function App() {
         setShowRoundBanner({ round: data.round, cyclesPerRound: data.cyclesPerRound ?? (data.gameState.cyclesPerRound || 1), cycleInRound: data.gameState.cycleInRound || 0 });
         return data.round;
       });
+      // Trigger a scoreboard interlude as we enter a new round, but avoid double-showing
+      if (lastInterludeRoundRef.current !== data.round) {
+        setShowInterlude(true);
+        lastInterludeRoundRef.current = data.round;
+      }
     };
     socket.on('round-start', onRoundStart);
     return () => { socket.off('round-start', onRoundStart); };
@@ -282,6 +290,35 @@ function App() {
     return () => clearInterval(interval);
   }, [socket, gameState, mode, shouldPlay, roomCode]);
   
+  // Automatic room rejoining on reconnect
+  useEffect(() => {
+    if (!socket || !connected) return;
+    if (!roomCode || !playerId || mode === 'welcome' || mode === 'create' || mode === 'join') return;
+    
+    // When socket reconnects, rejoin the room
+    const handleReconnect = () => {
+      console.log('[app] Socket reconnected; rejoining room', roomCode);
+      socket.emit('reconnectAttempt', {
+        persistentId: localStorage.getItem('persistentPlayerId'),
+        gameId: roomCode,
+        playerId: playerId,
+        playerName: gameState?.players.find(p => p.id === playerId)?.name || 'Player'
+      }, (response: any) => {
+        if (response?.success) {
+          console.log('[app] Successfully rejoined room', roomCode);
+          if (response.gameState) {
+            setGameState(response.gameState);
+          }
+        } else {
+          console.error('[app] Failed to rejoin room:', response?.error);
+        }
+      });
+    };
+    
+    socket.on('connect', handleReconnect);
+    return () => { socket.off('connect', handleReconnect); };
+  }, [socket, connected, roomCode, playerId, mode, gameState]);
+  
   // Check if we landed on a join URL from a QR code
   useEffect(() => {
     const path = window.location.pathname;
@@ -340,7 +377,6 @@ function App() {
                 charadeDeadline={charadeDeadline}
                 pictionaryDeadline={pictionaryDeadline}
                 playerId={gameState.players.find(p=>p.isHost)?.id || ''}
-                lightningCountdownEndAt={lightningCountdownEndAt}
                 answerResult={answerResult}
                 forfeitResult={forfeitResult}
                 forfeitFailureResult={forfeitFailureResult}
@@ -357,7 +393,6 @@ function App() {
               charadeDeadline={charadeDeadline}
               pictionaryDeadline={pictionaryDeadline}
               playerId={gameState.players.find(p=>p.isHost)?.id || ''}
-              lightningCountdownEndAt={lightningCountdownEndAt}
               answerResult={answerResult}
               forfeitResult={forfeitResult}
               forfeitFailureResult={forfeitFailureResult}
@@ -418,6 +453,13 @@ function App() {
   return (
     <div className={mode === 'player' ? 'overflow-auto' : ''}>
       {renderContent()}
+      {showInterlude && gameState && (
+        <ScoreboardInterlude
+          gameState={gameState}
+          visible={showInterlude}
+          onClose={() => setShowInterlude(false)}
+        />
+      )}
       {showRoundBanner && (
         <div onClick={() => setShowRoundBanner(null)}>
           <RoundBanner
@@ -459,6 +501,7 @@ function App() {
           powerUps={gameState.players.find(p => p.id === playerId)?.powerUps || { swap_question: 0, steal_category: 0 }}
           deadlineMs={questionDeadline || null}
           h2hInfo={{ active: !!gameState.h2hActive, challengerId: gameState.h2hChallengerId, opponentId: gameState.h2hOpponentId }}
+          windowSec={gameState.round === 2 ? 25 : gameState.round === 3 ? 20 : gameState.round === 4 ? 15 : gameState.round === 5 ? 15 : 30}
         />
       )}
       {mode === 'host' && gameState && currentQuestion && socket && (() => {
@@ -485,6 +528,7 @@ function App() {
               powerUps={host.powerUps || { swap_question: 0, steal_category: 0 }}
               deadlineMs={questionDeadline || null}
               h2hInfo={{ active: !!gameState.h2hActive, challengerId: gameState.h2hChallengerId, opponentId: gameState.h2hOpponentId }}
+              windowSec={gameState.round === 2 ? 25 : gameState.round === 3 ? 20 : gameState.round === 4 ? 15 : gameState.round === 5 ? 15 : 30}
             />
           );
         })()

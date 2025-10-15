@@ -40,10 +40,11 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
   const [guessInput, setGuessInput] = useState('');
   const [charadeTimeLeft, setCharadeTimeLeft] = useState(120);
   const [pictionaryGuessInput, setPictionaryGuessInput] = useState('');
-  const [lightningCountdown, setLightningCountdown] = useState<number | null>(null);
   const [pictionaryTimeLeft, setPictionaryTimeLeft] = useState(60);
   const [tongueTwisterTimeLeft, setTongueTwisterTimeLeft] = useState(20);
   const [lightningTimeLeft, setLightningTimeLeft] = useState<number>(0);
+  const [lightningCountdown, setLightningCountdown] = useState<number | null>(null);
+  const radialWipeRef = useRef<HTMLDivElement | null>(null);
   const [hasBuzzed, setHasBuzzed] = useState<boolean>(false);
   const [selectedLightningIndex, setSelectedLightningIndex] = useState<number | null>(null);
   const [showLightningReward, setShowLightningReward] = useState<boolean>(false);
@@ -246,12 +247,29 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
         } else {
           setLightningCountdown(null);
         }
-      }, 500);
+      }, 100);
       return () => clearInterval(interval);
     } else {
       setLightningCountdown(null);
     }
   }, [lightningCountdownEndAt]);
+
+  // Trigger radial wipe when this client buzzes correctly (server will update lightningWinnerId, but locally we show feedback immediately)
+  useEffect(() => {
+    if (!hasBuzzed || selectedLightningIndex === null) return;
+    // Create a quick wipe effect overlay
+    const el = radialWipeRef.current;
+    if (!el) return;
+    el.classList.remove('opacity-0');
+    el.classList.add('opacity-100');
+    el.animate([
+      { clipPath: 'circle(0% at 50% 50%)' },
+      { clipPath: 'circle(150% at 50% 50%)' }
+    ], { duration: 400, easing: 'ease-out' }).addEventListener('finish', () => {
+      el.classList.add('opacity-0');
+      el.classList.remove('opacity-100');
+    });
+  }, [hasBuzzed, selectedLightningIndex]);
 
   const selectCategory = (category: string) => {
     // Re-derive turn at call time for maximum safety
@@ -332,6 +350,20 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
 
   return (
     <div className={containerClass}>
+      {/* Turn clarity banner */}
+      {(gameState.gamePhase === 'category_selection' || gameState.gamePhase === 'question') && (
+        <div className="max-w-md mx-auto mb-3">
+          {isMyTurn ? (
+            <div className="bg-green-600/20 border border-green-500/40 text-green-200 text-center px-3 py-2 rounded-lg font-semibold">
+              Your turn — make your move
+            </div>
+          ) : (
+            <div className="bg-white/5 border border-white/10 text-white/70 text-center px-3 py-2 rounded-lg">
+              Waiting for {currentPlayer.name}
+            </div>
+          )}
+        </div>
+      )}
       {/* Lightning teaser banner */}
       {typeof gameState.turnsPlayed === 'number' && gameState.gamePhase !== 'lightning_round' && !answerResult && !forfeitResult && !forfeitFailureResult && !guessResult && (
         <div className="max-w-md mx-auto mb-3">
@@ -343,12 +375,16 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
       {/* Lightning countdown banner */}
       {lightningCountdown !== null && lightningCountdown > 0 && !answerResult && !forfeitResult && !forfeitFailureResult && !guessResult && (
         <div className="max-w-md mx-auto mb-3">
-          <div className="bg-red-500/20 border border-red-400/40 rounded-lg px-3 py-2 text-center animate-pulse">
-            <span className="text-red-200 text-lg font-bold">⚡ Lightning Round Starting in {lightningCountdown}...</span>
+          <div className="bg-gradient-to-r from-yellow-500/30 via-orange-500/30 to-red-500/30 border-2 border-yellow-400/60 rounded-xl px-6 py-4 text-center shadow-2xl animate-pulse">
+            <div className="text-5xl font-black text-yellow-300 drop-shadow-[0_0_10px_rgba(253,224,71,0.5)] mb-1">
+              {lightningCountdown}
+            </div>
+            <span className="text-yellow-200 text-lg font-bold tracking-wide">⚡ LIGHTNING ROUND STARTING ⚡</span>
           </div>
         </div>
       )}
       <div className="max-w-md mx-auto">
+        <div ref={radialWipeRef} className="fixed inset-0 z-30 pointer-events-none bg-yellow-300/30 opacity-0" />
         {/* Player Header */}
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-white/20 text-center relative">
           {/* Full Screen Toggle Button */}
@@ -952,6 +988,62 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
               </div>
             )}
             
+            {gameState.gamePhase === 'round_summary' && (
+              <div>
+                {/* Show different messaging based on context */}
+                {gameState.cycleInRound === 0 ? (
+                  // Round just started - we're at the beginning of a new round
+                  <>
+                    <div className="text-6xl mb-4">�</div>
+                    <h2 className="text-2xl font-bold text-white mb-4">Round {gameState.round} Starting!</h2>
+                    <p className="text-white mb-6">Get ready to begin</p>
+                  </>
+                ) : (
+                  // Round complete after karaoke or lightning
+                  <>
+                    <div className="text-6xl mb-4">�🎵</div>
+                    <h2 className="text-2xl font-bold text-white mb-4">Round Complete!</h2>
+                    <p className="text-white mb-6">Get ready for the next round</p>
+                  </>
+                )}
+                
+                {/* Ready status */}
+                <div className="mb-6">
+                  <div className="text-sm text-white/70 mb-2">
+                    {gameState.roundReadyPlayers?.length || 0} / {gameState.players.length} players ready
+                  </div>
+                  <div className="flex flex-wrap gap-2 justify-center mb-4">
+                    {gameState.players.map((p) => (
+                      <div
+                        key={p.id}
+                        className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                          gameState.roundReadyPlayers?.includes(p.id)
+                            ? 'bg-green-500/30 text-green-300 border border-green-400/50'
+                            : 'bg-white/10 text-white/50 border border-white/20'
+                        }`}
+                      >
+                        {p.avatar} {p.name} {gameState.roundReadyPlayers?.includes(p.id) ? '✓' : ''}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Ready button */}
+                {!gameState.roundReadyPlayers?.includes(playerId) ? (
+                  <button
+                    onClick={() => socket.emit('round-ready', gameState.id, playerId)}
+                    className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg transform transition hover:scale-105 text-xl"
+                  >
+                    Ready! ✓
+                  </button>
+                ) : (
+                  <div className="text-green-400 font-bold text-lg">
+                    ✓ You're ready! Waiting for others...
+                  </div>
+                )}
+              </div>
+            )}
+
             {gameState.gamePhase === 'finished' && gameState.winner && (
               <div>
                 <div className="text-6xl mb-4">🏆</div>
@@ -976,7 +1068,7 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
         {answerResult && answerResult.playerId === playerId && (
           <div className={`bg-white/10 backdrop-blur-lg rounded-2xl p-6 mb-6 border ${
             answerResult.isCorrect ? 'border-green-400/50' : 'border-red-400/50'
-          }`}>
+          } ${gameState.round === 5 ? '' : 'animate-bounce'}`}>
             <div className="text-center">
               <div className="text-4xl mb-2">
                 {answerResult.isCorrect ? '✅' : '❌'}

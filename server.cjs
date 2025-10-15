@@ -701,21 +701,24 @@ io.on('connection', (socket) => {
     const player = gs.players.find(p => p.id === playerId);
     if (!player) return;
     if (songIndex < 0 || songIndex >= (gs.karaokeVotingOptions?.length || 0)) return;
-    // Allow up to two distinct votes per player
+    console.log(`[karaoke-vote] room=${roomCode} player=${player.name}(${playerId}) index=${songIndex}`);
+    if (!gs.karaokeVotes) gs.karaokeVotes = {};
+    // Toggle behavior: clicking again removes; otherwise add up to two (replace oldest if full)
     if (!Array.isArray(gs.karaokeVotes[playerId])) gs.karaokeVotes[playerId] = [];
     const arr = gs.karaokeVotes[playerId];
-    if (!arr.includes(songIndex)) {
-      if (arr.length < 2) {
-        arr.push(songIndex);
-      } else {
-        // If already has two, replace the oldest to honor latest intent
-        arr.shift();
-        arr.push(songIndex);
-      }
+    const idx = arr.indexOf(songIndex);
+    if (idx >= 0) {
+      arr.splice(idx, 1);
+    } else {
+      if (arr.length >= 2) arr.shift();
+      arr.push(songIndex);
     }
+    // Broadcast updated votes so progress bars update live
+    io.to(roomCode).emit('game-state-update', { gameState: gs, message: 'Karaoke vote updated' });
+    try { socket.emit('karaoke-vote-ack', { ok: true, picked: gs.karaokeVotes[playerId] }); } catch {}
   });
 
-  // Host emits periodic karaoke-sync while in karaoke_break
+  // Host emits periodic karaoke-sync while in karaoke phases
   socket.on('request-karaoke-sync', (roomCode, playerId) => {
     const room = rooms.get(roomCode);
     if (!room) return;
@@ -724,6 +727,9 @@ io.on('connection', (socket) => {
     if (!host) return;
     if (gs.gamePhase === 'karaoke_break' && gs.karaokeStartAt) {
       io.to(roomCode).emit('karaoke-sync', { startAt: gs.karaokeStartAt, duration: gs.karaokeSettings?.durationSec || 45 });
+    } else if (gs.gamePhase === 'karaoke_voting' && gs.karaokeVotingEndAt) {
+      const startAt = gs.karaokeVotingEndAt - 30000; // default 30s voting window
+      io.to(roomCode).emit('karaoke-sync', { startAt, duration: 30 });
     }
   });
 
@@ -734,14 +740,14 @@ io.on('connection', (socket) => {
     if (!host) return;
     if (room.gameState.gamePhase !== 'karaoke_break') return;
     room.gameState.currentKaraokeSong = null;
-    room.gameState.gamePhase = 'category_selection';
-    // Resume the same player's turn after karaoke ends
+    // Transition to round summary instead of directly to category selection
+    room.gameState.gamePhase = 'round_summary';
+    room.gameState.roundReadyPlayers = []; // Reset ready states
     room.gameState.resumeAfterKaraoke = true;
     const endedAt = Date.now();
     io.to(roomCode).emit('karaoke-ended', { endedAt });
-    io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'Karaoke ended (manual)' });
-  // Advance using centralized scheduler, resuming same player
-  scheduleNextTurn(room, roomCode, 'karaoke manual end (resume same player)', 3000);
+    io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'Karaoke ended - waiting for players to ready up' });
+  // Don't schedule next turn yet - wait for all players to be ready
   });
 
   // Host: manually start a lightning round
@@ -836,6 +842,53 @@ io.on('connection', (socket) => {
     
     io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'All players ready. Game starting!' });
       }, 1200);
+    }
+  });
+
+  // Player ready for next round after karaoke/lightning
+  socket.on('round-ready', (roomCode, playerId) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    if (room.gameState.gamePhase !== 'round_summary') return;
+    const player = room.gameState.players.find(p => p.id === playerId);
+    if (!player) return;
+    
+    // Initialize roundReadyPlayers if not exists
+    if (!room.gameState.roundReadyPlayers) {
+      room.gameState.roundReadyPlayers = [];
+    }
+    
+    // Check if already ready
+    if (room.gameState.roundReadyPlayers.includes(playerId)) return;
+    
+    // Mark player as ready
+    room.gameState.roundReadyPlayers.push(playerId);
+    console.log(`[round-ready] ${player.name} is ready (${room.gameState.roundReadyPlayers.length}/${room.gameState.players.length})`);
+    
+    io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: `${player.name} is ready` });
+    
+    // Check if all players are ready
+    const allReady = room.gameState.players.length === room.gameState.roundReadyPlayers.length;
+    if (allReady) {
+      console.log('[round-ready] All players ready, advancing to next turn');
+      room.gameState.roundReadyPlayers = []; // Reset for next time
+      
+      // If Round 5, start sudden death mode
+      if (room.gameState.round === 5) {
+        console.log('[round-ready] Starting Sudden Death mode');
+        io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'All players ready - Sudden Death begins!' });
+        try {
+          startSuddenDeath(room, roomCode);
+        } catch (e) {
+          console.error('[round-ready] failed to start sudden death', e);
+        }
+      } else {
+        // For rounds 2-4, advance to category selection
+        room.gameState.gamePhase = 'category_selection';
+        io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'All players ready - resuming game!' });
+        // Advance using centralized scheduler
+        scheduleNextTurn(room, roomCode, 'all players ready after round summary', 1000);
+      }
     }
   });
 
@@ -1249,7 +1302,7 @@ io.on('connection', (socket) => {
         io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'Sudden death result processed' });
         setTimeout(() => {
           try { advanceSuddenDeath(room, roomCode); } catch (e) { console.error('[sudden-death] advance failed', e); }
-        }, 800);
+        }, 3000); // 3 second delay between questions in round 5
       }
       return;
     }
@@ -2847,21 +2900,22 @@ function nextTurn(room, roomCode) {
         default:
           room.gameState.cyclesPerRound = room.gameState.cyclesPerRound || 2;
       }
+      
+      // For rounds 2-5, pause for ready check before continuing
+      room.gameState.gamePhase = 'round_summary';
+      room.gameState.roundReadyPlayers = [];
+      
       // Announce new round so clients can show banner/audio
       io.to(roomCode).emit('round-start', {
         gameState: JSON.parse(JSON.stringify(room.gameState)),
         round: room.gameState.round,
         cyclesPerRound: room.gameState.cyclesPerRound,
       });
-      // Enter sudden death mode at Round 5
-      if (room.gameState.round === 5) {
-        try {
-          startSuddenDeath(room, roomCode);
-        } catch (e) {
-          console.error('[sudden-death] failed to start', e);
-        }
-        return;
-      }
+      
+      // Emit updated game state with round_summary phase
+      io.to(roomCode).emit('game-state-update', JSON.parse(JSON.stringify(room.gameState)));
+      console.log(`[nextTurn] Round ${room.gameState.round} starting - waiting for all players to ready up`);
+      return; // Don't continue to category selection yet
     }
   }
   
@@ -3016,30 +3070,16 @@ function endLightning(room, roomCode, reason = 'timeout') {
   gs.lightningQuestionId = null; // Reset question ID
   gs.lightningSubmissions = {}; // Reset submissions tracking
   if (gs.gamePhase === 'lightning_round') {
-    gs.gamePhase = 'category_selection';
+    // Transition to round summary instead of directly to category selection
+    gs.gamePhase = 'round_summary';
+    gs.roundReadyPlayers = []; // Reset ready states
   }
   io.to(roomCode).emit('lightning-ended', { gameState: gs, reason });
-  io.to(roomCode).emit('game-state-update', { gameState: gs, message: 'Lightning ended' });
+  io.to(roomCode).emit('game-state-update', { gameState: gs, message: 'Lightning ended - waiting for players to ready up' });
   // Stop dramatic music
   io.to(roomCode).emit('dramatic-music-stop');
-  // Auto-advance to next turn after lightning timeout
-  if (reason === 'timeout') {
-    // Resume the same player's normal turn after lightning
-    gs.resumeAfterLightning = true;
-    scheduleNextTurn(room, roomCode, 'lightning timeout (resume same player)', 3000);
-  } else if (reason === 'winner') {
-    // Add fallback watchdog: if winner doesn't choose reward within 12 seconds, auto-advance
-    setTimeout(() => {
-      if (gs.gamePhase === 'category_selection' && gs.lightningWinnerId) {
-        console.log(`[lightning-winner-watchdog] Winner ${gs.lightningWinnerId} didn't choose reward, auto-advancing`);
-        // Clear the winner ID to prevent further reward choices
-        gs.lightningWinnerId = null;
-        // Resume same player's turn if reward not chosen
-        gs.resumeAfterLightning = true;
-        scheduleNextTurn(room, roomCode, 'lightning winner watchdog (resume same player)', 3000);
-      }
-    }, 12000); // 12 seconds should be enough time to choose a reward
-  }
+  // Don't auto-advance - wait for all players to be ready
+  gs.resumeAfterLightning = true;
 }
 
 function triggerLightning(room, roomCode) {
@@ -3052,17 +3092,18 @@ function triggerLightning(room, roomCode) {
   gs.lightningAnsweredPlayers = []; // Reset answered players for new round
   gs.lightningMode = 'sudden_death'; // Enable sudden death mode
   gs.lightningEndAt = Date.now() + 15000; // 15 seconds
-  gs.lightningAcceptingAnswers = false; // Start with answers not accepted
+  gs.lightningAcceptingAnswers = false; // Start with answers not accepted during countdown
   gs.lightningQuestionId = Math.random().toString(36).substring(2, 9); // Unique ID for this question
   gs.lightningSubmissions = {}; // Track submissions for this question
   gs.gamePhase = 'lightning_round';
   // Ensure any pending nextTurn is canceled while lightning is active
   cancelScheduledNextTurn(room, roomCode, 'enter lightning_round');
+  // Start dramatic music immediately
+  io.to(roomCode).emit('dramatic-music-start');
   // Emit countdown event with 5-second delay before starting
   const countdownEndAt = Date.now() + 5000; // 5 seconds from now
   io.to(roomCode).emit('lightning-countdown', { countdownEndAt });
-  // Start dramatic music immediately
-  io.to(roomCode).emit('dramatic-music-start');
+  // 5-second countdown before starting lightning
   setTimeout(() => {
     gs.lightningAcceptingAnswers = true; // Now accept answers
     io.to(roomCode).emit('lightning-start', { gameState: gs, question: q, deadline: gs.lightningEndAt, questionId: gs.lightningQuestionId });

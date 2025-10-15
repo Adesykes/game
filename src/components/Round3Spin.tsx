@@ -226,6 +226,8 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
       // Trigger a brief overshoot wobble
       setWobble(true);
       wobbleId = window.setTimeout(() => setWobble(false), 520) as unknown as number;
+      // Haptics: stronger pulse on land
+      try { if (navigator?.vibrate) navigator.vibrate([8, 20, 18]); } catch {}
     };
     el.addEventListener('transitionend', onEnd);
     return () => {
@@ -245,6 +247,8 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
     onSpin?.();
     // Start audio whoosh on user gesture
     startWhoosh();
+    // Mobile haptics: tiny pulse on spin start
+    try { if (navigator?.vibrate) navigator.vibrate(12); } catch {}
   };
 
   // Cleanup on unmount

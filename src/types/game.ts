@@ -46,10 +46,11 @@ export interface GameState {
   currentPlayerIndex: number;
   currentQuestion: Question | null;
   selectedCategory: string | null; // Currently selected category
-  gamePhase: 'waiting' | 'ready_check' | 'category_selection' | 'category_spin' | 'question' | 'forfeit' | 'charade_guessing' | 'pictionary_drawing' | 'karaoke_voting' | 'karaoke_break' | 'lightning_round' | 'finished';
+  gamePhase: 'waiting' | 'ready_check' | 'category_selection' | 'category_spin' | 'question' | 'forfeit' | 'charade_guessing' | 'pictionary_drawing' | 'karaoke_voting' | 'karaoke_break' | 'lightning_round' | 'round_summary' | 'finished';
   // During server-scheduled turn transitions, categories should be hidden until this timestamp (ms since epoch)
   turnCooldownUntil?: number;
   allReady?: boolean; // Flag when all players pressed ready
+  roundReadyPlayers?: string[]; // Player IDs who have clicked ready on round summary
   winner: Player | null;
   round: number;
   maxRounds: number; // Maximum number of rounds before game ends

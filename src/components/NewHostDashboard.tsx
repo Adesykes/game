@@ -15,7 +15,6 @@ interface HostDashboardProps {
   charadeDeadline?: number | null;
   pictionaryDeadline?: number | null;
   playerId: string;
-  lightningCountdownEndAt?: number | null;
   answerResult?: { playerId: string; answerIndex: number; isCorrect: boolean; correctAnswer: number; categoryLocked?: string; lockedCategories?: string[]; recentCategories?: string[]; categoryLockMessage?: string } | null;
   forfeitResult?: { playerId: string; success: boolean; forfeitType: string } | null;
   forfeitFailureResult?: { playerId: string; forfeitType: string } | null;
@@ -29,7 +28,6 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
   charadeDeadline,
   pictionaryDeadline,
   playerId,
-  lightningCountdownEndAt,
   answerResult,
   forfeitResult,
   forfeitFailureResult,
@@ -43,12 +41,12 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
   const [questionTimeLeft, setQuestionTimeLeft] = useState(30);
   const { isFullScreen, toggleFullScreen } = useFullScreen();
   const [showKaraokeSettings, setShowKaraokeSettings] = useState(false);
-  const [lightningCountdown, setLightningCountdown] = useState<number | null>(null);
   const [karaokeProbability, setKaraokeProbability] = useState<number>(gameState.karaokeSettings?.probability ?? 0.4);
   const [karaokeDuration, setKaraokeDuration] = useState<number>(gameState.karaokeSettings?.durationSec ?? 45);
   const [karaokeCooldown, setKaraokeCooldown] = useState<number>(gameState.karaokeSettings?.cooldownSec ?? 180);
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [lightningTimeLeft, setLightningTimeLeft] = useState<number>(0);
+  const radialWipeRef = React.useRef<HTMLDivElement | null>(null);
   const [hostLightningSelectedIdx, setHostLightningSelectedIdx] = useState<number | null>(null);
   const [hostHasBuzzed, setHostHasBuzzed] = useState<boolean>(false);
   const [showLightningRewardHost, setShowLightningRewardHost] = useState<boolean>(false);
@@ -280,39 +278,14 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
     };
   }, [socket, hostPlayer?.id]);
 
-  // Lightning countdown timer
-  useEffect(() => {
-    if (lightningCountdownEndAt) {
-      const interval = setInterval(() => {
-        const now = Date.now();
-        const remaining = Math.ceil((lightningCountdownEndAt - now) / 1000);
-        if (remaining > 0) {
-          setLightningCountdown(remaining);
-        } else {
-          setLightningCountdown(null);
-        }
-      }, 500);
-      return () => clearInterval(interval);
-    } else {
-      setLightningCountdown(null);
-    }
-  }, [lightningCountdownEndAt]);
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-4">
+      <div ref={radialWipeRef} className="fixed inset-0 z-30 pointer-events-none bg-yellow-300/30 opacity-0" />
       {/* Lightning teaser banner */}
       {typeof gameState.turnsPlayed === 'number' && gameState.gamePhase !== 'lightning_round' && !answerResult && !forfeitResult && !forfeitFailureResult && !guessResult && (
         <div className="max-w-6xl mx-auto mb-3">
           <div className="bg-yellow-500/15 border border-yellow-400/30 rounded-lg px-3 py-2 text-center">
             <span className="text-yellow-200 text-sm font-semibold">⚡ Lightning round in {((10 - ((gameState.turnsPlayed % 10) || 0)) % 10) || 10} turns</span>
-          </div>
-        </div>
-      )}
-      {/* Lightning countdown banner */}
-      {lightningCountdown !== null && lightningCountdown > 0 && (
-        <div className="max-w-6xl mx-auto mb-3">
-          <div className="bg-red-500/20 border border-red-400/40 rounded-lg px-3 py-2 text-center animate-pulse">
-            <span className="text-red-200 text-lg font-bold">⚡ Lightning Round Starting in {lightningCountdown}...</span>
           </div>
         </div>
       )}
@@ -1049,6 +1022,65 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
             </div>
           )}
           
+          {gameState.gamePhase === 'round_summary' && (
+            <div className="text-center">
+              {/* Show different messaging based on context */}
+              {gameState.cycleInRound === 0 ? (
+                // Round just started - we're at the beginning of a new round
+                <>
+                  <div className="text-6xl mb-4">�</div>
+                  <h2 className="text-2xl font-bold text-white mb-4">Round {gameState.round} Starting!</h2>
+                  <p className="text-white mb-6">Get ready to begin</p>
+                </>
+              ) : (
+                // Round complete after karaoke or lightning
+                <>
+                  <div className="text-6xl mb-4">�🎵</div>
+                  <h2 className="text-2xl font-bold text-white mb-4">Round Complete!</h2>
+                  <p className="text-white mb-6">Get ready for the next round</p>
+                </>
+              )}
+              
+              {/* Ready status */}
+              <div className="mb-6">
+                <div className="text-lg text-white mb-4">
+                  <span className="font-bold text-yellow-400">
+                    {gameState.roundReadyPlayers?.length || 0}
+                  </span>
+                  {' '} / {gameState.players.length} players ready
+                </div>
+                <div className="flex flex-wrap gap-3 justify-center mb-6">
+                  {gameState.players.map((p) => (
+                    <div
+                      key={p.id}
+                      className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                        gameState.roundReadyPlayers?.includes(p.id)
+                          ? 'bg-green-500/30 text-green-300 border-2 border-green-400/70 shadow-lg shadow-green-500/20'
+                          : 'bg-white/10 text-white/50 border-2 border-white/20'
+                      }`}
+                    >
+                      {p.avatar} {p.name} {gameState.roundReadyPlayers?.includes(p.id) ? '✓' : '⏳'}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Ready button for host */}
+              {!gameState.roundReadyPlayers?.includes(playerId) ? (
+                <button
+                  onClick={() => socket.emit('round-ready', gameState.id, playerId)}
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg transform transition hover:scale-105 text-xl"
+                >
+                  Ready! ✓
+                </button>
+              ) : (
+                <div className="text-green-400 font-bold text-lg">
+                  ✓ You're ready! Waiting for others...
+                </div>
+              )}
+            </div>
+          )}
+
           {gameState.gamePhase === 'finished' && gameState.winner && (
             <div className="text-center">
               <div className="text-6xl mb-4">🏆</div>

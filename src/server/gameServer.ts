@@ -432,6 +432,64 @@ io.on('connection', (socket) => {
     }, 3000);
   });
 
+  // --- Karaoke: voting ---
+  socket.on('karaoke-vote', (roomCode: string, playerId: string, optionIndex: number) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const gs = room.gameState;
+    if (gs.gamePhase !== 'karaoke_voting') return;
+    if (!Array.isArray(gs.karaokeVotingOptions) || optionIndex < 0 || optionIndex >= gs.karaokeVotingOptions.length) return;
+    if (!gs.karaokeVotes) gs.karaokeVotes = {};
+
+    const existing = Array.isArray(gs.karaokeVotes[playerId]) ? gs.karaokeVotes[playerId].slice() : [];
+    const idx = existing.indexOf(optionIndex);
+    if (idx >= 0) {
+      // Toggle off
+      existing.splice(idx, 1);
+    } else {
+      // Add, capping to two selections
+      if (existing.length >= 2) existing.shift();
+      existing.push(optionIndex);
+    }
+    gs.karaokeVotes[playerId] = existing;
+
+    io.to(roomCode).emit('game-state-update', { gameState: gs });
+  });
+
+  // --- Karaoke: client requests a timing sync ---
+  socket.on('request-karaoke-sync', (roomCode: string) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const gs = room.gameState;
+    if (gs.gamePhase === 'karaoke_break' && gs.karaokeStartAt) {
+      const durationMs = (gs.karaokeSettings?.durationSec || 45) * 1000;
+      io.to(roomCode).emit('karaoke-sync', { startAt: gs.karaokeStartAt, duration: durationMs });
+    } else if (gs.gamePhase === 'karaoke_voting' && gs.karaokeVotingEndAt) {
+      const startAt = gs.karaokeVotingEndAt - 30000; // assume 30s window by default
+      io.to(roomCode).emit('karaoke-sync', { startAt, duration: 30000 });
+    }
+  });
+
+  // --- Karaoke: host ends the karaoke break and resumes game ---
+  socket.on('karaoke-end', (roomCode: string, playerId: string) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const gs = room.gameState;
+    const caller = gs.players.find(p => p.id === playerId);
+    if (!caller || !caller.isHost) return;
+
+    // Clear karaoke-specific fields and resume
+    gs.currentKaraokeSong = null;
+    gs.karaokeStartAt = undefined;
+    gs.karaokeVotingOptions = undefined;
+    gs.karaokeVotingEndAt = undefined;
+    gs.karaokeVotes = {};
+    gs.gamePhase = 'category_selection';
+
+    io.to(roomCode).emit('karaoke-ended');
+    io.to(roomCode).emit('game-state-update', { gameState: gs });
+  });
+
   socket.on('sabotage-player', (roomCode: string, playerId: string, targetName: string) => {
     const room = rooms.get(roomCode);
     if (!room) return;

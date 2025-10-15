@@ -426,7 +426,7 @@ export const useGameEvents = (
     charadeDeadline, 
     pictionaryDeadline, 
     questionDeadline, 
-    lightningCountdownEndAt, 
+    lightningCountdownEndAt,
     forfeitResult, 
     forfeitFailureResult, 
     guessResult,
