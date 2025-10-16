@@ -314,46 +314,8 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
     };
   }, []);
 
-  // Radial slice-aligned labels: start near center and extend to edge within each slice
-  const renderLabels = () => {
-    const radius = 150; // approximate outer radius of the wheel area
-    const innerR = 48;  // start a bit beyond center hub
-    const barThickness = 32; // width of radial label bar (kept thin to stay within slice bounds)
-    const length = radius - innerR - 6; // leave small margin before rim
-    const gradientOffset = -90; // Same offset as the conic gradient to align with 12 o'clock
-    return categories.map((cat, i) => {
-      // Segment i is centered at i * seg degrees (segment 0 at 0°, segment 1 at 36°, etc.)
-      // Add gradientOffset to align with the visual gradient position
-      const angle = i * seg + gradientOffset;
-      const isLanded = (landedIndex !== null && i === landedIndex) || (targetIndex !== null && justLanded && i === targetIndex);
-      const dimThis = justLanded && ((landedIndex !== null && i !== landedIndex) || (targetIndex !== null && i !== targetIndex));
-      return (
-        <div
-          key={cat}
-          className="absolute left-1/2 top-1/2 select-none"
-          style={{
-            transform: `rotate(${angle}deg) translateX(${innerR}px)`,
-            transformOrigin: 'center left',
-            opacity: dimThis ? 0.35 : 1,
-          }}
-        >
-          <div
-            className="flex items-center justify-center rounded-md shadow-sm"
-            style={{
-              width: `${length}px`,
-              height: `${barThickness}px`,
-              background: isLanded ? 'linear-gradient(90deg, rgba(234,179,8,0.35), rgba(234,179,8,0.15))' : 'linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
-              border: isLanded ? '1px solid rgba(234,179,8,0.45)' : '1px solid rgba(255,255,255,0.08)',
-              boxShadow: isLanded ? '0 0 14px rgba(234,179,8,0.25)' : 'inset 0 0 6px rgba(0,0,0,0.25)',
-              backdropFilter: 'blur(1px)',
-            }}
-          >
-            {/* Category text labels intentionally removed; emojis render elsewhere */}
-          </div>
-        </div>
-      );
-    });
-  };
+  // Category boxes hidden: no label bars rendered (emojis still show elsewhere)
+  const renderLabels = () => null;
 
   return (
     <div className="bg-white/10 border border-white/20 rounded-2xl p-4 text-center">
@@ -449,9 +411,9 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
                 50%      { transform: scale(1.7); opacity: 1; }
               }
               @keyframes emoji-pop {
-                0%   { transform: rotate(90deg) scale(0.6); opacity: 0.0; }
-                70%  { transform: rotate(90deg) scale(1.08); opacity: 1; }
-                100% { transform: rotate(90deg) scale(1.0); opacity: 1; }
+                0%   { transform: scale(0.6); opacity: 0.0; }
+                70%  { transform: scale(1.08); opacity: 1; }
+                100% { transform: scale(1.0); opacity: 1; }
               }
               .emoji-pop { animation: emoji-pop 140ms ease-out both; }
             `}
@@ -515,14 +477,25 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
           {/* Category icons inside labels (low opacity for texture) */}
           <div className="absolute inset-0 pointer-events-none" style={{ transform: 'translateZ(7px)' }}>
             {categories.map((cat, i) => {
-              const angle = i * seg - 90;
+              // Place at angular center of slice and radial midpoint; compute Cartesian coords for symmetry
+              const angleDeg = i * seg - 90;
+              const angleRad = (angleDeg * Math.PI) / 180;
               const isTarget = targetIndex !== null && i === targetIndex && justLanded;
-              const radial = isTarget ? 83 : 78; // nudge landed icon a bit farther
-              const size = isTarget ? 25 : 23;   // slightly larger on land
+              const isDim = landedIndex !== null && !isTarget && i !== landedIndex;
+              const wheelSize = 320;   // container size (width/height)
+              const cx = wheelSize / 2;
+              const cy = wheelSize / 2;
+              const outerR = 150;      // matches visual wheel outer radius
+              const innerR = 48;       // hub radius used elsewhere
+              const radialMid = innerR + (outerR - innerR) / 2; // ~99px
+              const r = isTarget ? radialMid + 2 : radialMid;
+              const left = cx + Math.cos(angleRad) * r;
+              const top = cy + Math.sin(angleRad) * r;
+              const size = isTarget ? 25 : 23;
               const iconOpacity = isTarget ? 0.95 : 0.8;
               return (
-                <div key={`icon-${cat}`} className="absolute left-1/2 top-1/2" style={{ transform: `rotate(${angle}deg) translateX(${radial}px)` }}>
-                  <div aria-hidden className={`text-white/40 ${isTarget ? 'emoji-pop' : ''}`} style={{ fontSize: size, transform: 'rotate(90deg)', opacity: iconOpacity, textShadow: '0 1px 2px rgba(0,0,0,0.65)' }}>
+                <div key={`icon-${cat}`} className="absolute" style={{ left: `${left}px`, top: `${top}px`, transform: 'translate(-50%, -50%)' }}>
+                  <div aria-hidden className={`text-white/40 ${isTarget ? 'emoji-pop' : ''}`} style={{ fontSize: size, lineHeight: 1, opacity: isDim ? 0.5 : iconOpacity, textShadow: '0 1px 2px rgba(0,0,0,0.65)', fontFeatureSettings: '"kern" 1, "liga" 1' }}>
                     {cat === 'History' ? '🏛️' :
                      cat === 'Science' ? '🔬' :
                      cat === 'Sports' ? '🏆' :
