@@ -167,7 +167,7 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
       stops.push(`${color} ${start}deg ${end}deg`);
     }
     // Darken segments uniformly to improve emoji contrast
-    return `linear-gradient(rgba(0,0,0,0.32), rgba(0,0,0,0.32)), conic-gradient(${stops.join(', ')})`;
+    return `linear-gradient(rgba(0,0,0,0.38), rgba(0,0,0,0.38)), conic-gradient(${stops.join(', ')})`;
   }, [categories, colors, seg, locked]);
 
   // Compute rotation to land selected category at 12 o'clock (0 degrees / top)
@@ -444,6 +444,16 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
                 40%  { opacity: 1; box-shadow: 0 0 0 10px rgba(234,179,8,0.18) inset, 0 0 26px rgba(234,179,8,0.45); }
                 100% { opacity: 1; box-shadow: 0 0 0 8px rgba(234,179,8,0.25) inset, 0 0 18px rgba(234,179,8,0.35); }
               }
+              @keyframes tick-pulse {
+                0%, 100% { transform: scale(1); opacity: 0.55; }
+                50%      { transform: scale(1.7); opacity: 1; }
+              }
+              @keyframes emoji-pop {
+                0%   { transform: rotate(90deg) scale(0.6); opacity: 0.0; }
+                70%  { transform: rotate(90deg) scale(1.08); opacity: 1; }
+                100% { transform: rotate(90deg) scale(1.0); opacity: 1; }
+              }
+              .emoji-pop { animation: emoji-pop 140ms ease-out both; }
             `}
           </style>
           {/* Center hub */}
@@ -492,7 +502,7 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
                     linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)),
                     repeating-linear-gradient(45deg, rgba(255,255,255,0.25) 0 6px, rgba(255,255,255,0.04) 6px 14px)
                   `,
-                  opacity: 0.55,
+                  opacity: 0.45,
                   mixBlendMode: 'overlay',
                   transform: 'translateZ(6px)'
                 }}
@@ -508,11 +518,11 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
               const angle = i * seg - 90;
               const isTarget = targetIndex !== null && i === targetIndex && justLanded;
               const radial = isTarget ? 83 : 78; // nudge landed icon a bit farther
-              const size = isTarget ? 24 : 22;   // slightly larger on land
+              const size = isTarget ? 25 : 23;   // slightly larger on land
               const iconOpacity = isTarget ? 0.95 : 0.8;
               return (
                 <div key={`icon-${cat}`} className="absolute left-1/2 top-1/2" style={{ transform: `rotate(${angle}deg) translateX(${radial}px)` }}>
-                  <div aria-hidden className="text-white/40" style={{ fontSize: size, transform: 'rotate(90deg)', opacity: iconOpacity, textShadow: '0 1px 2px rgba(0,0,0,0.65)' }}>
+                  <div aria-hidden className={`text-white/40 ${isTarget ? 'emoji-pop' : ''}`} style={{ fontSize: size, transform: 'rotate(90deg)', opacity: iconOpacity, textShadow: '0 1px 2px rgba(0,0,0,0.65)' }}>
                     {cat === 'History' ? '🏛️' :
                      cat === 'Science' ? '🔬' :
                      cat === 'Sports' ? '🏆' :
