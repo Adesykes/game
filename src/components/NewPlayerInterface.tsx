@@ -1068,7 +1068,7 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
         {answerResult && answerResult.playerId === playerId && (
           <div className={`bg-white/10 backdrop-blur-lg rounded-2xl p-6 mb-6 border ${
             answerResult.isCorrect ? 'border-green-400/50' : 'border-red-400/50'
-          } ${gameState.round === 5 ? '' : 'animate-bounce'}`}>
+          } ${gameState.round !== 5 ? 'animate-bounce' : ''}`.trim()}>
             <div className="text-center">
               <div className="text-4xl mb-2">
                 {answerResult.isCorrect ? '✅' : '❌'}

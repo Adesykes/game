@@ -565,7 +565,7 @@ const ResultBanner: React.FC<ResultBannerProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pointer-events-none">
-      <div className={`max-w-md w-full mx-4 rounded-2xl shadow-2xl border-4 border-white/20 transform animate-bounce pointer-events-auto ${getBackgroundColor()}`}>
+      <div className={`max-w-md w-full mx-4 rounded-2xl shadow-2xl border-4 border-white/20 transform ${gameState.round !== 5 ? 'animate-bounce' : ''} pointer-events-auto ${getBackgroundColor()}`}>
         {/* Particle Effect */}
         {particleEffect && (
           <ParticleEffect
