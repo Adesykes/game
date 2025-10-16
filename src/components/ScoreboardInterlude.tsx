@@ -9,7 +9,7 @@ interface ScoreboardInterludeProps {
   durationMs?: number; // default ~12s
 }
 
-const ScoreboardInterlude: React.FC<ScoreboardInterludeProps> = ({ gameState, visible, onClose, durationMs = 12000 }) => {
+const ScoreboardInterlude: React.FC<ScoreboardInterludeProps> = ({ gameState, visible, onClose, durationMs = 4000 }) => {
   const [fading, setFading] = useState(false);
   useEffect(() => {
     if (!visible) return;
@@ -30,7 +30,10 @@ const ScoreboardInterlude: React.FC<ScoreboardInterludeProps> = ({ gameState, vi
   if (!visible) return null;
 
   return (
-    <div className={`fixed inset-0 z-[55] flex items-center justify-center p-4 transition-opacity ${fading ? 'opacity-0' : 'opacity-100'}`}>
+    <div 
+      className={`fixed inset-0 z-[55] flex items-center justify-center p-4 transition-opacity cursor-pointer ${fading ? 'opacity-0' : 'opacity-100'}`}
+      onClick={onClose}
+    >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
       <div className={`relative w-full max-w-3xl bg-white/10 border border-white/20 rounded-3xl p-6 md:p-8 shadow-2xl text-white overflow-hidden ${fading ? 'scale-95' : 'scale-100'} transition-transform`}>
         <div className="absolute inset-0 opacity-30 pointer-events-none" style={{backgroundImage:'radial-gradient(circle at 20% 30%, rgba(255,255,255,0.15), transparent 60%), radial-gradient(circle at 80% 70%, rgba(255,255,255,0.1), transparent 60%)'}} />
@@ -85,7 +88,7 @@ const ScoreboardInterlude: React.FC<ScoreboardInterludeProps> = ({ gameState, vi
               )}
             </div>
           </div>
-          <div className="text-center mt-6 text-white/70 text-xs">Interlude — resuming shortly…</div>
+          <div className="text-center mt-6 text-white/70 text-xs">Interlude — click anywhere to continue or wait 4 seconds</div>
         </div>
       </div>
     </div>

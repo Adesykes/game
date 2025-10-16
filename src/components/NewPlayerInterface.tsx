@@ -236,6 +236,19 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
     };
   }, [socket, playerId]);
 
+  // Auto-advance from round_summary after 4 seconds if player hasn't clicked ready
+  useEffect(() => {
+    if (gameState.gamePhase !== 'round_summary') return;
+    if (gameState.roundReadyPlayers?.includes(playerId)) return; // Already ready
+    
+    const timeout = setTimeout(() => {
+      // Auto-click ready if player hasn't done so
+      socket.emit('round-ready', gameState.id, playerId);
+    }, 4000); // 4 seconds
+    
+    return () => clearTimeout(timeout);
+  }, [gameState.gamePhase, gameState.id, gameState.roundReadyPlayers, playerId, socket]);
+
   // Lightning countdown timer
   useEffect(() => {
     if (lightningCountdownEndAt) {
@@ -884,10 +897,10 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
                 )}
                 {isMyTurn && gameState.currentForfeit.type === 'shot' && (
                   <button 
-                    onClick={() => socket.emit('start-charade', gameState.id, playerId)}
+                    onClick={() => socket.emit('shot-forfeit-completed', gameState.id, playerId)}
                     className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-8 rounded-xl w-full"
                   >
-                    I'll Take a Shot!
+                    I've Taken a Shot!
                   </button>
                 )}
               </div>
@@ -989,21 +1002,28 @@ const PlayerInterface: React.FC<PlayerInterfaceProps> = ({
             )}
             
             {gameState.gamePhase === 'round_summary' && (
-              <div>
+              <div 
+                onClick={() => {
+                  if (!gameState.roundReadyPlayers?.includes(playerId)) {
+                    socket.emit('round-ready', gameState.id, playerId);
+                  }
+                }}
+                className={!gameState.roundReadyPlayers?.includes(playerId) ? 'cursor-pointer' : ''}
+              >
                 {/* Show different messaging based on context */}
                 {gameState.cycleInRound === 0 ? (
                   // Round just started - we're at the beginning of a new round
                   <>
                     <div className="text-6xl mb-4">�</div>
                     <h2 className="text-2xl font-bold text-white mb-4">Round {gameState.round} Starting!</h2>
-                    <p className="text-white mb-6">Get ready to begin</p>
+                    <p className="text-white mb-6">{!gameState.roundReadyPlayers?.includes(playerId) ? 'Click anywhere to continue' : 'Get ready to begin'}</p>
                   </>
                 ) : (
                   // Round complete after karaoke or lightning
                   <>
                     <div className="text-6xl mb-4">�🎵</div>
                     <h2 className="text-2xl font-bold text-white mb-4">Round Complete!</h2>
-                    <p className="text-white mb-6">Get ready for the next round</p>
+                    <p className="text-white mb-6">{!gameState.roundReadyPlayers?.includes(playerId) ? 'Click anywhere to continue' : 'Get ready for the next round'}</p>
                   </>
                 )}
                 

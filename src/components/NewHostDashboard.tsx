@@ -278,6 +278,19 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
     };
   }, [socket, hostPlayer?.id]);
 
+  // Auto-advance from round_summary after 4 seconds if player hasn't clicked ready
+  useEffect(() => {
+    if (gameState.gamePhase !== 'round_summary') return;
+    if (gameState.roundReadyPlayers?.includes(playerId)) return; // Already ready
+    
+    const timeout = setTimeout(() => {
+      // Auto-click ready if player hasn't done so
+      socket.emit('round-ready', gameState.id, playerId);
+    }, 4000); // 4 seconds
+    
+    return () => clearTimeout(timeout);
+  }, [gameState.gamePhase, gameState.id, gameState.roundReadyPlayers, playerId, socket]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-4">
       <div ref={radialWipeRef} className="fixed inset-0 z-30 pointer-events-none bg-yellow-300/30 opacity-0" />
@@ -905,10 +918,10 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
                       } else if (isHostTurn && gameState.currentForfeit.type === 'shot') {
                         return (
                           <button
-                            onClick={startCharade}
+                            onClick={() => socket.emit('shot-forfeit-completed', gameState.id, playerId)}
                             className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-lg"
                           >
-                            I'll Take a Shot!
+                            I've Taken a Shot!
                           </button>
                         );
                       } else {
@@ -1023,21 +1036,28 @@ const HostDashboard: React.FC<HostDashboardProps> = ({
           )}
           
           {gameState.gamePhase === 'round_summary' && (
-            <div className="text-center">
+            <div 
+              className="text-center cursor-pointer"
+              onClick={() => {
+                if (!gameState.roundReadyPlayers?.includes(playerId)) {
+                  socket.emit('round-ready', gameState.id, playerId);
+                }
+              }}
+            >
               {/* Show different messaging based on context */}
               {gameState.cycleInRound === 0 ? (
                 // Round just started - we're at the beginning of a new round
                 <>
                   <div className="text-6xl mb-4">�</div>
                   <h2 className="text-2xl font-bold text-white mb-4">Round {gameState.round} Starting!</h2>
-                  <p className="text-white mb-6">Get ready to begin</p>
+                  <p className="text-white mb-6">{!gameState.roundReadyPlayers?.includes(playerId) ? 'Click anywhere to continue' : 'Get ready to begin'}</p>
                 </>
               ) : (
                 // Round complete after karaoke or lightning
                 <>
                   <div className="text-6xl mb-4">�🎵</div>
                   <h2 className="text-2xl font-bold text-white mb-4">Round Complete!</h2>
-                  <p className="text-white mb-6">Get ready for the next round</p>
+                  <p className="text-white mb-6">{!gameState.roundReadyPlayers?.includes(playerId) ? 'Click anywhere to continue' : 'Get ready for the next round'}</p>
                 </>
               )}
               

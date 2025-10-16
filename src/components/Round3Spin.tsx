@@ -131,64 +131,106 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
   // Palette for segments
   const colors = useMemo(
     () => [
-      '#EF4444', // red
-      '#3B82F6', // blue
-      '#10B981', // emerald
-      '#F59E0B', // amber
-      '#8B5CF6', // violet
-      '#EC4899', // pink
-      '#22D3EE', // cyan
-      '#F97316', // orange
-      '#84CC16', // lime
-      '#A78BFA', // purple
+      '#667eea', // Rich Purple (History)
+      '#f5576c', // Vibrant Pink-Red (Science)
+      '#00f2fe', // Electric Cyan (Sports)
+      '#43e97b', // Fresh Green (Entertainment)
+      '#fee140', // Golden Yellow (Geography)
+      '#330867', // Deep Purple (Technology)
+      '#fed6e3', // Soft Pink (Music)
+      '#ff6a88', // Coral (Food)
+      '#fcb69f', // Warm Peach (Literature)
+      '#bfe9ff', // Sky Blue (Animals)
     ],
     []
   );
 
   // Build conic gradient background for the wheel
+  // Each segment is 36 degrees (360/10). Segment 0 is centered at 0° (12 o'clock)
+  // BUT: CSS conic-gradient starts at 0° = 3 o'clock (right), not 12 o'clock (top)
+  // So we need to offset all angles by -90° to rotate the gradient to start at 12 o'clock
   const wheelBg = useMemo(() => {
     const stops: string[] = [];
+    const gradientOffset = -90; // Rotate gradient so 0° is at 12 o'clock instead of 3 o'clock
     for (let i = 0; i < categories.length; i++) {
       const c = colors[i % colors.length];
-      const start = i * seg;
-      const end = (i + 1) * seg;
+      // Segment i is centered at i * seg degrees
+      // It spans from (i * seg - seg/2) to (i * seg + seg/2)
+      // Add gradientOffset to move everything from 3 o'clock to 12 o'clock
+      const start = i * seg - seg / 2 + gradientOffset;
+      const end = i * seg + seg / 2 + gradientOffset;
       // Slightly dim locked categories
-      const color = locked.includes(categories[i]) ? `${c}CC` : c; // add alpha for dimming
+      const color = locked.includes(categories[i]) ? `${c}CC` : c;
       stops.push(`${color} ${start}deg ${end}deg`);
     }
     return `conic-gradient(${stops.join(', ')})`;
   }, [categories, colors, seg, locked]);
 
-  // Compute rotation to land selected category under pointer (at 12 o'clock)
+  // Compute rotation to land selected category at 12 o'clock (0 degrees / top)
+  // Segment i is naturally centered at i * seg degrees
+  // To move segment i to 0°, we rotate by -i * seg
   const normalize = (a: number) => ((a % 360) + 360) % 360;
+  
   const getIndexFromRotation = (rotDeg: number) => {
-    // Compute which segment center sits at the pointer top given rotation
-    const pointerAngle = normalize(-90 - rotDeg); // 0..360
-    const idx = Math.floor(pointerAngle / seg);
+    // After rotating by rotDeg, which segment is at 0°?
+    // Segment i started at i*seg, after rotation it's at i*seg + rotDeg
+    // We want i*seg + rotDeg ≡ 0 (mod 360)
+    // So i*seg ≡ -rotDeg (mod 360)
+    const targetAngle = normalize(-rotDeg);
+    const idx = Math.round(targetAngle / seg) % categories.length;
     return idx;
   };
 
   const computeTargetRotation = (category: string) => {
     const targetIdx = Math.max(0, categories.indexOf(category));
+    
+    // Segment targetIdx is centered at targetIdx * seg
+    // We want to rotate so it ends up at 0° (12 o'clock)
+    // To move a segment from its position (targetIdx * seg) to 0°, we need to rotate CLOCKWISE
+    // which means we rotate by (360 - targetIdx * seg) to go the "long way" around
+    // OR we can think of it as: segment at position X needs to move (360 - X) degrees clockwise to reach 0°
+    // But we want to spin multiple times, so:
+    // rotation = -targetIdx * seg + extraSpins * 360 (negative to go counter-clockwise to 12 o'clock)
+    // Actually, let's reconsider: if segment 3 is at 108°, rotating by -108° moves it to 0°
+    // But CSS transform rotates the WHEEL, not individual segments
+    // So rotating the wheel by -108° moves segment 3 FROM 108° TO 0°
+    // Wait, that's backwards. Let me think...
+    // Initial: segment 3 at 108° (3 o'clock area)
+    // We apply transform: rotate(-108deg) to the wheel
+    // This rotates the ENTIRE wheel counter-clockwise by 108°
+    // So segment 3 moves from 108° to (108° - 108°) = 0° ✓ Correct!
+    // Except... in your logs segment 0 ends up at 12 o'clock when we want segment 3 there
+    // This means we're rotating the wrong direction!
+    
+    // FIX: To move segment X to 12 o'clock, rotate by (360 - X * seg) CLOCKWISE
+    // Since positive rotation = clockwise in CSS, we use POSITIVE values
+    const baseRotation = targetIdx === 0 ? 0 : (360 - targetIdx * seg);
+    
+    // Add 3-4 full spins (at least 3 * 360 = 1080 degrees) - keep spinning clockwise
+    const extraSpins = 3 + Math.floor(Math.random() * 2);
+    const targetRotation = baseRotation + extraSpins * 360;
+    
+    // Calculate total ticks for sound
     const currentIdx = getIndexFromRotation(rotation);
-    const centerAngle = targetIdx * seg + seg / 2; // from 3 o'clock reference
-    const base = -90 - centerAngle; // move center to 12 o'clock
-    const extraSpins = 3 + Math.floor(Math.random() * 2); // 3-4 extra spins
     const deltaSegments = (targetIdx - currentIdx + categories.length) % categories.length;
     const totalTicks = extraSpins * categories.length + deltaSegments;
-    return { targetRotation: base - extraSpins * 360, totalTicks };
+    
+    return { targetRotation, totalTicks };
   };
 
   // When server sends result, animate to it
   useEffect(() => {
     const onResult = ({ category }: { category: string }) => {
+      console.log(`[Round3Spin] Received category from server: "${category}"`);
       setResult(category);
       setShowResultText(false); // hide until after landing + highlight
       const idx = categories.indexOf(category);
+      console.log(`[Round3Spin] Category "${category}" is at index ${idx}`);
       setTargetIndex(idx >= 0 ? idx : null);
       // Start the spin if not already spinning
       if (!spinning) setSpinning(true);
       const { targetRotation, totalTicks } = computeTargetRotation(category);
+      console.log(`[Round3Spin] Target rotation: ${targetRotation}° to land segment ${idx} at 12 o'clock`);
       // Trigger CSS transition
       transitionMsRef.current = 5000;
       requestAnimationFrame(() => {
@@ -211,23 +253,27 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
     let wobbleId: number | null = null;
     const onEnd = () => {
       setSpinning(false);
-      // Prefer server-selected index; fallback to computed if absent
-      const idx = (targetIndex !== null && targetIndex >= 0) ? targetIndex : getIndexFromRotation(rotation);
-      setLandedIndex(idx);
-      setJustLanded(true);
-      // Clear highlight after a moment
-      clearId = window.setTimeout(() => {
-        setJustLanded(false);
-        setShowResultText(true);
-      }, 2000) as unknown as number;
-      // Stop audio effects
-      stopWhoosh();
-      clearTickTimeouts();
-      // Trigger a brief overshoot wobble
-      setWobble(true);
-      wobbleId = window.setTimeout(() => setWobble(false), 520) as unknown as number;
-      // Haptics: stronger pulse on land
-      try { if (navigator?.vibrate) navigator.vibrate([8, 20, 18]); } catch {}
+      // ALWAYS use targetIndex from server (it's set in spin-result handler)
+      // The rotation state is stale in this closure
+      if (targetIndex !== null && targetIndex >= 0) {
+        const idx = targetIndex;
+        console.log(`[Round3Spin] Wheel stopped. Landing on segment ${idx}: "${categories[idx]}"`);
+        setLandedIndex(idx);
+        setJustLanded(true);
+        // Clear highlight after a moment
+        clearId = window.setTimeout(() => {
+          setJustLanded(false);
+          setShowResultText(true);
+        }, 2000) as unknown as number;
+        // Stop audio effects
+        stopWhoosh();
+        clearTickTimeouts();
+        // Trigger a brief overshoot wobble
+        setWobble(true);
+        wobbleId = window.setTimeout(() => setWobble(false), 520) as unknown as number;
+        // Haptics: stronger pulse on land
+        try { if (navigator?.vibrate) navigator.vibrate([8, 20, 18]); } catch {}
+      }
     };
     el.addEventListener('transitionend', onEnd);
     return () => {
@@ -265,8 +311,11 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
     const innerR = 48;  // start a bit beyond center hub
     const barThickness = 32; // width of radial label bar (kept thin to stay within slice bounds)
     const length = radius - innerR - 6; // leave small margin before rim
+    const gradientOffset = -90; // Same offset as the conic gradient to align with 12 o'clock
     return categories.map((cat, i) => {
-      const angle = i * seg + seg / 2 - 90; // slice center line at top baseline
+      // Segment i is centered at i * seg degrees (segment 0 at 0°, segment 1 at 36°, etc.)
+      // Add gradientOffset to align with the visual gradient position
+      const angle = i * seg + gradientOffset;
       const lockedCat = locked.includes(cat);
       const isLanded = (landedIndex !== null && i === landedIndex) || (targetIndex !== null && justLanded && i === targetIndex);
       const dimThis = justLanded && ((landedIndex !== null && i !== landedIndex) || (targetIndex !== null && i !== targetIndex));
@@ -310,10 +359,15 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
     <div className="bg-white/10 border border-white/20 rounded-2xl p-4 text-center">
       <div className="text-white font-bold mb-3">Round 3: Spin the Wheel</div>
       <div className="relative mx-auto" style={{ width: 320, height: 320, perspective: 900 }}>
-        {/* Pointer */}
-        <div className="absolute left-1/2 -translate-x-1/2 -top-1" aria-hidden>
-          <div className={`w-0 h-0 border-l-[10px] border-r-[10px] border-b-[16px] border-l-transparent border-r-transparent ${justLanded ? 'border-b-yellow-300' : 'border-b-white'}`} style={{ filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.4)) drop-shadow(0 4px 8px rgba(0,0,0,0.35))' }} />
-          <div className={`h-2 w-[2px] mx-auto ${justLanded ? 'bg-yellow-300' : 'bg-white/70'}`} style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.45)' }} />
+        {/* Fixed selector at 12 o'clock */}
+        <div className="absolute left-1/2 -translate-x-1/2 -top-2 z-20" aria-hidden>
+          <div 
+            className={`w-0 h-0 border-l-[12px] border-r-[12px] border-b-[20px] border-l-transparent border-r-transparent ${justLanded ? 'border-b-yellow-400' : 'border-b-white'}`}
+            style={{ 
+              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
+              transition: 'border-color 0.3s'
+            }} 
+          />
         </div>
 
         {/* Wheel */}
@@ -387,34 +441,48 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
               }}
             />
           )}
-
-          {/* Landed segment wedge highlight (2s) + dim others across full slice */}
-          {justLanded && (() => {
-            const overlayRot = (targetIndex ?? landedIndex ?? 0) * seg + seg / 2 + 90;
-            return (
-              <div
-                className="absolute inset-0 rounded-full pointer-events-none"
-                style={{
-                  transform: `rotateX(8deg) translateZ(6px) rotate(${overlayRot}deg)`,
-                  backgroundImage: `
-                    /* Dim all except wedge */
-                    conic-gradient(from -90deg,
-                      transparent 0deg ${seg / 2}deg,
-                      rgba(0,0,0,0.45) ${seg / 2}deg ${360 - seg / 2}deg,
-                      transparent ${360 - seg / 2}deg 360deg
-                    ),
-                    /* Gold wedge covering entire slice */
-                    conic-gradient(from -90deg,
-                      rgba(234,179,8,0.35) 0deg ${seg / 2}deg,
-                      rgba(0,0,0,0) ${seg / 2}deg ${360 - seg / 2}deg,
-                      rgba(234,179,8,0.35) ${360 - seg / 2}deg 360deg
-                    )
-                  `,
-                }}
-              />
-            );
-          })()}
         </div>
+
+        {/* Landed segment wedge highlight (2s) - OUTSIDE rotating wheel so it stays at 12 o'clock */}
+        {justLanded && (() => {
+          // Create a wedge centered at 0deg (12 o'clock/top) spanning one full segment
+          // The wedge goes from -seg/2 to +seg/2 (e.g., -18° to +18° for 36° segments)
+          const wedgeStart = -seg / 2;
+          const wedgeEnd = seg / 2;
+          return (
+            <div
+              className="absolute inset-0 rounded-full pointer-events-none"
+              style={{
+                transform: `rotateX(8deg)`,
+                zIndex: 10,
+                backgroundImage: `
+                  /* Dim all slices except the wedge at top */
+                  conic-gradient(
+                    rgba(0,0,0,0.65) 0deg,
+                    rgba(0,0,0,0.65) ${360 + wedgeStart}deg,
+                    transparent ${360 + wedgeStart}deg,
+                    transparent 360deg,
+                    transparent 0deg,
+                    transparent ${wedgeEnd}deg,
+                    rgba(0,0,0,0.65) ${wedgeEnd}deg,
+                    rgba(0,0,0,0.65) 360deg
+                  ),
+                  /* Bright gold wedge highlighting the entire winning slice */
+                  conic-gradient(
+                    transparent 0deg,
+                    transparent ${360 + wedgeStart}deg,
+                    rgba(234,179,8,0.6) ${360 + wedgeStart}deg,
+                    rgba(234,179,8,0.6) 360deg,
+                    rgba(234,179,8,0.6) 0deg,
+                    rgba(234,179,8,0.6) ${wedgeEnd}deg,
+                    transparent ${wedgeEnd}deg,
+                    transparent 360deg
+                  )
+                `,
+              }}
+            />
+          );
+        })()}
 
         {/* Outer rim and glass */}
         <div className="absolute inset-0 rounded-full border border-white/20 pointer-events-none" style={{ transform: 'translateZ(2px)' }} />

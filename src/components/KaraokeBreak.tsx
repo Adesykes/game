@@ -11,14 +11,6 @@ interface KaraokeBreakProps {
 }
 
 const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId, roomCode }) => {
-  console.log('[KaraokeBreak] Component rendering with props:', { 
-    playerId, 
-    roomCode, 
-    gamePhase: gameState.gamePhase,
-    votingOptions: gameState.karaokeVotingOptions?.length || 0,
-    karaokeVotes: gameState.karaokeVotes
-  });
-  
   const song = gameState.currentKaraokeSong;
   const isHost = gameState.players.find(p=>p.id===playerId)?.isHost;
   const [elapsed, setElapsed] = useState(0);
@@ -27,8 +19,6 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
   const syncPendingRef = useRef<boolean>(false);
   // Short guard window after a click/ack to ignore stale server snapshots that could clear highlights
   const ignoreUntilRef = useRef<number>(0);
-  // Mirror pending in state so the Debug panel reflects it immediately (useRef alone won't rerender)
-  const [pendingState, setPendingState] = useState<boolean>(false);
   const hydratedRef = useRef<boolean>(false);
   // Guard to prevent re-entrant click handling during rapid re-renders
   const clickInProgressRef = useRef<boolean>(false);
@@ -65,13 +55,10 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
       if (data && Array.isArray(data.picked)) {
         // Ignore empty acks while we're in the pending/ignore window (server race)
         if (data.picked.length === 0 && Date.now() < ignoreUntilRef.current) {
-          console.log('[karaoke] vote ack IGNORED (empty during pending window)', data.picked);
           return;
         }
         syncPendingRef.current = false;
-        setPendingState(false);
         setSelectedVotes(Array.from(new Set(data.picked)));
-        console.log('[karaoke] vote ack ACCEPTED', data.picked);
       }
     };
     socket.on('karaoke-vote-ack', onAck);
@@ -300,24 +287,19 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
                     data-index={index}
                     type="button"
                     onClick={(e) => {
-                      console.log('[karaoke] CLICK FIRED', { index, playerId, roomCode, optionTitle: option.title, ts: Date.now() });
-                      
                       // Prevent re-entrant handling if we're already processing a click
                       if (clickInProgressRef.current) {
-                        console.log('[karaoke] click IGNORED (already in progress)');
                         return;
                       }
                       clickInProgressRef.current = true;
                       
                       const nowClick = Date.now();
                       if (nowClick >= effectiveEndAt) {
-                        console.warn('[karaoke] vote ignored: voting closed', { nowClick, effectiveEndAt });
                         clickInProgressRef.current = false;
                         return;
                       }
                       const now = Date.now();
                       if (now - (lastVoteClickAtRef.current || 0) < 250) {
-                        console.log('[karaoke] debounced (too fast)');
                         clickInProgressRef.current = false;
                         return;
                       }
@@ -326,50 +308,38 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
                       const target = e.currentTarget as HTMLButtonElement;
                       const idxAttr = target.getAttribute('data-index');
                       const idx = idxAttr ? parseInt(idxAttr, 10) : index;
-                      console.log('[karaoke] vote click processing', { optionIndex: idx, optionTitle: option.title, playerId, roomCode, t: now });
                       // Mark pending before local state so server update won't override immediately and open a short ignore window
                       syncPendingRef.current = true;
-                      setPendingState(true);
                       ignoreUntilRef.current = now + 800; // ignore server snapshots for 800ms
-                      console.log('[karaoke] pending set to true; ignoreUntil', ignoreUntilRef.current);
                       // Fallback: clear pending if no ack within 3s
                       setTimeout(() => {
                         if (syncPendingRef.current && Date.now() > ignoreUntilRef.current) {
-                          console.log('[karaoke] fallback timeout: clearing pending');
                           syncPendingRef.current = false;
-                          setPendingState(false);
                         }
                       }, 3000);
                       
                       // Single state update with functional form to avoid stale closures
                       setSelectedVotes(prev => {
-                        console.log('[karaoke] setSelectedVotes called', { prev, idx });
                         // Mirror server toggle logic exactly: if already in array, remove it; else add (capped at 2)
                         let next = [...prev];
                         const existingIdx = next.indexOf(idx);
                         if (existingIdx >= 0) {
                           // Already selected: remove it (toggle off)
                           next.splice(existingIdx, 1);
-                          console.log('[karaoke] toggled OFF', idx);
                         } else {
                           // Not selected: add it (remove oldest if already at 2)
                           if (next.length >= 2) {
                             next.shift(); // remove oldest
-                            console.log('[karaoke] replaced oldest; adding', idx);
-                          } else {
-                            console.log('[karaoke] adding', idx);
                           }
                           next.push(idx);
                         }
-                        console.log('[karaoke] next selectedVotes', next);
                         // emit to server (guard against duplicate emission within 200ms)
                         const now = Date.now();
                         if (lastEmittedRef.current?.idx === idx && (now - lastEmittedRef.current.ts) < 200) {
-                          console.log('[karaoke] skipping duplicate emission', idx);
+                          // Skip duplicate
                         } else {
                           socket.emit('karaoke-vote', roomCode, playerId, idx);
                           lastEmittedRef.current = { idx, ts: now };
-                          console.log('[karaoke] emitted karaoke-vote', { roomCode, playerId, idx });
                         }
                         // Clear the click lock after a short delay to allow state to settle
                         setTimeout(() => { clickInProgressRef.current = false; }, 100);
@@ -406,25 +376,6 @@ const KaraokeBreak: React.FC<KaraokeBreakProps> = ({ gameState, socket, playerId
               <div className="text-yellow-300 font-bold text-sm text-center">Voting closed — tallying votes…</div>
             ) : (
               <div className="text-white/70 text-sm text-center">Tap to select up to two songs. You can change your choices until the timer ends.</div>
-            )}
-
-            {import.meta.env.DEV && (
-              <div className="mt-4 text-xs text-white/70 bg-black/30 rounded-lg p-2 border border-white/10">
-                <div className="font-semibold mb-1">Debug (client-side)</div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  <div>
-                    <div>room: {roomCode}</div>
-                    <div>playerId: {playerId}</div>
-                    <div>pending: {String(pendingState)}</div>
-                    <div>local selected: [{selectedVotes.join(', ')}]</div>
-                  </div>
-                  <div>
-                    <div>server self: [{(Array.isArray(gameState.karaokeVotes?.[playerId]) ? gameState.karaokeVotes?.[playerId] : (gameState.karaokeVotes?.[playerId] !== undefined ? [gameState.karaokeVotes?.[playerId] as unknown as number] : [])).join(', ')}]</div>
-                    <div>server keys: [{Object.keys(gameState.karaokeVotes || {}).length}]</div>
-                    <div>timeLeft: {Math.max(0, Math.floor((effectiveEndAt - Date.now()) / 1000))}s</div>
-                  </div>
-                </div>
-              </div>
             )}
           </div>
         </div>

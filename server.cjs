@@ -541,8 +541,8 @@ io.on('connection', (socket) => {
         gamePhase: 'waiting',
         winner: null,
         round: 1,
-        // Round/cycle control: each round lasts 2 cycles around the table by default
-        cyclesPerRound: 2,
+        // Round/cycle control: each round lasts cycles around the table
+        cyclesPerRound: 6, // Round 1 starts with 6 cycles
         cycleInRound: 0,
         maxRounds: 5,
   // Round 5 Sudden Death state
@@ -743,7 +743,12 @@ io.on('connection', (socket) => {
     // Transition to round summary instead of directly to category selection
     room.gameState.gamePhase = 'round_summary';
     room.gameState.roundReadyPlayers = []; // Reset ready states
-    room.gameState.resumeAfterKaraoke = true;
+    // Only resume same player if karaoke was not triggered after a forfeit
+    if (!room.gameState.karaokeAfterForfeit) {
+      room.gameState.resumeAfterKaraoke = true;
+    }
+    // Clear the flag
+    delete room.gameState.karaokeAfterForfeit;
     const endedAt = Date.now();
     io.to(roomCode).emit('karaoke-ended', { endedAt });
     io.to(roomCode).emit('game-state-update', { gameState: room.gameState, message: 'Karaoke ended - waiting for players to ready up' });
@@ -804,10 +809,10 @@ io.on('connection', (socket) => {
     gs.round = r;
     gs.cycleInRound = 0;
     switch (gs.round) {
-      case 1: gs.cyclesPerRound = 2; break;
-      case 2: gs.cyclesPerRound = 2; break;
-      case 3: gs.cyclesPerRound = 2; break;
-      case 4: gs.cyclesPerRound = 4; break;
+      case 1: gs.cyclesPerRound = 6; break;
+      case 2: gs.cyclesPerRound = 6; break;
+      case 3: gs.cyclesPerRound = 6; break;
+      case 4: gs.cyclesPerRound = 6; break;
       case 5: gs.cyclesPerRound = 1; break;
       default: gs.cyclesPerRound = gs.cyclesPerRound || 2;
     }
@@ -1017,7 +1022,7 @@ io.on('connection', (socket) => {
           io.to(roomCode).emit('forfeit-completed', { gameState: gameState, forfeitType: 'shot' });
           // Attempt karaoke break
           try {
-            maybeTriggerKaraoke(room, roomCode);
+            maybeTriggerKaraoke(room, roomCode, true);
           } catch (err) {
             console.error('[karaoke] maybeTriggerKaraoke error after auto shot forfeit timeout', err);
           }
@@ -1052,7 +1057,7 @@ io.on('connection', (socket) => {
                 gameState.currentForfeit = null;
                 io.to(roomCode).emit('forfeit-completed', { gameState, forfeitType: 'shot' });
                 try {
-                  maybeTriggerKaraoke(room, roomCode);
+                  maybeTriggerKaraoke(room, roomCode, true);
                 } catch (err) {
                   console.error('[karaoke] maybeTriggerKaraoke error after shot forfeit timeout', err);
                 }
@@ -1145,6 +1150,8 @@ io.on('connection', (socket) => {
     const candidates = CATEGORIES.filter(c => !locked.has(c));
     const pick = (candidates.length ? candidates : CATEGORIES)[Math.floor(Math.random() * (candidates.length ? candidates.length : CATEGORIES.length))];
 
+    console.log(`[Round3Spin] Server selected category: "${pick}"`);
+
     // Emit immediate spin result so clients can animate to it
     io.to(roomCode).emit('spin-result', { category: pick });
 
@@ -1155,6 +1162,7 @@ io.on('connection', (socket) => {
       const gs2 = room2.gameState;
         // Safety: remain in round 3 spin flow
         const question = drawQuestionFromPools(room2, pick);
+        console.log(`[Round3Spin] Drew question from category "${pick}": "${question.question}" (Question category: "${question.category}")`);
         gs2.currentQuestion = question;
         gs2.gamePhase = 'question';
   const deadline = Date.now() + 20000;
@@ -1530,23 +1538,10 @@ io.on('connection', (socket) => {
       
       // Auto-start forfeit based on type
       if (room.gameState.currentForfeit.type === 'shot') {
-        // For shot forfeits, complete immediately
-        console.log(`[auto-forfeit] Auto-completing shot forfeit for ${currentPlayer.name}`);
-        currentPlayer.needsCharadeForLife = false;
-        room.gameState.gamePhase = 'category_selection';
-        room.gameState.currentForfeit = null;
-        io.to(roomCode).emit('forfeit-completed', { gameState: room.gameState, forfeitType: 'shot' });
-        // Attempt karaoke break
-        try {
-          maybeTriggerKaraoke(room, roomCode);
-        } catch (err) {
-          console.error('[karaoke] maybeTriggerKaraoke error after auto shot forfeit', err);
-        }
-        if (room.gameState.gamePhase === 'karaoke_break') {
-          console.log('[karaoke] Karaoke break triggered after auto shot forfeit; skipping scheduled nextTurn');
-        } else {
-          scheduleNextTurn(room, roomCode, 'after auto shot forfeit', 3000);
-        }
+        // For shot forfeits, wait for player to confirm they've taken the shot
+        console.log(`[auto-forfeit] Showing shot forfeit for ${currentPlayer.name}: "${room.gameState.currentForfeit.description}"`);
+        // Keep in forfeit phase until player clicks "I've taken a shot" button
+        // No automatic timeout - player must confirm
       } else if (room.gameState.currentForfeit.type === 'tongue_twister') {
         // Auto-start tongue twister forfeit
         console.log(`[auto-forfeit] Auto-starting tongue twister forfeit for ${currentPlayer.name}: "${room.gameState.currentForfeit.tongueTwister}"`);
@@ -1570,9 +1565,10 @@ io.on('connection', (socket) => {
           // Notify clients about the completed forfeit
           io.to(roomCode).emit('forfeit-completed', { gameState: currentRoom.gameState, forfeitType: 'tongue_twister' });
           
-          // Attempt an automatic karaoke break
+          // Attempt an automatic karaoke break after tongue twister forfeit
+          // Note: afterForfeit=true ensures turn advances to next player after karaoke
           try {
-            maybeTriggerKaraoke(currentRoom, roomCode);
+            maybeTriggerKaraoke(currentRoom, roomCode, true);
           } catch (err) {
             console.error('[karaoke] maybeTriggerKaraoke error after tongue twister', err);
           }
@@ -1611,7 +1607,7 @@ io.on('connection', (socket) => {
               gameState.currentForfeit = null;
               io.to(roomCode).emit('forfeit-completed', { gameState, forfeitType: 'shot' });
               try {
-                maybeTriggerKaraoke(room, roomCode);
+                maybeTriggerKaraoke(room, roomCode, true);
               } catch (err) {
                 console.error('[karaoke] maybeTriggerKaraoke error after shot forfeit', err);
               }
@@ -1923,7 +1919,7 @@ io.on('connection', (socket) => {
           io.to(roomCode).emit('forfeit-completed', { gameState: gs, forfeitType: 'shot' });
           // Attempt karaoke break
           try {
-            maybeTriggerKaraoke(room, roomCode);
+            maybeTriggerKaraoke(room, roomCode, true);
           } catch (err) {
             console.error('[karaoke] maybeTriggerKaraoke error after auto shot forfeit timeout passed', err);
           }
@@ -1958,7 +1954,7 @@ io.on('connection', (socket) => {
                 gameState.currentForfeit = null;
                 io.to(roomCode).emit('forfeit-completed', { gameState, forfeitType: 'shot' });
                 try {
-                  maybeTriggerKaraoke(room, roomCode);
+                  maybeTriggerKaraoke(room, roomCode, true);
                 } catch (err) {
                   console.error('[karaoke] maybeTriggerKaraoke error after shot forfeit timeout passed', err);
                 }
@@ -2040,6 +2036,43 @@ io.on('connection', (socket) => {
     });
   });
 
+  // Shot forfeit completion: player confirms they've taken the shot
+  socket.on('shot-forfeit-completed', (roomCode, playerId) => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const gameState = room.gameState;
+    if (gameState.gamePhase !== 'forfeit' || !gameState.currentForfeit) return;
+    if (gameState.currentForfeit.type !== 'shot') return;
+
+    const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+    if (currentPlayer.id !== playerId) return;
+    
+    console.log(`[shot-forfeit-completed] ${currentPlayer.name} confirmed shot taken`);
+    
+    // Reset the charade life flag since shot forfeits don't involve charades
+    currentPlayer.needsCharadeForLife = false;
+    
+    gameState.gamePhase = 'category_selection';
+    gameState.currentForfeit = null;
+    
+    // Notify clients about the completed shot forfeit
+    io.to(roomCode).emit('forfeit-completed', { gameState, forfeitType: 'shot' });
+    
+    // Attempt an automatic karaoke break based on probability settings
+    try {
+      maybeTriggerKaraoke(room, roomCode, true);
+    } catch (err) {
+      console.error('[karaoke] maybeTriggerKaraoke error after shot forfeit', err);
+    }
+    
+    if (gameState.gamePhase === 'karaoke_break' || gameState.gamePhase === 'karaoke_voting') {
+      console.log('[karaoke] Karaoke triggered after shot forfeit; skipping scheduled nextTurn');
+    } else {
+      console.log('[shot-forfeit-completed] No karaoke; scheduling nextTurn in 3s');
+      scheduleNextTurn(room, roomCode, 'after shot forfeit', 3000);
+    }
+  });
+
   // Forfeit: start the charade or pictionary timer and reveal the word to audience (as needed)
   socket.on('start-charade', (roomCode, playerId) => {
     const room = rooms.get(roomCode);
@@ -2068,7 +2101,7 @@ io.on('connection', (socket) => {
       // Attempt an automatic karaoke break based on probability settings
       const beforePhase = gameState.gamePhase;
       try {
-        maybeTriggerKaraoke(room, roomCode);
+        maybeTriggerKaraoke(room, roomCode, true);
       } catch (err) {
         console.error('[karaoke] maybeTriggerKaraoke error after shot forfeit', err);
       }
@@ -2162,10 +2195,11 @@ io.on('connection', (socket) => {
         // Notify clients about the completed forfeit
         io.to(roomCode).emit('forfeit-completed', { gameState: currentRoom.gameState, forfeitType: 'tongue_twister' });
         
-        // Attempt an automatic karaoke break
+        // Attempt an automatic karaoke break after tongue twister forfeit
+        // Note: afterForfeit=true ensures turn advances to next player after karaoke
         const beforePhase = currentRoom.gameState.gamePhase;
         try {
-          maybeTriggerKaraoke(currentRoom, roomCode);
+          maybeTriggerKaraoke(currentRoom, roomCode, true);
         } catch (err) {
           console.error('[karaoke] maybeTriggerKaraoke error after tongue twister', err);
         }
@@ -2230,9 +2264,19 @@ io.on('connection', (socket) => {
       // Force a game state update to ensure clients are in sync
       io.to(roomCode).emit('game-state-update', { gameState });
       
-      // Finally advance to next turn with centralized scheduler
-      console.log(`[charade-solved] Scheduling next turn after charade solved by ${playerId}`);
-      scheduleNextTurn(room, roomCode, 'charade solved', 3000);
+      // Attempt karaoke break after charade success (afterForfeit=true to advance turn)
+      try {
+        maybeTriggerKaraoke(room, roomCode, true);
+      } catch (err) {
+        console.error('[karaoke] maybeTriggerKaraoke error after charade success', err);
+      }
+      if (gameState.gamePhase === 'karaoke_break' || gameState.gamePhase === 'karaoke_voting') {
+        console.log('[karaoke] Karaoke triggered after charade success; skipping scheduled nextTurn');
+      } else {
+        // Finally advance to next turn with centralized scheduler
+        console.log(`[charade-solved] Scheduling next turn after charade solved by ${playerId}`);
+        scheduleNextTurn(room, roomCode, 'charade solved', 3000);
+      }
     }
   });
 
@@ -2300,9 +2344,19 @@ io.on('connection', (socket) => {
       // Force a game state update to ensure clients are in sync
       io.to(roomCode).emit('game-state-update', { gameState });
       
-      // Finally advance to next turn with centralized scheduler
-      console.log(`[pictionary-solved] Scheduling next turn after pictionary solved by ${playerId}`);
-      scheduleNextTurn(room, roomCode, 'pictionary solved', 3000);
+      // Attempt karaoke break after pictionary success (afterForfeit=true to advance turn)
+      try {
+        maybeTriggerKaraoke(room, roomCode, true);
+      } catch (err) {
+        console.error('[karaoke] maybeTriggerKaraoke error after pictionary success', err);
+      }
+      if (gameState.gamePhase === 'karaoke_break' || gameState.gamePhase === 'karaoke_voting') {
+        console.log('[karaoke] Karaoke triggered after pictionary success; skipping scheduled nextTurn');
+      } else {
+        // Finally advance to next turn with centralized scheduler
+        console.log(`[pictionary-solved] Scheduling next turn after pictionary solved by ${playerId}`);
+        scheduleNextTurn(room, roomCode, 'pictionary solved', 3000);
+      }
     }
   });
 
@@ -2637,9 +2691,19 @@ function handleForfeitFailure(room, roomCode, currentPlayer, forfeitType) {
   // First notify clients about the failure
   io.to(roomCode).emit(`${forfeitType}-failed`, { gameState, playerId: currentPlayer.id });
   
-  // Then advance the turn to the next player
-  console.log(`[${forfeitType}] Scheduling next turn after ${forfeitType} timeout`);
-  scheduleNextTurn(room, roomCode, `${forfeitType} timeout`, 3000);
+  // Attempt karaoke break after forfeit failure (afterForfeit=true to advance turn)
+  try {
+    maybeTriggerKaraoke(room, roomCode, true);
+  } catch (err) {
+    console.error(`[karaoke] maybeTriggerKaraoke error after ${forfeitType} failure`, err);
+  }
+  if (gameState.gamePhase === 'karaoke_break' || gameState.gamePhase === 'karaoke_voting') {
+    console.log(`[${forfeitType}] Karaoke triggered after ${forfeitType} failure; skipping scheduled nextTurn`);
+  } else {
+    // Then advance the turn to the next player
+    console.log(`[${forfeitType}] Scheduling next turn after ${forfeitType} timeout`);
+    scheduleNextTurn(room, roomCode, `${forfeitType} timeout`, 3000);
+  }
 }
 
 // ---- Karaoke Feature (auto + manual) ----
@@ -2669,7 +2733,7 @@ function pickKaraokeOptions() {
   return shuffled.slice(0, 6);
 }
 
-function triggerKaraoke(room, roomCode, manual=false, skipVoting=false) {
+function triggerKaraoke(room, roomCode, manual=false, skipVoting=false, afterForfeit=false) {
   const gs = room.gameState;
   if (gs.gamePhase === 'karaoke_break' || gs.gamePhase === 'karaoke_voting') return;
   if (!gs.karaokeSettings) gs.karaokeSettings = { probability: 0.4, durationSec: 45, cooldownSec: 180, lastTriggeredAt: 0 };
@@ -2677,6 +2741,9 @@ function triggerKaraoke(room, roomCode, manual=false, skipVoting=false) {
   const since = now - (gs.karaokeSettings.lastTriggeredAt || 0);
   if (!manual && since < gs.karaokeSettings.cooldownSec * 1000) return;
   gs.karaokeSettings.lastTriggeredAt = now;
+  
+  // Track whether this karaoke was triggered after a forfeit
+  gs.karaokeAfterForfeit = afterForfeit;
   
   if (skipVoting) {
     // Skip voting - pick random song directly
@@ -2691,12 +2758,14 @@ function triggerKaraoke(room, roomCode, manual=false, skipVoting=false) {
       if (gs.gamePhase === 'karaoke_break') {
         gs.currentKaraokeSong = null;
         gs.gamePhase = 'category_selection';
-        // Resume the same player's turn after karaoke (skipVoting)
-        gs.resumeAfterKaraoke = true;
+        // Resume the same player's turn after karaoke (skipVoting) unless triggered after forfeit
+        if (!afterForfeit) {
+          gs.resumeAfterKaraoke = true;
+        }
         const endedAt = Date.now();
         io.to(roomCode).emit('karaoke-ended', { endedAt });
         io.to(roomCode).emit('game-state-update', { gameState: gs, message: 'Karaoke ended (auto)' });
-        scheduleNextTurn(room, roomCode, 'karaoke auto end (skip voting, resume same player)', 3000);
+        scheduleNextTurn(room, roomCode, 'karaoke auto end (skip voting' + (afterForfeit ? ', advance to next player' : ', resume same player') + ')', 3000);
       }
     }, gs.karaokeSettings.durationSec * 1000);
   } else {
@@ -2767,22 +2836,28 @@ function endKaraokeVoting(room, roomCode) {
     if (gs.gamePhase === 'karaoke_break') {
       gs.currentKaraokeSong = null;
       gs.gamePhase = 'category_selection';
-      // Resume the same player's turn after karaoke (post-voting)
-      gs.resumeAfterKaraoke = true;
+      // Resume the same player's turn after karaoke (post-voting) unless triggered after forfeit
+      const afterForfeit = gs.karaokeAfterForfeit || false;
+      if (!afterForfeit) {
+        gs.resumeAfterKaraoke = true;
+      }
+      // Clear the flag
+      delete gs.karaokeAfterForfeit;
       const endedAt = Date.now();
       io.to(roomCode).emit('karaoke-ended', { endedAt });
       io.to(roomCode).emit('game-state-update', { gameState: gs, message: 'Karaoke ended (auto)' });
-      scheduleNextTurn(room, roomCode, 'karaoke auto end (after voting, resume same player)', 3000);
+      scheduleNextTurn(room, roomCode, 'karaoke auto end (after voting' + (afterForfeit ? ', advance to next player' : ', resume same player') + ')', 3000);
     }
   }, gs.karaokeSettings.durationSec * 1000);
 }
 
-function maybeTriggerKaraoke(room, roomCode) {
+function maybeTriggerKaraoke(room, roomCode, afterForfeit = false) {
   const gs = room.gameState;
   if (!gs.karaokeSettings) gs.karaokeSettings = { probability: 0.4, durationSec: 45, cooldownSec: 180, lastTriggeredAt: 0 };
   const rnd = Math.random();
   if (rnd <= gs.karaokeSettings.probability) {
-    triggerKaraoke(room, roomCode, false);
+    // Always allow voting (skipVoting=false), but pass afterForfeit to control turn advancement
+    triggerKaraoke(room, roomCode, false, false, afterForfeit);
   }
 }
 
@@ -2876,23 +2951,25 @@ function nextTurn(room, roomCode) {
     const cyclesPerRound = room.gameState.cyclesPerRound || 2;
     const prevCycle = room.gameState.cycleInRound || 0;
     const nextCycle = prevCycle + 1;
+    console.log(`[nextTurn] Cycle increment: prevCycle=${prevCycle}, nextCycle=${nextCycle}, cyclesPerRound=${cyclesPerRound}, round=${room.gameState.round}`);
     room.gameState.cycleInRound = nextCycle;
     if (nextCycle >= cyclesPerRound) {
+      console.log(`[nextTurn] Round transition: cycle ${nextCycle} >= ${cyclesPerRound}, incrementing round from ${room.gameState.round} to ${room.gameState.round + 1}`);
       room.gameState.round++;
       room.gameState.cycleInRound = 0;
       // Configure cycles per round dynamically when entering a new round
       switch (room.gameState.round) {
         case 1:
-          room.gameState.cyclesPerRound = 2; // default
+          room.gameState.cyclesPerRound = 6; // default
           break;
         case 2:
-          room.gameState.cyclesPerRound = 2; // Head-to-Head
+          room.gameState.cyclesPerRound = 6; // Head-to-Head
           break;
         case 3:
-          room.gameState.cyclesPerRound = 2; // Spin
+          room.gameState.cyclesPerRound = 6; // Spin
           break;
         case 4:
-          room.gameState.cyclesPerRound = 4; // Four full cycles
+          room.gameState.cyclesPerRound = 6; // Six full cycles
           break;
         case 5:
           room.gameState.cyclesPerRound = 1; // Not used in sudden death
