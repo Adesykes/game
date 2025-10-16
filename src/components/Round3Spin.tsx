@@ -23,6 +23,8 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
   const [targetIndex, setTargetIndex] = useState<number | null>(null);
   const [justLanded, setJustLanded] = useState(false);
   const [wobble, setWobble] = useState(false);
+  const [blurActive, setBlurActive] = useState(false); // motion blur toggle during fast phase
+  // Accessible live message derived at render time
   const wheelRef = useRef<HTMLDivElement | null>(null);
   const transitionMsRef = useRef(5000);
 
@@ -144,6 +146,7 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
     ],
     []
   );
+  // Icons are rendered as emojis for a playful, readable style
 
   // Build conic gradient background for the wheel
   // Each segment is 36 degrees (360/10). Segment 0 is centered at 0° (12 o'clock)
@@ -163,7 +166,8 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
       const color = locked.includes(categories[i]) ? `${c}CC` : c;
       stops.push(`${color} ${start}deg ${end}deg`);
     }
-    return `conic-gradient(${stops.join(', ')})`;
+    // Darken segments uniformly to improve emoji contrast
+    return `linear-gradient(rgba(0,0,0,0.32), rgba(0,0,0,0.32)), conic-gradient(${stops.join(', ')})`;
   }, [categories, colors, seg, locked]);
 
   // Compute rotation to land selected category at 12 o'clock (0 degrees / top)
@@ -240,6 +244,10 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
       scheduleTicks(totalTicks, transitionMsRef.current);
       // Start whoosh for all clients on spin-result too (may be blocked if no user gesture yet)
       startWhoosh();
+
+      // Enable motion blur for the first ~60% of the spin duration
+      setBlurActive(true);
+      window.setTimeout(() => setBlurActive(false), Math.floor(transitionMsRef.current * 0.6));
     };
     socket.on('spin-result', onResult);
     return () => { socket.off('spin-result', onResult); };
@@ -260,6 +268,7 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
         console.log(`[Round3Spin] Wheel stopped. Landing on segment ${idx}: "${categories[idx]}"`);
         setLandedIndex(idx);
         setJustLanded(true);
+  // aria-live announcement handled in render
         // Clear highlight after a moment
         clearId = window.setTimeout(() => {
           setJustLanded(false);
@@ -316,7 +325,6 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
       // Segment i is centered at i * seg degrees (segment 0 at 0°, segment 1 at 36°, etc.)
       // Add gradientOffset to align with the visual gradient position
       const angle = i * seg + gradientOffset;
-      const lockedCat = locked.includes(cat);
       const isLanded = (landedIndex !== null && i === landedIndex) || (targetIndex !== null && justLanded && i === targetIndex);
       const dimThis = justLanded && ((landedIndex !== null && i !== landedIndex) || (targetIndex !== null && i !== targetIndex));
       return (
@@ -340,15 +348,7 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
               backdropFilter: 'blur(1px)',
             }}
           >
-            <span
-              className="font-semibold text-[11px] md:text-xs"
-              style={{
-                color: lockedCat ? 'rgba(255,255,255,0.7)' : isLanded ? '#FFE08A' : 'white',
-                textShadow: '0 1px 2px rgba(0,0,0,0.6)'
-              }}
-            >
-              {cat} {lockedCat ? '🔒' : ''}
-            </span>
+            {/* Category text labels intentionally removed; emojis render elsewhere */}
           </div>
         </div>
       );
@@ -359,15 +359,37 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
     <div className="bg-white/10 border border-white/20 rounded-2xl p-4 text-center">
       <div className="text-white font-bold mb-3">Round 3: Spin the Wheel</div>
       <div className="relative mx-auto" style={{ width: 320, height: 320, perspective: 900 }}>
-        {/* Fixed selector at 12 o'clock */}
-        <div className="absolute left-1/2 -translate-x-1/2 -top-2 z-20" aria-hidden>
-          <div 
-            className={`w-0 h-0 border-l-[12px] border-r-[12px] border-b-[20px] border-l-transparent border-r-transparent ${justLanded ? 'border-b-yellow-400' : 'border-b-white'}`}
-            style={{ 
-              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
-              transition: 'border-color 0.3s'
-            }} 
-          />
+        {/* Fixed selector at 12 o'clock - upgraded pointer with bounce/glow on land */}
+        <div className="absolute left-1/2 -translate-x-1/2 -top-3 z-20" aria-hidden>
+          <div
+            className={`relative flex items-center justify-center`}
+            style={{ width: 30, height: 24 }}
+          >
+            {/* soft glow when landed */}
+            <div
+              className={`absolute inset-0 rounded-full ${justLanded ? '' : 'opacity-0'}`}
+              style={{
+                boxShadow: justLanded ? '0 0 14px rgba(234,179,8,0.55), 0 0 2px rgba(234,179,8,0.65) inset' : 'none',
+                transition: 'opacity 220ms ease-out',
+                filter: 'blur(1px)'
+              }}
+            />
+            {/* rounded triangle pointer */}
+            <div
+              className={`${justLanded ? 'pointer-bounce' : ''}`}
+              style={{
+                width: 0,
+                height: 0,
+                borderLeft: '12px solid transparent',
+                borderRight: '12px solid transparent',
+                borderBottom: `20px solid ${justLanded ? '#facc15' : '#ffffff'}`,
+                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.55))',
+                borderBottomLeftRadius: 6,
+                borderBottomRightRadius: 6,
+                transition: 'border-bottom-color 160ms ease-out'
+              }}
+            />
+          </div>
         </div>
 
         {/* Wheel */}
@@ -376,7 +398,7 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
           className="absolute inset-0 rounded-full shadow-2xl"
           style={{
             backgroundImage: wheelBg,
-            filter: 'drop-shadow(0 6px 18px rgba(0,0,0,0.35))',
+            filter: `${blurActive ? 'blur(1.2px) ' : ''}drop-shadow(0 6px 18px rgba(0,0,0,0.35))`,
             // Base rotation via CSS var to support wobble keyframes
             ['--base-rot' as any]: `${rotation}deg`,
             transform: `rotate(var(--base-rot)) rotateX(8deg)`,
@@ -385,20 +407,21 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
             animation: wobble ? 'wheel-wobble 480ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards' : 'none',
           }}
         >
-          {/* Subtle per-slice separators and rim glow */}
+          {/* Subtle per-slice separators (aligned with -90deg offset) and rim/bevel glow */}
           <div className="absolute inset-0 rounded-full pointer-events-none" style={{
             background: `
-              radial-gradient(circle at center, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.1) 35%, rgba(0,0,0,0.15) 70%, rgba(0,0,0,0.35) 100%),
-              conic-gradient(from 0deg,
-                rgba(0,0,0,0.25) 0deg 0.5deg,
-                transparent 0.5deg 35.5deg,
-                rgba(0,0,0,0.25) 35.5deg 36deg
+              /* bevel + vignette */
+              radial-gradient(circle at 45% 45%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.10) 32%, rgba(0,0,0,0.14) 68%, rgba(0,0,0,0.35) 100%),
+              /* separators every 36deg */
+              repeating-conic-gradient(from -90deg,
+                rgba(0,0,0,0.28) 0deg 0.65deg,
+                rgba(0,0,0,0.0) 0.65deg 36deg
               )
             `,
             mixBlendMode: 'overlay',
             transform: 'translateZ(4px)'
           }} />
-          {/* Local keyframes for wobble using base rotation var */}
+          {/* Local keyframes for wobble using base rotation var + pointer/ring animations */}
           <style>
             {`
               @keyframes wheel-wobble {
@@ -407,6 +430,19 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
                 80%  { transform: rotate(calc(var(--base-rot) - 1.2deg)) rotateX(8deg); }
                 92%  { transform: rotate(calc(var(--base-rot) + 0.5deg)) rotateX(8deg); }
                 100% { transform: rotate(var(--base-rot)) rotateX(8deg); }
+              }
+              @keyframes pointer-bounce-anim {
+                0%   { transform: translateY(0); }
+                35%  { transform: translateY(3px); }
+                70%  { transform: translateY(0); }
+                85%  { transform: translateY(1px); }
+                100% { transform: translateY(0); }
+              }
+              .pointer-bounce { animation: pointer-bounce-anim 380ms ease-out; }
+              @keyframes ring-pop-anim {
+                0%   { opacity: 0; box-shadow: 0 0 0 0 rgba(234,179,8,0.0), 0 0 0 rgba(234,179,8,0.0) inset; }
+                40%  { opacity: 1; box-shadow: 0 0 0 10px rgba(234,179,8,0.18) inset, 0 0 26px rgba(234,179,8,0.45); }
+                100% { opacity: 1; box-shadow: 0 0 0 8px rgba(234,179,8,0.25) inset, 0 0 18px rgba(234,179,8,0.35); }
               }
             `}
           </style>
@@ -428,16 +464,79 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
             </div>
           </div>
 
+          {/* Rim tick lights around the edge */}
+          <div className="absolute inset-0 rounded-full pointer-events-none" style={{ transform: 'translateZ(8px)' }}>
+            {Array.from({ length: categories.length * 2 }).map((_, i) => {
+              const angle = (i * (360 / (categories.length * 2))) - 90; // align to top
+              return (
+                <div key={`tick-${i}`} className="absolute left-1/2 top-1/2" style={{ transform: `rotate(${angle}deg) translateX(150px)` }}>
+                  <div className={`rounded-full ${spinning ? 'tick-glow' : ''}`} style={{ width: 4, height: 4, background: 'rgba(255,255,255,0.55)', boxShadow: '0 0 4px rgba(255,255,255,0.45)' }} />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Locked slice hatch overlays (rotate with wheel) */}
+          {locked.map((name) => {
+            const i = categories.indexOf(name);
+            if (i < 0) return null;
+            const start = i * seg - seg / 2 - 90; // align to our -90 offset
+            const end = i * seg + seg / 2 - 90;
+            const mask = `conic-gradient(from -90deg, transparent 0deg ${start}deg, white ${start}deg ${end}deg, transparent ${end}deg 360deg)`;
+            return (
+              <div key={`lockmask-${name}`} className="absolute inset-0 pointer-events-none rounded-full"
+                style={{
+                  WebkitMaskImage: mask as any,
+                  maskImage: mask as any,
+                  background: `
+                    linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)),
+                    repeating-linear-gradient(45deg, rgba(255,255,255,0.25) 0 6px, rgba(255,255,255,0.04) 6px 14px)
+                  `,
+                  opacity: 0.55,
+                  mixBlendMode: 'overlay',
+                  transform: 'translateZ(6px)'
+                }}
+              />
+            );
+          })}
+
           {/* Labels */}
           {renderLabels()}
+          {/* Category icons inside labels (low opacity for texture) */}
+          <div className="absolute inset-0 pointer-events-none" style={{ transform: 'translateZ(7px)' }}>
+            {categories.map((cat, i) => {
+              const angle = i * seg - 90;
+              const isTarget = targetIndex !== null && i === targetIndex && justLanded;
+              const radial = isTarget ? 83 : 78; // nudge landed icon a bit farther
+              const size = isTarget ? 24 : 22;   // slightly larger on land
+              const iconOpacity = isTarget ? 0.95 : 0.8;
+              return (
+                <div key={`icon-${cat}`} className="absolute left-1/2 top-1/2" style={{ transform: `rotate(${angle}deg) translateX(${radial}px)` }}>
+                  <div aria-hidden className="text-white/40" style={{ fontSize: size, transform: 'rotate(90deg)', opacity: iconOpacity, textShadow: '0 1px 2px rgba(0,0,0,0.65)' }}>
+                    {cat === 'History' ? '🏛️' :
+                     cat === 'Science' ? '🔬' :
+                     cat === 'Sports' ? '🏆' :
+                     cat === 'Entertainment' ? '🎬' :
+                     cat === 'Geography' ? '🌍' :
+                     cat === 'Technology' ? '💡' :
+                     cat === 'Music' ? '🎵' :
+                     cat === 'Food' ? '🍽️' :
+                     cat === 'Literature' ? '📚' :
+                     cat === 'Animals' ? '🐾' : '•'}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
-          {/* Landing glow */}
+          {/* Landing glow ring */}
           {justLanded && (
             <div
               className="absolute inset-0 rounded-full pointer-events-none"
               style={{
                 boxShadow: '0 0 0 8px rgba(234,179,8,0.25) inset, 0 0 18px rgba(234,179,8,0.35)',
-                transform: 'translateZ(5px)'
+                transform: 'translateZ(5px)',
+                animation: 'ring-pop-anim 380ms ease-out 1'
               }}
             />
           )}
@@ -503,6 +602,10 @@ const Round3Spin: React.FC<Round3SpinProps> = ({ locked, onSpin, socket, disable
         )}
       </div>
       <div className="mt-2 text-white/60 text-xs">Locked categories appear dimmed and are avoided when possible</div>
+      {/* ARIA live region for accessibility announcements */}
+      <div aria-live="polite" className="sr-only" role="status">
+        {justLanded && targetIndex !== null ? `Category selected: ${categories[targetIndex]}` : ''}
+      </div>
     </div>
   );
 };
